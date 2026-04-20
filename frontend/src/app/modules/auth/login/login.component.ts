@@ -28,6 +28,15 @@ export class LoginComponent implements OnInit {
   username = signal('');
   password = signal('');
   showPassword = signal(false);
+  errorMsg = signal('');
+
+  // Mock credentials — khi backend sẵn sàng, đổi sang authService.login() gọi /auth/login
+  private readonly mockCredentials: Array<{ username: string; password: string; user: DemoUser }> = [
+    { username: 'admin',      password: 'admin123',  user: { id: 'U001', name: 'HR Admin',         email: 'admin@ptscmc.vn',   role: 'Admin' } },
+    { username: 'hr.manager', password: 'hr123',     user: { id: 'U002', name: 'Nguyễn Thị Hoa',   email: 'hoa.nt@ptscmc.vn',  role: 'HR Manager' } },
+    { username: 'lm.kythuat', password: 'lm123',     user: { id: 'U003', name: 'Trần Minh Tuấn',   email: 'tuan.tm@ptscmc.vn', role: 'Line Manager' } },
+    { username: 'viewer',     password: 'viewer123', user: { id: 'U005', name: 'Phạm Quốc Việt',   email: 'viet.pq@ptscmc.vn', role: 'Viewer' } },
+  ];
 
   private readonly heroCandidates = [
     'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=1600&q=80',
@@ -61,11 +70,27 @@ export class LoginComponent implements OnInit {
   }
 
   loginFake(): void {
-    // IMPORTANT: bỏ qua form hoàn toàn (no validate / no check input)
-    const fakeToken = `fake-jwt-${Date.now()}`;
-    const fakeUser: DemoUser = { id: 'U001', name: 'Hoàng Anh', email: 'demo@ptscmc.vn', role: 'admin' };
-    this.authService.setSession(fakeToken, fakeUser);
+    const u = this.username().trim();
+    const p = this.password();
+    if (!u || !p) {
+      this.errorMsg.set('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
+      return;
+    }
+    const match = this.mockCredentials.find(c => c.username === u && c.password === p);
+    if (!match) {
+      this.errorMsg.set('Tên đăng nhập hoặc mật khẩu không đúng.');
+      return;
+    }
+    this.errorMsg.set('');
+    const token = `fake-jwt-${Date.now()}`;
+    this.authService.setSession(token, match.user);
     this.router.navigate(['/dashboard']);
+  }
+
+  fillDemo(username: string, password: string): void {
+    this.username.set(username);
+    this.password.set(password);
+    this.errorMsg.set('');
   }
 }
 

@@ -105,11 +105,37 @@
         <span class="remember-lbl">Ghi nhớ đăng nhập trên thiết bị này</span>
       </label>
 
+      @if (errorMsg()) {
+        <div class="login-error">
+          <span nz-icon nzType="close-circle"></span>
+          {{ errorMsg() }}
+        </div>
+      }
+
       <!-- Submit -->
       <button class="btn-submit" (click)="loginFake()">
         <span>Đăng nhập</span>
         <span nz-icon nzType="arrow-right" class="btn-submit-ico"></span>
       </button>
+
+      <!-- Demo accounts -->
+      <div class="demo-hint">
+        <div class="dh-title">Tài khoản demo — click để điền</div>
+        <div class="dh-chips">
+          <button type="button" class="dh-chip" (click)="fillDemo('admin', 'admin123')">
+            <strong>admin</strong> / admin123
+          </button>
+          <button type="button" class="dh-chip" (click)="fillDemo('hr.manager', 'hr123')">
+            <strong>hr.manager</strong> / hr123
+          </button>
+          <button type="button" class="dh-chip" (click)="fillDemo('lm.kythuat', 'lm123')">
+            <strong>lm.kythuat</strong> / lm123
+          </button>
+          <button type="button" class="dh-chip" (click)="fillDemo('viewer', 'viewer123')">
+            <strong>viewer</strong> / viewer123
+          </button>
+        </div>
+      </div>
 
       <!-- Support -->
       <div class="form-foot">
