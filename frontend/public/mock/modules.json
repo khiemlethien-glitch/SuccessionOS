@@ -1,0 +1,17 @@
+{
+  "data": [
+    { "id": "MOD001", "name": "Succession Planning", "description": "Quản lý chuỗi kế thừa cho các vị trí then chốt, 9-box calibration.",        "category": "Core",     "icon": "apartment", "status": "active",    "version": "2.1.0", "price": "Included" },
+    { "id": "MOD002", "name": "Talent Management",   "description": "Hồ sơ nhân tài, talent pool, phân tầng Nòng cốt / Tiềm năng / Kế thừa.",    "category": "Core",     "icon": "team",      "status": "active",    "version": "2.0.1", "price": "Included" },
+    { "id": "MOD003", "name": "IDP & Development",   "description": "Kế hoạch phát triển cá nhân, theo dõi tiến độ, phê duyệt workflow.",          "category": "Core",     "icon": "solution",  "status": "active",    "version": "1.8.0", "price": "Included" },
+    { "id": "MOD004", "name": "360° Assessment",     "description": "Đánh giá đa chiều với 4 năng lực, cấu hình trọng số linh hoạt.",               "category": "Core",     "icon": "star",      "status": "active",    "version": "1.5.2", "price": "Included" },
+    { "id": "MOD005", "name": "Mentoring & Coaching","description": "Kết nối mentor-mentee, theo dõi buổi gặp, dashboard tiến độ.",                 "category": "Add-on",   "icon": "user-add",  "status": "active",    "version": "1.2.0", "price": "Included" },
+    { "id": "MOD006", "name": "Calibration Sessions","description": "Họp hiệu chỉnh 9-box, lock kết quả, comment & approval workflow.",            "category": "Add-on",   "icon": "audit",     "status": "active",    "version": "1.0.5", "price": "Included" },
+    { "id": "MOD007", "name": "Advanced Reports",    "description": "Báo cáo ROI, heat map rủi ro, export PDF/Excel theo tiêu chí.",                "category": "Add-on",   "icon": "bar-chart", "status": "active",    "version": "1.3.0", "price": "Included" },
+    { "id": "MOD008", "name": "HRMS Integration",    "description": "Kết nối SAP HCM / Oracle HCM để đồng bộ nhân sự tự động mỗi ngày.",            "category": "Integration","icon": "api",     "status": "available", "version": "0.9.0", "price": "Liên hệ" },
+    { "id": "MOD009", "name": "AI Succession Suggest","description": "AI tự động đề xuất kế thừa dựa trên gap analysis và trajectory.",             "category": "AI",       "icon": "robot",     "status": "available", "version": "Beta",  "price": "Liên hệ" },
+    { "id": "MOD010", "name": "Skills Marketplace",  "description": "Kho kỹ năng, internal job posting, self-nomination cho các vị trí.",           "category": "Add-on",   "icon": "shop",      "status": "available", "version": "0.8.0", "price": "Liên hệ" },
+    { "id": "MOD011", "name": "Learning Paths",       "description": "Tích hợp LMS, gán learning path tự động theo gap competency.",                "category": "Integration","icon": "read",    "status": "available", "version": "0.7.0", "price": "Liên hệ" },
+    { "id": "MOD012", "name": "Position Benchmark",  "description": "So sánh benchmark với ngành dầu khí/EPC khu vực Đông Nam Á.",                  "category": "AI",       "icon": "trophy",    "status": "coming",    "version": "—",     "price": "Q3 2026" }
+  ],
+  "total": 12
+}

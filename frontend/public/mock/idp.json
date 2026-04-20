@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "id": "IDP001",
+      "talentId": "T001",
+      "talentName": "Nguyễn Văn An",
+      "year": 2026,
+      "goals": [
+        {
+          "id": "G001",
+          "title": "Hoàn thành chứng chỉ PMP",
+          "category": "Certification",
+          "deadline": "2026-09-30",
+          "status": "In Progress",
+          "progress": 40
+        }
+      ]
+    }
+  ],
+  "total": 1
+}

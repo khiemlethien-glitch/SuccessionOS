@@ -1,0 +1,121 @@
+<div class="login-page">
+
+  <!-- ═══ Left hero panel ═══ -->
+  <div class="hero-panel">
+    <!-- Decorative blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="grid-pattern"></div>
+
+    <!-- Top brand -->
+    <div class="hero-brand">
+      <div class="hero-brand-badge">
+        <span nz-icon nzType="cluster"></span>
+      </div>
+      <div class="hero-brand-text">
+        <div class="hb-title">SuccessionOS</div>
+        <div class="hb-sub">Talent Platform</div>
+      </div>
+    </div>
+
+    <!-- Center content -->
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="he-dot"></span>
+        PLATFORM QUẢN LÝ NHÂN TÀI
+      </div>
+
+      <h1 class="hero-title">
+        Kết nối tri thức<br />
+        <span class="hero-accent">Dẫn lối thành công</span>
+      </h1>
+
+      <p class="hero-sub">
+        Nền tảng toàn diện cho chuỗi phát triển nhân tài, lộ trình kế thừa và IDP — tiên phong trong ngành năng lượng.
+      </p>
+    </div>
+
+    <!-- Bottom note -->
+    <div class="hero-foot">
+      <span>© 2026 PTSC M&C</span>
+      <span class="dot">·</span>
+      <span>Kết nối tri thức — Dẫn lối thành công</span>
+    </div>
+  </div>
+
+  <!-- ═══ Right form panel ═══ -->
+  <div class="form-panel">
+    <div class="form-card">
+
+      <!-- Logo lockup -->
+      <div class="form-brand">
+        <div class="fb-line fb-pt">PTSC</div>
+        <div class="fb-line fb-mc">M&amp;C</div>
+      </div>
+
+      <div class="form-intro">
+        <h2 class="form-title">Chào mừng trở lại</h2>
+        <p class="form-sub">Đăng nhập vào SuccessionOS để tiếp tục</p>
+      </div>
+
+      <!-- Username -->
+      <div class="field">
+        <label class="field-label">Tên đăng nhập</label>
+        <nz-input-group [nzPrefix]="userIco" class="field-input">
+          <input
+            nz-input
+            placeholder="Email / Mã nhân viên / CCCD"
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
+          />
+        </nz-input-group>
+        <ng-template #userIco><span nz-icon nzType="user" class="pfx-ico"></span></ng-template>
+      </div>
+
+      <!-- Password -->
+      <div class="field">
+        <div class="field-label-row">
+          <label class="field-label">Mật khẩu</label>
+          <a class="forgot-link" href="javascript:void(0)">Quên mật khẩu?</a>
+        </div>
+        <nz-input-group [nzPrefix]="lockIco" [nzSuffix]="eyeToggle" class="field-input">
+          <input
+            nz-input
+            [type]="showPassword() ? 'text' : 'password'"
+            placeholder="••••••••"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+          />
+        </nz-input-group>
+        <ng-template #lockIco><span nz-icon nzType="lock" class="pfx-ico"></span></ng-template>
+        <ng-template #eyeToggle>
+          <span
+            nz-icon
+            class="eye-ico"
+            [nzType]="showPassword() ? 'eye-invisible' : 'eye'"
+            (click)="togglePassword()"
+          ></span>
+        </ng-template>
+      </div>
+
+      <!-- Remember me -->
+      <label class="remember-row">
+        <input type="checkbox" class="remember-box" />
+        <span class="remember-lbl">Ghi nhớ đăng nhập trên thiết bị này</span>
+      </label>
+
+      <!-- Submit -->
+      <button class="btn-submit" (click)="loginFake()">
+        <span>Đăng nhập</span>
+        <span nz-icon nzType="arrow-right" class="btn-submit-ico"></span>
+      </button>
+
+      <!-- Support -->
+      <div class="form-foot">
+        Cần hỗ trợ?
+        <a href="javascript:void(0)">Liên hệ quản trị hệ thống</a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,38 @@
+<div class="mkt-page">
+  <div class="page-header">
+    <h1 class="page-title">Module Marketplace</h1>
+    <div class="filter-tabs">
+      <button nz-button [class.active-tab]="filter()==='all'"      (click)="filter.set('all')">Tất cả ({{ modules().length }})</button>
+      <button nz-button [class.active-tab]="filter()==='active'"   (click)="filter.set('active')">Đang dùng</button>
+      <button nz-button [class.active-tab]="filter()==='available'"(click)="filter.set('available')">Có thể thêm</button>
+    </div>
+  </div>
+
+  <div class="module-grid">
+    @for (m of filtered(); track m.id) {
+      <div class="module-card" [class.active-module]="m.status==='active'" [class.coming-module]="m.status==='coming'">
+        <div class="mod-icon-wrap">
+          <span nz-icon [nzType]="m.icon" class="mod-icon"></span>
+        </div>
+        <div class="mod-body">
+          <div class="mod-header">
+            <span class="mod-name">{{ m.name }}</span>
+            <nz-tag [nzColor]="statusColor(m.status)" class="mod-status">{{ statusLabel(m.status) }}</nz-tag>
+          </div>
+          <p class="mod-desc">{{ m.description }}</p>
+          <div class="mod-footer">
+            <span class="mod-meta">v{{ m.version }} · {{ m.category }}</span>
+            <span class="mod-price">{{ m.price }}</span>
+          </div>
+        </div>
+        @if (m.status === 'active') {
+          <button nz-button nzType="link" nzDanger class="mod-action">Tắt</button>
+        } @else if (m.status === 'available') {
+          <button nz-button nzType="primary" class="mod-action btn-navy">Thêm</button>
+        } @else {
+          <button nz-button disabled class="mod-action">Sắp ra</button>
+        }
+      </div>
+    }
+  </div>
+</div>

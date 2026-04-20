@@ -1,0 +1,25 @@
+{
+  "data": [
+    { "id": "A001", "talentId": "T002", "talentName": "Trần Thị Bình",   "period": "2025-H2", "assessorCount": 5,
+      "scores": { "technical": 88, "leadership": 95, "communication": 92, "strategicThinking": 90 }, "overallScore": 91, "status": "Completed" },
+    { "id": "A002", "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "period": "2025-H2", "assessorCount": 6,
+      "scores": { "technical": 90, "leadership": 94, "communication": 88, "strategicThinking": 92 }, "overallScore": 91, "status": "Completed" },
+    { "id": "A003", "talentId": "T001", "talentName": "Nguyễn Văn An",   "period": "2025-H2", "assessorCount": 4,
+      "scores": { "technical": 88, "leadership": 72, "communication": 78, "strategicThinking": 75 }, "overallScore": 78, "status": "Completed" },
+    { "id": "A004", "talentId": "T020", "talentName": "Vũ Đình Long",    "period": "2025-H2", "assessorCount": 5,
+      "scores": { "technical": 95, "leadership": 85, "communication": 82, "strategicThinking": 88 }, "overallScore": 88, "status": "Completed" },
+    { "id": "A005", "talentId": "T019", "talentName": "Hoàng Thị Tâm",  "period": "2025-H2", "assessorCount": 5,
+      "scores": { "technical": 82, "leadership": 88, "communication": 92, "strategicThinking": 86 }, "overallScore": 87, "status": "Completed" },
+    { "id": "A006", "talentId": "T004", "talentName": "Phạm Thị Dung",  "period": "2025-H2", "assessorCount": 4,
+      "scores": { "technical": 90, "leadership": 82, "communication": 85, "strategicThinking": 88 }, "overallScore": 86, "status": "Completed" },
+    { "id": "A007", "talentId": "T024", "talentName": "Nguyễn Văn Yên", "period": "2025-H2", "assessorCount": 5,
+      "scores": { "technical": 88, "leadership": 90, "communication": 88, "strategicThinking": 85 }, "overallScore": 88, "status": "Completed" },
+    { "id": "A008", "talentId": "T011", "talentName": "Lê Văn Long",    "period": "2025-H2", "assessorCount": 4,
+      "scores": { "technical": 92, "leadership": 80, "communication": 80, "strategicThinking": 82 }, "overallScore": 84, "status": "Completed" },
+    { "id": "A009", "talentId": "T006", "talentName": "Nguyễn Thị Phương","period": "2026-H1","assessorCount": 0,
+      "scores": { "technical": 0,  "leadership": 0,  "communication": 0,  "strategicThinking": 0  }, "overallScore": 0,  "status": "Pending"   },
+    { "id": "A010", "talentId": "T018", "talentName": "Nguyễn Văn Sơn", "period": "2026-H1", "assessorCount": 0,
+      "scores": { "technical": 0,  "leadership": 0,  "communication": 0,  "strategicThinking": 0  }, "overallScore": 0,  "status": "Pending"   }
+  ],
+  "total": 10
+}

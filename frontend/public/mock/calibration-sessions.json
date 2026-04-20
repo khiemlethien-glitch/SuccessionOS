@@ -1,0 +1,19 @@
+{
+  "data": [
+    { "id": "C001", "title": "Họp Hiệu chỉnh Q1/2026",   "facilitator": "HR Admin", "date": "2026-03-28", "status": "Completed", "locked": true,
+      "participants": ["T007","T019","T004","T024","T011"],
+      "calibrations": [
+        { "talentId": "T007", "performanceBefore": 93, "performanceAfter": 93, "potentialBefore": 91, "potentialAfter": 91, "box": 9, "notes": "Confirmed top performer" },
+        { "talentId": "T002", "performanceBefore": 95, "performanceAfter": 94, "potentialBefore": 94, "potentialAfter": 93, "box": 9, "notes": "Slight adjustment after discussion" },
+        { "talentId": "T020", "performanceBefore": 92, "performanceAfter": 92, "potentialBefore": 90, "potentialAfter": 90, "box": 9, "notes": "" },
+        { "talentId": "T004", "performanceBefore": 91, "performanceAfter": 91, "potentialBefore": 86, "potentialAfter": 88, "box": 8, "notes": "Potential raised — finance transformation lead" },
+        { "talentId": "T011", "performanceBefore": 89, "performanceAfter": 89, "potentialBefore": 88, "potentialAfter": 87, "box": 8, "notes": "" }
+      ]
+    },
+    { "id": "C002", "title": "Họp Hiệu chỉnh Q2/2026 (Draft)", "facilitator": "HR Admin", "date": "2026-06-25", "status": "Draft", "locked": false,
+      "participants": [],
+      "calibrations": []
+    }
+  ],
+  "total": 2
+}

@@ -1,0 +1,197 @@
+<div class="dashboard">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">Tổng quan</h1>
+      <p class="dash-sub">Cập nhật lần cuối: {{ today }}</p>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <!-- Nhân sự trong chuỗi -->
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-hdr">
+        <div class="kpi-label">Nhân sự trong chuỗi</div>
+        <div class="kpi-icon kpi-icon-blue"><span nz-icon nzType="user"></span></div>
+      </div>
+      <div class="kpi-value">{{ totalTalents() }}</div>
+      <div class="kpi-legend">
+        <div class="kpi-dot-row"><span class="dot dot-core"></span><span class="txt">{{ tierCounts().core }} Nòng cốt</span></div>
+        <div class="kpi-dot-row"><span class="dot dot-successor"></span><span class="txt">{{ tierCounts().potential }} Tiềm năng</span></div>
+        <div class="kpi-dot-row"><span class="dot dot-potential"></span><span class="txt">{{ tierCounts().successor }} Kế thừa</span></div>
+      </div>
+    </div>
+
+    <!-- Vị trí có kế thừa -->
+    <div class="kpi-card kpi-green">
+      <div class="kpi-hdr">
+        <div class="kpi-label">Vị trí có kế thừa</div>
+        <div class="kpi-icon kpi-icon-green"><span nz-icon nzType="safety-certificate"></span></div>
+      </div>
+      <div class="kpi-value">{{ positionsWithSuccessors() }}</div>
+      <div class="kpi-sub">{{ positionsNoSuccessor() }} vị trí chưa đủ</div>
+    </div>
+
+    <!-- Rủi ro cao -->
+    <div class="kpi-card kpi-red">
+      <div class="kpi-hdr">
+        <div class="kpi-label">Rủi ro cao</div>
+        <div class="kpi-icon kpi-icon-red"><span nz-icon nzType="warning"></span></div>
+      </div>
+      <div class="kpi-value">
+        {{ highRiskCount() }}
+        <span class="kpi-pill">↑ {{ highRiskPct() }}%</span>
+      </div>
+      <div class="kpi-sub">cần xử lý trong 30 ngày</div>
+    </div>
+
+    <!-- IDP đang thực hiện -->
+    <div class="kpi-card kpi-amber">
+      <div class="kpi-hdr">
+        <div class="kpi-label">IDP đang thực hiện</div>
+        <div class="kpi-icon kpi-icon-amber"><span nz-icon nzType="clock-circle"></span></div>
+      </div>
+      <div class="kpi-value">{{ activeIdpGoalsCount() }}</div>
+      <div class="kpi-progress">
+        <div class="bar"><div class="fill fill-amber" [style.width.%]="avgIdpProgress()"></div></div>
+        <div class="kpi-sub">trung bình {{ avgIdpProgress() }}% hoàn thành</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-grid">
+    <!-- Danh sách nhân sự rủi ro cao -->
+    <nz-card class="risk-list-card" [nzBordered]="false">
+      <div class="card-header">
+        <h3 class="card-title">Danh sách nhân sự rủi ro cao</h3>
+        <p class="card-subtitle">Theo dõi các trường hợp có nguy cơ nghỉ việc cao</p>
+      </div>
+
+      <div class="risk-list">
+        @for (t of topRiskNow(); track t.id) {
+          <div class="risk-row">
+            <!-- Left: Avatar + Info -->
+            <div class="person-info">
+              <nz-avatar
+                [nzText]="getInitials(t.fullName)"
+                [ngStyle]="{ 'background-color': avatarColor(t.fullName) }"
+                nzSize="default">
+              </nz-avatar>
+              <div class="person-text">
+                <div class="person-name">{{ t.fullName }}</div>
+                <div class="person-role">{{ t.position }}</div>
+              </div>
+            </div>
+
+            <!-- Middle: Reason with warning icon -->
+            <div class="risk-reason">
+              <span nz-icon nzType="exclamation-circle" nzTheme="outline"></span>
+              <span>{{ riskReason(t) }}</span>
+            </div>
+
+            <!-- Right: Badge -->
+            <span class="risk-badge">Rủi ro cao</span>
+          </div>
+        }
+      </div>
+    </nz-card>
+
+    <!-- Phân bổ tầng nhân sự -->
+    <div class="card tier-card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Phân bổ tầng nhân sự</div>
+          <div class="card-sub">Tỷ trọng theo 4 tầng trong chuỗi phát triển</div>
+        </div>
+      </div>
+
+      <div class="donut-wrap">
+        <div class="donut-chart">
+          <svg viewBox="0 0 120 120" class="donut-svg" preserveAspectRatio="xMidYMid meet">
+            <!-- base track -->
+            <circle cx="60" cy="60" r="42" fill="none" stroke="#f1f5f9" stroke-width="14" />
+
+            <!-- segments -->
+            @for (seg of donutSegments(); track seg.key) {
+              <circle
+                cx="60" cy="60" r="42" fill="none"
+                [attr.stroke]="seg.color"
+                stroke-width="14"
+                stroke-linecap="butt"
+                [attr.stroke-dasharray]="seg.dash"
+                [attr.transform]="'rotate(' + seg.rotation + ' 60 60)'"
+                class="donut-seg" />
+            }
+          </svg>
+
+          <div class="donut-center">
+            <div class="donut-total">{{ tierTotal() }}</div>
+          </div>
+        </div>
+
+        <div class="tier-legend">
+          @for (seg of tierBreakdown(); track seg.key) {
+            <div class="tier-row">
+              <span class="tier-swatch" [style.background]="seg.color"></span>
+              <div class="tier-text">
+                <div class="tier-name">{{ seg.name }}</div>
+                <div class="tier-count">{{ seg.value }} người</div>
+              </div>
+              <div class="tier-pct">{{ seg.pct }}%</div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tình trạng 12 vị trí then chốt -->
+  <div class="card positions-card">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Tình trạng 12 Vị trí Then chốt</div>
+        <div class="section-sub">Theo dõi độ sẵn sàng kế thừa theo từng vị trí</div>
+      </div>
+    </div>
+
+    <div class="pos-grid">
+      @for (p of positions(); track p.id) {
+        <div class="pos-card2" [ngClass]="'tone-' + readinessTone(p)">
+          <div class="pos2-accent"></div>
+
+          <div class="pos2-top">
+            <div class="pos2-title-wrap">
+              <div class="pos2-title">{{ p.title }}</div>
+              <div class="pos2-dept">{{ p.department }}</div>
+            </div>
+            <span class="pos2-badge" [ngClass]="positionBadge(p).cls">{{ positionBadge(p).label }}</span>
+          </div>
+
+          <div class="pos2-holder">
+            <app-avatar [name]="p.currentHolder" [size]="40"></app-avatar>
+            <div class="pos2-holder-meta">
+              <div class="pos2-holder-name">{{ p.currentHolder }}</div>
+              <div class="pos2-holder-sub">
+                <span nz-icon nzType="clock-circle" nzTheme="outline"></span>
+                {{ holderTenure(p) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="pos2-foot">
+            <span class="ready2">
+              <span class="ready2-dot"></span>
+              {{ readinessLabel(p) }}
+            </span>
+            <span class="cand2">
+              <span nz-icon nzType="team" nzTheme="outline"></span>
+              {{ p.successorCount }} ứng viên
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

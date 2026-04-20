@@ -1,0 +1,15 @@
+{
+  "data": [
+    { "id": "LOG001", "timestamp": "2026-04-18T09:15:00Z", "actor": "HR Admin", "action": "UPDATE",  "entity": "Talent",     "entityId": "T007", "description": "Cập nhật Risk Score T007: 75 → 80",           "module": "Talent" },
+    { "id": "LOG002", "timestamp": "2026-04-18T10:30:00Z", "actor": "HR Admin", "action": "CREATE",  "entity": "IDP",        "entityId": "IDP005","description": "Tạo mới IDP cho Hoàng Thị Tâm",              "module": "IDP" },
+    { "id": "LOG003", "timestamp": "2026-04-17T14:00:00Z", "actor": "HR Admin", "action": "UPDATE",  "entity": "Succession", "entityId": "SP001", "description": "Thêm kế thừa T018 vào Director QLDA",         "module": "Succession" },
+    { "id": "LOG004", "timestamp": "2026-04-17T09:45:00Z", "actor": "HR Admin", "action": "LOCK",    "entity": "Calibration","entityId": "C001",  "description": "Lock phiên Họp Hiệu chỉnh Q1/2026",           "module": "Calibration" },
+    { "id": "LOG005", "timestamp": "2026-04-16T16:20:00Z", "actor": "HR Admin", "action": "CREATE",  "entity": "Mentoring",  "entityId": "M003",  "description": "Tạo cặp kèm cặp: Phạm Thị Dung → Hoàng Thị Zung","module": "Mentoring" },
+    { "id": "LOG006", "timestamp": "2026-04-15T11:00:00Z", "actor": "HR Admin", "action": "UPDATE",  "entity": "IDP",        "entityId": "IDP001","description": "Cập nhật tiến độ Goal G002: 30% → 45%",       "module": "IDP" },
+    { "id": "LOG007", "timestamp": "2026-04-14T08:30:00Z", "actor": "HR Admin", "action": "CREATE",  "entity": "Position",   "entityId": "P009",  "description": "Thêm vị trí then chốt: Procurement Manager",  "module": "Positions" },
+    { "id": "LOG008", "timestamp": "2026-04-13T15:45:00Z", "actor": "HR Admin", "action": "DELETE",  "entity": "Succession", "entityId": "SP008", "description": "Xóa succession plan lỗi thời",                "module": "Succession" },
+    { "id": "LOG009", "timestamp": "2026-04-12T10:00:00Z", "actor": "System",   "action": "IMPORT",  "entity": "Talent",     "entityId": null,    "description": "Import 5 nhân viên mới từ HRMS",               "module": "Talent" },
+    { "id": "LOG010", "timestamp": "2026-04-11T14:30:00Z", "actor": "HR Admin", "action": "UPDATE",  "entity": "Assessment", "entityId": "A004",  "description": "Hoàn thiện đánh giá 360° Vũ Đình Long",       "module": "Assessment" }
+  ],
+  "total": 10
+}

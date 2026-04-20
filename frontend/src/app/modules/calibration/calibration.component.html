@@ -1,0 +1,58 @@
+<div class="calib-page">
+  <div class="page-header">
+    <h1 class="page-title">Họp Hiệu chỉnh</h1>
+    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto">
+      <span nz-icon nzType="plus"></span> Tạo phiên họp
+    </button>
+  </div>
+
+  @for (s of sessions(); track s.id) {
+    <div class="session-card">
+      <div class="session-header">
+        <div class="session-title-row">
+          <h3 class="session-title">{{ s.title }}</h3>
+          <nz-tag [nzColor]="statusColor(s.status)">{{ s.status }}</nz-tag>
+          @if (s.locked) { <nz-tag nzColor="default"><span nz-icon nzType="lock"></span> Locked</nz-tag> }
+        </div>
+        <div class="session-meta">{{ s.date }} · Facilitator: {{ s.facilitator }}</div>
+      </div>
+
+      @if (s.calibrations.length) {
+        <nz-table [nzData]="s.calibrations" [nzShowPagination]="false" nzSize="small" class="calib-tbl">
+          <thead><tr>
+            <th nzWidth="180px">Nhân viên ID</th>
+            <th nzAlign="center">Hiệu suất trước</th>
+            <th nzAlign="center">Hiệu suất sau</th>
+            <th nzAlign="center">Tiềm năng trước</th>
+            <th nzAlign="center">Tiềm năng sau</th>
+            <th nzWidth="60px" nzAlign="center">Box</th>
+            <th>Ghi chú</th>
+          </tr></thead>
+          <tbody>
+            @for (c of s.calibrations; track c.talentId) {
+              <tr>
+                <td class="talent-id">{{ c.talentId }}</td>
+                <td nzAlign="center">{{ c.performanceBefore }}</td>
+                <td nzAlign="center" [class.changed]="c.performanceBefore !== c.performanceAfter">{{ c.performanceAfter }}</td>
+                <td nzAlign="center">{{ c.potentialBefore }}</td>
+                <td nzAlign="center" [class.changed]="c.potentialBefore !== c.potentialAfter">{{ c.potentialAfter }}</td>
+                <td nzAlign="center"><span class="box-badge">{{ c.box }}</span></td>
+                <td class="notes-txt">{{ c.notes || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      } @else {
+        <div class="empty-session">Phiên họp chưa có dữ liệu. Bắt đầu thêm nhân viên vào calibration.</div>
+      }
+
+      <div class="session-actions">
+        @if (!s.locked) {
+          <button nz-button nzType="primary" class="btn-navy"><span nz-icon nzType="lock"></span> Lock phiên</button>
+          <button nz-button><span nz-icon nzType="user-add"></span> Thêm nhân viên</button>
+        }
+        <button nz-button nzType="link"><span nz-icon nzType="export"></span> Xuất kết quả</button>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,34 @@
+.reports-page{ display:flex; flex-direction:column; gap:20px; }
+.page-header { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.page-title  { margin:0; font-size:20px; font-weight:700; color:#1e1b4b; }
+.btn-navy { background:#1e1b4b !important; border-color:#1e1b4b !important; &:hover { background:#2d2a6e !important; } }
+
+.rep-tabs {
+  background:#fff; border-radius:10px; border:1px solid #f3f4f6;
+  ::ng-deep .ant-tabs-nav { padding:0 20px; border-bottom:1px solid #f3f4f6; margin-bottom:0; }
+  ::ng-deep .ant-tabs-content-holder { padding:20px; }
+  ::ng-deep .ant-tabs-ink-bar { background:#4f46e5; }
+  ::ng-deep .ant-tabs-tab-active .ant-tabs-tab-btn { color:#4f46e5 !important; }
+}
+
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+.kpi-card { background:#f9fafb; border-radius:8px; padding:16px 20px; border:1px solid #f3f4f6;
+  ::ng-deep .ant-statistic-title { font-size:12px; color:#6b7280; }
+  ::ng-deep .ant-statistic-content-value { color:#1e1b4b; font-size:28px; font-weight:700; }
+}
+
+.chart-section { display:grid; grid-template-columns:1fr 1fr; gap:16px; @media(max-width:800px){ grid-template-columns:1fr; } }
+.chart-card { background:#f9fafb; border-radius:8px; padding:20px; border:1px solid #f3f4f6; }
+.chart-title { font-size:14px; font-weight:600; color:#374151; margin-bottom:16px; }
+
+.tier-bars  { display:flex; flex-direction:column; gap:10px; }
+.tier-bar-row { display:grid; grid-template-columns:90px 1fr 70px; align-items:center; gap:10px; }
+.tier-lbl   { font-size:12.5px; color:#374151; font-weight:500; }
+.tier-count { font-size:12px; color:#6b7280; text-align:right; }
+
+.idp-rep-list { display:flex; flex-direction:column; gap:10px; }
+.idp-rep-row  { display:grid; grid-template-columns:140px 1fr 40px; align-items:center; gap:10px; }
+.idp-rep-name { font-size:12.5px; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.idp-rep-pct  { font-size:12px; font-weight:700; color:#374151; text-align:right; }
+
+.coming-soon { color:#9ca3af; padding:40px; text-align:center; font-style:italic; }

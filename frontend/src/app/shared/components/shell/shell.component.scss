@@ -1,0 +1,165 @@
+$layout-bg: #f5f5f5;
+$topbar-bg: #233a7a;
+$sidebar-bg: #ffffff;
+$sidebar-border: #eeeff1;
+$sidebar-text: rgba(0, 0, 0, 0.88);
+$sidebar-muted: rgba(0, 0, 0, 0.45);
+$sidebar-hover: rgba(0, 0, 0, 0.02);
+$sidebar-active-bg: rgba(91, 203, 245, 0.08);
+$sidebar-active-text: #233a7a;
+$accent: #233a7a;
+$header-h: 0px;
+
+:host { display: contents; }
+
+.app-layout { min-height: 100vh; }
+
+// ── Sider ────────────────────────────────────────────────────
+.app-sider {
+  background: $sidebar-bg !important;
+  box-shadow: 1px 0 0 0 $sidebar-border;
+  position: sticky !important;
+  top: 0;
+  height: 100vh !important;
+  max-height: 100vh;
+  flex-shrink: 0;
+  align-self: flex-start;
+  ::ng-deep .ant-layout-sider-children { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+  ::ng-deep .ant-layout-sider-trigger  { display:none; }
+}
+
+// Compact sidebar container
+.sidebar {
+  width: 240px !important;
+  min-width: 240px;
+  max-width: 240px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.logo-wrapper {
+  padding: 8px 12px 20px;
+  flex-shrink: 0;
+  &.collapsed { padding: 8px 0 16px; display:flex; justify-content:center; }
+}
+.brand-logo-img {
+  display:block;
+  height: 36px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+// Nav scroll area
+.nav-scroll { overflow-y:auto; overflow-x:hidden; padding:0; flex: 1; min-height: 0; }
+.menu-content { flex: 1; overflow-y: auto; min-height: 0; }
+
+// User profile stays pinned at bottom
+.user-profile { flex-shrink: 0; }
+.nav-group-label {
+  padding:16px 12px 6px;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:#9ca3af;
+}
+.nav-group {
+  background: $sidebar-bg !important;
+  border-right:none !important;
+  padding:0;
+  ::ng-deep &.ant-menu-light, ::ng-deep &.ant-menu-light .ant-menu-sub { background: $sidebar-bg !important; }
+  ::ng-deep .ant-menu-item {
+    height:38px !important;
+    line-height:38px !important;
+    padding: 0 12px !important;
+    margin:2px 0 !important;
+    border-radius:8px !important;
+    width: 100% !important;
+    color:#475569 !important;
+    font-size:13.5px !important;
+    font-weight:500 !important;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    .anticon { font-size:16px !important; margin-right:10px !important; color:#475569; }
+    &:hover { background:$sidebar-hover !important; color:#475569 !important; }
+    &.active-item, &.ant-menu-item-selected {
+      background:#eef2ff !important;
+      color: var(--color-accent) !important;
+      font-weight: 500 !important;
+      .anticon { color:$sidebar-active-text !important; }
+      &::after { display:none; }
+    }
+  }
+}
+
+// User profile dropdown
+.user-profile {
+  margin-top: auto;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #f3f4f6;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+
+  &:hover { background: #f9fafb; }
+
+  .user-info {
+    flex: 1;
+    min-width: 0;
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--color-text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .more-icon {
+    color: var(--color-text-2);
+    font-size: 16px;
+  }
+}
+
+::ng-deep .profile-dropdown {
+  min-width: 200px;
+  padding: 4px;
+
+  .ant-dropdown-menu-item {
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 8px 12px !important;
+
+    .anticon { margin-right: 10px; }
+  }
+
+  .logout-item { color: #dc2626 !important; }
+}
+
+// ── Header ───────────────────────────────────────────────────
+.main-wrap { background:$layout-bg; }
+.app-header {
+  display:none !important;
+}
+
+// Topbar removed (per design)
+
+// ── Content ──────────────────────────────────────────────────
+.page-content { padding:24px; min-height:100vh; overflow-y:auto; background:$layout-bg; }

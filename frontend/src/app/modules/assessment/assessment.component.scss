@@ -1,0 +1,34 @@
+.assess-page{ display:flex; flex-direction:column; gap:20px; }
+.page-title { margin:0; font-size:20px; font-weight:700; color:#1e1b4b; }
+.assess-tabs {
+  background:#fff; border-radius:10px; border:1px solid #f3f4f6;
+  ::ng-deep .ant-tabs-nav { padding:0 20px; border-bottom:1px solid #f3f4f6; margin-bottom:0; }
+  ::ng-deep .ant-tabs-content-holder { padding:20px; }
+  ::ng-deep .ant-tabs-ink-bar { background:#4f46e5; }
+  ::ng-deep .ant-tabs-tab-active .ant-tabs-tab-btn { color:#4f46e5 !important; }
+}
+.assess-tbl {
+  ::ng-deep .ant-table-thead > tr > th { background:#f9fafb; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; padding:8px 12px; }
+  ::ng-deep .ant-table-tbody > tr > td  { padding:10px 12px; border-bottom:1px solid #f9fafb; }
+}
+.emp-row    { display:flex; align-items:center; gap:8px; }
+.emp-name   { font-size:13px; font-weight:500; color:#111827; }
+.period-txt { font-size:12px; color:#6b7280; }
+.score-pill { font-size:14px; font-weight:700; }
+.overall-score { font-size:16px; font-weight:800; }
+.na-txt     { color:#d1d5db; font-size:13px; }
+
+.form-wrap  { max-width:600px; }
+.form-hint  { color:#9ca3af; font-size:13px; margin-bottom:16px; }
+.form-grid  { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.form-field { display:flex; flex-direction:column; gap:6px; label { font-size:13px; font-weight:500; color:#374151; } }
+.btn-navy   { background:#1e1b4b !important; border-color:#1e1b4b !important; &:hover { background:#2d2a6e !important; } }
+
+.history-list { display:flex; flex-direction:column; gap:10px; }
+.history-item { display:flex; justify-content:space-between; align-items:center; background:#f9fafb; border-radius:8px; padding:12px 16px; }
+.history-left { display:flex; align-items:center; gap:10px; }
+.hist-name   { font-size:13px; font-weight:600; color:#111827; }
+.hist-period { font-size:12px; color:#9ca3af; }
+.history-score { display:flex; flex-direction:column; align-items:flex-end; }
+.ov-label   { font-size:10px; color:#9ca3af; text-transform:uppercase; }
+.ov-val     { font-size:20px; font-weight:800; }

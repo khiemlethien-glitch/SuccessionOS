@@ -1,0 +1,305 @@
+<div class="pos-page">
+
+  <!-- ── Header ──────────────────────────────────────── -->
+  <div class="page-hero">
+    <div class="hero-left">
+      <div class="hero-crumb">Quản lý nhân tài</div>
+      <h1 class="hero-title">Vị trí then chốt</h1>
+      <p class="hero-sub">Quản lý các vị trí chiến lược và người kế thừa</p>
+    </div>
+
+    <button class="btn-add" (click)="openAddModal()">
+      <span class="btn-add-ico" nz-icon nzType="plus"></span>
+      <span>Thêm vị trí then chốt</span>
+    </button>
+  </div>
+
+  <!-- ── Stats strip ─────────────────────────────────── -->
+  <div class="stats-strip">
+    <div class="stat-chip chip-indigo">
+      <span nz-icon nzType="apartment" class="s-ico"></span>
+      <div class="s-body">
+        <div class="s-val">{{ totalCount() }}</div>
+        <div class="s-lbl">Tổng vị trí</div>
+      </div>
+    </div>
+    <div class="stat-chip chip-red">
+      <span nz-icon nzType="alert" class="s-ico"></span>
+      <div class="s-body">
+        <div class="s-val">{{ criticalCount() }}</div>
+        <div class="s-lbl">Critical</div>
+      </div>
+    </div>
+    <div class="stat-chip chip-amber">
+      <span nz-icon nzType="warning" class="s-ico"></span>
+      <div class="s-body">
+        <div class="s-val">{{ highRiskCount() }}</div>
+        <div class="s-lbl">Rủi ro cao</div>
+      </div>
+    </div>
+    <div class="stat-chip chip-slate">
+      <span nz-icon nzType="user-delete" class="s-ico"></span>
+      <div class="s-body">
+        <div class="s-val">{{ noSuccessor() }}</div>
+        <div class="s-lbl">Chưa có kế thừa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Position cards grid ─────────────────────────── -->
+  <div class="pos-grid">
+    @for (p of positions(); track p.id) {
+      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.criticalLevel)">
+        <div class="card-accent"></div>
+
+        <!-- Header -->
+        <div class="card-top">
+          <div class="card-heading">
+            <div class="card-title">{{ p.title }}</div>
+            <div class="card-dept">
+              <span nz-icon nzType="bank" class="dept-ico"></span>
+              {{ p.department }}
+            </div>
+          </div>
+          <span class="crit-pill">
+            @if (p.criticalLevel === 'Critical') { <span nz-icon nzType="alert"></span> }
+            {{ p.criticalLevel }}
+          </span>
+        </div>
+
+        <!-- Current holder -->
+        <div class="card-holder">
+          <app-avatar [name]="p.currentHolder" [size]="38"></app-avatar>
+          <div class="holder-meta">
+            <div class="holder-name">{{ p.currentHolder }}</div>
+            <div class="holder-sub">Đương nhiệm · {{ p.department }}</div>
+          </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="card-stats">
+          <div class="cs-cell">
+            <div class="cs-val">{{ p.successorCount }}</div>
+            <div class="cs-lbl">Kế thừa</div>
+          </div>
+          <div class="cs-div"></div>
+          <div class="cs-cell">
+            <div class="cs-val cs-green">{{ p.readyNowCount }}</div>
+            <div class="cs-lbl">Sẵn sàng</div>
+          </div>
+          <div class="cs-div"></div>
+          <div class="cs-cell">
+            <div class="cs-val">
+              <span class="risk-mini" [ngClass]="'risk-' + riskToneOf(p.riskLevel)">{{ p.riskLevel }}</span>
+            </div>
+            <div class="cs-lbl">Rủi ro</div>
+          </div>
+        </div>
+
+        <!-- Successors -->
+        @if (getPlan(p.id)?.successors?.length) {
+          <div class="succ-list">
+            @for (s of getPlan(p.id)!.successors; track s.talentId) {
+              <div class="succ-row">
+                <app-avatar [name]="s.talentName" [size]="24"></app-avatar>
+                <span class="succ-name">{{ s.talentName }}</span>
+                <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">
+                  {{ readinessLabel(s.readiness) }}
+                </span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="no-succ">
+            <span nz-icon nzType="warning"></span>
+            Chưa có người kế thừa
+          </div>
+        }
+
+        <button class="card-cta" routerLink="/succession">
+          Xem kế thừa
+          <span nz-icon nzType="arrow-right"></span>
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ══ Modal: Thêm vị trí ══════════════════════════════ -->
+<nz-modal
+  [nzVisible]="showAddModal()"
+  (nzVisibleChange)="showAddModal.set($event)"
+  nzTitle=""
+  [nzFooter]="null"
+  [nzWidth]="720"
+  nzCentered
+  (nzOnCancel)="closeAddModal()"
+  nzClassName="add-pos-modal"
+  [nzMaskClosable]="false"
+>
+  <ng-container *nzModalContent>
+    <div class="m-hero">
+      <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
+      <div class="m-hero-text">
+        <div class="m-hero-title">Thêm vị trí then chốt</div>
+        <div class="m-hero-sub">Định nghĩa vị trí chiến lược và yêu cầu năng lực</div>
+      </div>
+    </div>
+
+    <div class="m-body">
+      <!-- Row 1: Title -->
+      <div class="m-field">
+        <label class="m-label">
+          <span class="m-label-dot"></span> Tên vị trí
+          <span class="m-req">*</span>
+        </label>
+        <input
+          nz-input
+          class="m-input"
+          placeholder="VD: Operations Director, HR Manager…"
+          [ngModel]="draft().title"
+          (ngModelChange)="updateDraft('title', $event)"
+        />
+      </div>
+
+      <!-- Row 2: Dept + Holder -->
+      <div class="m-row-2">
+        <div class="m-field">
+          <label class="m-label">
+            <span class="m-label-dot"></span> Phòng ban
+            <span class="m-req">*</span>
+          </label>
+          <nz-select
+            class="m-sel"
+            nzShowSearch
+            nzAllowClear
+            nzPlaceHolder="Chọn phòng ban…"
+            [ngModel]="draft().department"
+            (ngModelChange)="updateDraft('department', $event)"
+          >
+            @for (d of deptOptions(); track d) {
+              <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
+            }
+          </nz-select>
+        </div>
+
+        <div class="m-field">
+          <label class="m-label">
+            <span class="m-label-dot"></span> Đương nhiệm
+            <span class="m-req">*</span>
+          </label>
+          <input
+            nz-input
+            class="m-input"
+            placeholder="Họ tên người đang giữ vị trí"
+            [ngModel]="draft().currentHolder"
+            (ngModelChange)="updateDraft('currentHolder', $event)"
+          />
+        </div>
+      </div>
+
+      <!-- Row 3: Critical level -->
+      <div class="m-field">
+        <label class="m-label">
+          <span class="m-label-dot"></span> Mức độ quan trọng
+        </label>
+        <div class="crit-seg">
+          @for (opt of criticalOptions; track opt.value) {
+            <button
+              type="button"
+              class="crit-seg-btn"
+              [ngClass]="['cs-' + opt.tone, draft().criticalLevel === opt.value ? 'is-active' : '']"
+              (click)="updateDraft('criticalLevel', opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Competencies drag-drop -->
+      <div class="m-field">
+        <label class="m-label">
+          <span class="m-label-dot"></span> Năng lực yêu cầu
+          <span class="m-req">*</span>
+          <span class="m-hint">Kéo thả hoặc bấm để chọn</span>
+        </label>
+
+        <div class="dd-wrap" cdkDropListGroup>
+          <div class="dd-col">
+            <div class="dd-col-hdr">
+              <span nz-icon nzType="unordered-list"></span>
+              Có sẵn
+              <span class="dd-count">{{ availableCompetencies().length }}</span>
+            </div>
+            <div
+              id="available"
+              class="dd-zone"
+              cdkDropList
+              [cdkDropListData]="availableCompetencies()"
+              (cdkDropListDropped)="onDropCompetency($event)"
+            >
+              @for (c of availableCompetencies(); track c.key) {
+                <div class="dd-chip" cdkDrag (click)="addCompetency(c)">
+                  <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
+                  {{ c.label }}
+                  <span nz-icon nzType="plus" class="dd-chip-add"></span>
+                </div>
+              }
+              @if (availableCompetencies().length === 0) {
+                <div class="dd-empty">Đã chọn hết</div>
+              }
+            </div>
+          </div>
+
+          <div class="dd-arrow">
+            <span nz-icon nzType="swap"></span>
+          </div>
+
+          <div class="dd-col dd-col-active">
+            <div class="dd-col-hdr">
+              <span nz-icon nzType="check-circle"></span>
+              Đã chọn
+              <span class="dd-count dd-count-active">{{ selectedCompetencies().length }}</span>
+            </div>
+            <div
+              id="selected"
+              class="dd-zone dd-zone-active"
+              cdkDropList
+              [cdkDropListData]="selectedCompetencies()"
+              (cdkDropListDropped)="onDropCompetency($event)"
+            >
+              @for (c of selectedCompetencies(); track c.key) {
+                <div class="dd-chip dd-chip-active" cdkDrag (click)="removeCompetency(c)">
+                  <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
+                  {{ c.label }}
+                  <span nz-icon nzType="close" class="dd-chip-add"></span>
+                </div>
+              }
+              @if (selectedCompetencies().length === 0) {
+                <div class="dd-empty">
+                  <span nz-icon nzType="inbox"></span>
+                  Kéo năng lực từ bên trái vào đây
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-footer">
+      <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="closeAddModal()">Hủy</button>
+      <button
+        nz-button
+        nzType="primary"
+        class="m-btn m-btn-submit"
+        [disabled]="!canSubmit()"
+        (click)="submit()"
+      >
+        <span nz-icon nzType="check"></span>
+        Tạo vị trí
+      </button>
+    </div>
+  </ng-container>
+</nz-modal>

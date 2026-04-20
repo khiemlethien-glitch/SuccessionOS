@@ -1,0 +1,39 @@
+{
+  "data": [
+    { "id": "SP001", "positionId": "P001", "positionTitle": "Director Quản lý Dự án", "department": "Quản lý dự án",
+      "successors": [
+        { "talentId": "T002", "talentName": "Trần Thị Bình",   "readiness": "Ready Now",         "priority": 1, "gapScore": 5  },
+        { "talentId": "T018", "talentName": "Nguyễn Văn Sơn",  "readiness": "Ready in 1 Year",   "priority": 2, "gapScore": 18 },
+        { "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "readiness": "Ready in 2 Years",  "priority": 3, "gapScore": 25 }
+      ] },
+    { "id": "SP002", "positionId": "P002", "positionTitle": "Trưởng phòng Kỹ thuật", "department": "Kỹ thuật",
+      "successors": [
+        { "talentId": "T020", "talentName": "Vũ Đình Long",     "readiness": "Ready Now",         "priority": 1, "gapScore": 8  },
+        { "talentId": "T001", "talentName": "Nguyễn Văn An",    "readiness": "Ready in 1 Year",   "priority": 2, "gapScore": 22 }
+      ] },
+    { "id": "SP003", "positionId": "P003", "positionTitle": "HSE Manager", "department": "An toàn",
+      "successors": [
+        { "talentId": "T024", "talentName": "Nguyễn Văn Yên",  "readiness": "Ready Now",         "priority": 1, "gapScore": 6  }
+      ] },
+    { "id": "SP004", "positionId": "P004", "positionTitle": "Finance Manager", "department": "Tài chính",
+      "successors": [
+        { "talentId": "T004", "talentName": "Phạm Thị Dung",   "readiness": "Ready Now",         "priority": 1, "gapScore": 10 },
+        { "talentId": "T025", "talentName": "Hoàng Thị Zung",  "readiness": "Ready in 2 Years",  "priority": 2, "gapScore": 30 }
+      ] },
+    { "id": "SP005", "positionId": "P005", "positionTitle": "Operations Director", "department": "Vận hành",
+      "successors": [
+        { "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "readiness": "Ready Now",         "priority": 1, "gapScore": 4  }
+      ] },
+    { "id": "SP006", "positionId": "P006", "positionTitle": "Commercial Director", "department": "Kinh doanh",
+      "successors": [
+        { "talentId": "T019", "talentName": "Hoàng Thị Tâm",   "readiness": "Ready in 1 Year",   "priority": 1, "gapScore": 14 }
+      ] },
+    { "id": "SP007", "positionId": "P007", "positionTitle": "HR Manager", "department": "Nhân sự",
+      "successors": [
+        { "talentId": "T006", "talentName": "Nguyễn Thị Phương","readiness": "Ready in 1 Year",   "priority": 1, "gapScore": 20 },
+        { "talentId": "T014", "talentName": "Vũ Thị Oanh",     "readiness": "Ready in 2 Years",  "priority": 2, "gapScore": 35 }
+      ] },
+    { "id": "SP009", "positionId": "P009", "positionTitle": "Procurement Manager", "department": "Mua sắm", "successors": [] }
+  ],
+  "total": 8
+}

@@ -1,0 +1,52 @@
+<div class="ment-page">
+  <div class="page-header">
+    <h1 class="page-title">Kèm cặp &amp; Cố vấn</h1>
+    <span class="title-badge">{{ pairs().length }}</span>
+    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto">
+      <span nz-icon nzType="plus"></span> Tạo cặp kèm cặp
+    </button>
+  </div>
+
+  <div class="pair-grid">
+    @for (p of pairs(); track p.id) {
+      <div class="pair-card">
+        <div class="pair-status-row">
+          <nz-tag [nzColor]="statusColor(p.status)">{{ p.status }}</nz-tag>
+          <span class="pair-dates">{{ p.startDate }} → {{ p.endDate }}</span>
+        </div>
+
+        <div class="pair-people">
+          <div class="person">
+            <app-avatar [name]="p.mentorName" [size]="40"></app-avatar>
+            <div class="person-info">
+              <span class="person-name">{{ p.mentorName }}</span>
+              <span class="person-role">Mentor</span>
+            </div>
+          </div>
+          <span nz-icon nzType="arrow-right" class="arrow-icon"></span>
+          <div class="person">
+            <app-avatar [name]="p.menteeName" [size]="40"></app-avatar>
+            <div class="person-info">
+              <span class="person-name">{{ p.menteeName }}</span>
+              <span class="person-role">Mentee</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="focus-row">
+          <span nz-icon nzType="bulb" class="focus-icon"></span>
+          <span class="focus-txt">{{ p.focus }}</span>
+        </div>
+
+        <div class="session-row">
+          <span class="session-label">Buổi gặp: {{ p.sessionsCompleted }}/{{ p.sessionsTotal }}</span>
+          <nz-progress [nzPercent]="progress(p)" [nzStrokeColor]="'#4f46e5'" [nzShowInfo]="false" nzSize="small" style="flex:1"></nz-progress>
+        </div>
+
+        @if (p.nextSession) {
+          <div class="next-session">Buổi tiếp theo: <strong>{{ p.nextSession }}</strong></div>
+        }
+      </div>
+    }
+  </div>
+</div>

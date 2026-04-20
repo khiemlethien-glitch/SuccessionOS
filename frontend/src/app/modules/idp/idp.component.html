@@ -1,0 +1,60 @@
+<div class="idp-page">
+  <div class="page-header">
+    <h1 class="page-title">Kế hoạch IDP</h1>
+    <span class="title-badge">{{ idps().length }}</span>
+    <div class="filter-group">
+      <button nz-button [class.active-filter]="filter()==='all'"      (click)="filter.set('all')">Tất cả</button>
+      <button nz-button [class.active-filter]="filter()==='Active'"   (click)="filter.set('Active')">Đang thực hiện</button>
+      <button nz-button [class.active-filter]="filter()==='Completed'"(click)="filter.set('Completed')">Hoàn thành</button>
+      <button nz-button [class.active-filter]="filter()==='Pending'"  (click)="filter.set('Pending')">Chờ duyệt</button>
+    </div>
+    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto">
+      <span nz-icon nzType="plus"></span> Tạo IDP
+    </button>
+  </div>
+
+  <nz-collapse [nzBordered]="false" class="idp-collapse">
+    @for (idp of filtered(); track idp.id) {
+      <nz-collapse-panel [nzHeader]="planHdr" [nzExtra]="extra">
+
+        <ng-template #planHdr>
+          <div class="idp-hdr">
+            <app-avatar [name]="idp.talentName" [size]="32"></app-avatar>
+            <div class="idp-hdr-info">
+              <span class="idp-name">{{ idp.talentName }}</span>
+              <span class="idp-year">IDP {{ idp.year }}</span>
+            </div>
+            <nz-tag [nzColor]="statusColor(idp.status)" class="status-tag">{{ idp.status }}</nz-tag>
+          </div>
+        </ng-template>
+
+        <ng-template #extra>
+          <div class="idp-progress-mini">
+            <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'" nzSize="small" [nzShowInfo]="false" style="width:80px"></nz-progress>
+            <span class="pct-mini">{{ idp.overallProgress }}%</span>
+          </div>
+        </ng-template>
+
+        <div class="goal-list">
+          @for (g of idp.goals; track g.id) {
+            <div class="goal-item">
+              <div class="goal-row1">
+                <span class="goal-title">{{ g.title }}</span>
+                <div class="goal-tags">
+                  <nz-tag [nzColor]="typeColor(g.type)">{{ g.type }}</nz-tag>
+                  <nz-tag [nzColor]="goalStatusColor(g.status)">{{ g.status }}</nz-tag>
+                </div>
+              </div>
+              <div class="goal-row2">
+                <span class="goal-deadline">Deadline: {{ g.deadline }}</span>
+                @if (g.mentor) { <span class="goal-mentor">Mentor: {{ g.mentor }}</span> }
+              </div>
+              <nz-progress [nzPercent]="g.progress" nzSize="small" [nzStrokeColor]="'#4f46e5'"></nz-progress>
+            </div>
+          }
+        </div>
+
+      </nz-collapse-panel>
+    }
+  </nz-collapse>
+</div>

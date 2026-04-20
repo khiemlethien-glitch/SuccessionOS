@@ -1,0 +1,319 @@
+<div class="succ-page">
+
+  <!-- ══ Hero header ═══════════════════════════════════ -->
+  <div class="succ-hero">
+    <div class="hero-left">
+      <div class="hero-crumb">Quản lý nhân tài</div>
+      <h1 class="hero-title">Bản đồ Kế thừa</h1>
+      <p class="hero-sub">Phân loại nhân tài theo ma trận 9-Box và quản lý kế thừa vị trí</p>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hs-item hs-star">
+        <span nz-icon nzType="star" class="hs-ico"></span>
+        <div>
+          <div class="hs-val">{{ starCount() }}</div>
+          <div class="hs-lbl">Ngôi sao</div>
+        </div>
+      </div>
+      <div class="hs-divider"></div>
+      <div class="hs-item hs-total">
+        <span nz-icon nzType="team" class="hs-ico"></span>
+        <div>
+          <div class="hs-val">{{ totalInGrid() }}</div>
+          <div class="hs-lbl">Tổng</div>
+        </div>
+      </div>
+      <div class="hs-divider"></div>
+      <div class="hs-item hs-warn">
+        <span nz-icon nzType="warning" class="hs-ico"></span>
+        <div>
+          <div class="hs-val">{{ needsActionCount() }}</div>
+          <div class="hs-lbl">Cần xử lý</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Tabs + content card ═══════════════════════════ -->
+  <div class="succ-card">
+    <nz-tabs nzType="line" class="succ-tabs">
+
+      <!-- ═══ Tab 1: 9-Box ═══════════════════════════════ -->
+      <nz-tab nzTitle="9-Box Grid">
+
+        <div class="tab-toolbar">
+          <button class="btn-scale" (click)="openScaleModal()">
+            <span nz-icon nzType="sliders" class="btn-scale-ico"></span>
+            <span>Điều chỉnh thang đo</span>
+            @if (!isDefault()) {
+              <span class="btn-scale-dot"></span>
+            }
+          </button>
+        </div>
+
+        <div class="ninebox-wrap">
+          <!-- Y axis title (rotated) + labels -->
+          <div class="axis-y-col">
+            <div class="axis-y-title">HIỆU SUẤT ▲</div>
+            <div class="axis-y">
+              <div class="ay-label">Cao</div>
+              <div class="ay-label">TB</div>
+              <div class="ay-label">Thấp</div>
+            </div>
+          </div>
+
+          <div class="ninebox-inner">
+            <!-- Grid 3×3 -->
+            <div class="ninebox-grid">
+              @for (box of boxes; track box.num) {
+                <div class="box-cell" [ngClass]="'tone-' + box.tone">
+                  <div class="box-head">
+                    <span class="box-num">{{ box.num }}</span>
+                    <div class="box-title-wrap">
+                      <div class="box-title">{{ box.label }}</div>
+                      <div class="box-sub">{{ box.sublabel }}</div>
+                    </div>
+                    <span class="box-count">{{ talentsInBox(box).length }}</span>
+                  </div>
+
+                  <div class="box-chips">
+                    @for (t of talentsInBox(box); track t.id) {
+                      <div class="chip" [title]="t.fullName + ' — ' + t.position">
+                        <app-avatar [name]="t.fullName" [size]="22"></app-avatar>
+                        <span class="chip-name">{{ lastName(t.fullName) }}</span>
+                      </div>
+                    }
+                    @if (!talentsInBox(box).length) {
+                      <div class="box-empty">
+                        <span nz-icon nzType="inbox"></span>
+                        Trống
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- X axis labels bottom -->
+            <div class="axis-x-bot">
+              <div class="ax-label">Thấp</div>
+              <div class="ax-label">TB</div>
+              <div class="ax-label">Cao</div>
+            </div>
+            <div class="axis-x-title">TIỀM NĂNG ▶</div>
+          </div>
+        </div>
+      </nz-tab>
+
+      <!-- ═══ Tab 2: Succession Map ══════════════════════ -->
+      <nz-tab nzTitle="Succession Map">
+        <div class="smap">
+          @for (plan of plans(); track plan.id) {
+            <div class="smap-block" [class.is-empty]="!plan.successors.length">
+              <!-- Position node -->
+              <div class="pos-node">
+                <div class="pn-left">
+                  <div class="pn-badge"><span nz-icon nzType="apartment"></span></div>
+                  <div class="pn-text">
+                    <div class="pn-title">{{ plan.positionTitle }}</div>
+                    <div class="pn-dept">
+                      <span nz-icon nzType="bank"></span> {{ plan.department }}
+                    </div>
+                  </div>
+                </div>
+                <div class="pn-right">
+                  <div class="pn-count-wrap">
+                    <span class="pn-count-val">{{ plan.successors.length }}</span>
+                    <span class="pn-count-lbl">kế thừa</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connector + successors -->
+              @if (plan.successors.length) {
+                <div class="smap-connector">
+                  <span class="conn-stem"></span>
+                  <span class="conn-bar"></span>
+                </div>
+
+                <div class="succ-pipeline" [style.--n]="plan.successors.length">
+                  @for (s of plan.successors; track s.talentId) {
+                    <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
+                      <span class="sn-branch"></span>
+                      <span class="sn-priority">#{{ s.priority }}</span>
+                      <div class="sn-avatar">
+                        <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                      </div>
+                      <div class="sn-name">{{ s.talentName }}</div>
+                      <div class="sn-meta">
+                        <span class="sn-gap">
+                          <span nz-icon nzType="line-chart"></span>
+                          Gap {{ s.gapScore }}
+                        </span>
+                      </div>
+                      <span class="sn-ready">
+                        <span class="sn-ready-dot"></span>
+                        {{ readinessLabel(s.readiness) }}
+                      </span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="smap-empty">
+                  <span nz-icon nzType="warning"></span>
+                  <div>
+                    <div class="se-title">Chưa có người kế thừa</div>
+                    <div class="se-sub">Vị trí này đang thiếu kế hoạch kế thừa — cần tuyển hoặc phát triển nội bộ</div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </nz-tab>
+
+    </nz-tabs>
+  </div>
+</div>
+
+<!-- ══ Modal: Điều chỉnh thang đo ═════════════════════ -->
+<nz-modal
+  [nzVisible]="showScaleModal()"
+  (nzVisibleChange)="showScaleModal.set($event)"
+  nzTitle=""
+  [nzFooter]="null"
+  [nzWidth]="640"
+  nzCentered
+  (nzOnCancel)="closeScaleModal()"
+  nzClassName="scale-modal"
+  [nzMaskClosable]="false"
+>
+  <ng-container *nzModalContent>
+    <div class="m-hero">
+      <div class="m-hero-ico"><span nz-icon nzType="sliders"></span></div>
+      <div>
+        <div class="m-hero-title">Điều chỉnh thang đo 9-Box</div>
+        <div class="m-hero-sub">Thiết lập ngưỡng điểm để phân loại Hiệu suất và Tiềm năng</div>
+      </div>
+    </div>
+
+    <div class="m-body">
+
+      <!-- Performance -->
+      <div class="scale-section">
+        <div class="scale-hdr">
+          <div class="scale-hdr-left">
+            <div class="scale-ico scale-ico-perf"><span nz-icon nzType="line-chart"></span></div>
+            <div>
+              <div class="scale-title">Hiệu suất (Performance)</div>
+              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
+            </div>
+          </div>
+          <div class="scale-cuts">
+            <span class="cut-pill">&lt; {{ perfDraft()[0] }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-mid">{{ perfDraft()[0] }}–{{ perfDraft()[1] - 1 }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-high">≥ {{ perfDraft()[1] }}</span>
+          </div>
+        </div>
+
+        <div class="slider-wrap">
+          <nz-slider
+            nzRange
+            [nzMin]="30"
+            [nzMax]="100"
+            [nzStep]="1"
+            [ngModel]="perfDraft()"
+            (ngModelChange)="setPerfDraft($event)"
+            class="scale-slider"
+          ></nz-slider>
+        </div>
+
+        <div class="preview-row">
+          <div class="pv-chip pv-low">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Thấp</span>
+            <span class="pv-count">{{ previewPerf().low }}</span>
+          </div>
+          <div class="pv-chip pv-mid">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Trung bình</span>
+            <span class="pv-count">{{ previewPerf().mid }}</span>
+          </div>
+          <div class="pv-chip pv-high">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Cao</span>
+            <span class="pv-count">{{ previewPerf().high }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Potential -->
+      <div class="scale-section">
+        <div class="scale-hdr">
+          <div class="scale-hdr-left">
+            <div class="scale-ico scale-ico-pot"><span nz-icon nzType="rocket"></span></div>
+            <div>
+              <div class="scale-title">Tiềm năng (Potential)</div>
+              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
+            </div>
+          </div>
+          <div class="scale-cuts">
+            <span class="cut-pill">&lt; {{ potDraft()[0] }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-mid">{{ potDraft()[0] }}–{{ potDraft()[1] - 1 }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-high">≥ {{ potDraft()[1] }}</span>
+          </div>
+        </div>
+
+        <div class="slider-wrap">
+          <nz-slider
+            nzRange
+            [nzMin]="30"
+            [nzMax]="100"
+            [nzStep]="1"
+            [ngModel]="potDraft()"
+            (ngModelChange)="setPotDraft($event)"
+            class="scale-slider"
+          ></nz-slider>
+        </div>
+
+        <div class="preview-row">
+          <div class="pv-chip pv-low">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Thấp</span>
+            <span class="pv-count">{{ previewPot().low }}</span>
+          </div>
+          <div class="pv-chip pv-mid">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Trung bình</span>
+            <span class="pv-count">{{ previewPot().mid }}</span>
+          </div>
+          <div class="pv-chip pv-high">
+            <span class="pv-dot"></span>
+            <span class="pv-name">Cao</span>
+            <span class="pv-count">{{ previewPot().high }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="m-footer">
+      <button nz-button class="m-btn m-btn-reset" (click)="resetScale()">
+        <span nz-icon nzType="reload"></span>
+        Mặc định
+      </button>
+      <div class="m-footer-right">
+        <button nz-button class="m-btn m-btn-cancel" (click)="closeScaleModal()">Hủy</button>
+        <button nz-button nzType="primary" class="m-btn m-btn-apply" (click)="applyScale()">
+          <span nz-icon nzType="check"></span>
+          Áp dụng
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-modal>

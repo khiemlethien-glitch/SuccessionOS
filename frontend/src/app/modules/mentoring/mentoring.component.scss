@@ -1,0 +1,25 @@
+.ment-page  { display:flex; flex-direction:column; gap:20px; }
+.page-header{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.page-title { margin:0; font-size:20px; font-weight:700; color:#1e1b4b; }
+.title-badge{ background:#eef2ff; color:#4f46e5; border:1.5px solid #c7d2fe; font-size:11px; font-weight:700; padding:3px 8px; border-radius:12px; }
+.btn-navy { background:#1e1b4b !important; border-color:#1e1b4b !important; &:hover { background:#2d2a6e !important; } }
+
+.pair-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+.pair-card { background:#fff; border-radius:10px; border:1px solid #f3f4f6; padding:20px; display:flex; flex-direction:column; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.pair-status-row { display:flex; align-items:center; justify-content:space-between; }
+.pair-dates { font-size:11.5px; color:#9ca3af; }
+
+.pair-people { display:flex; align-items:center; gap:12px; }
+.person { display:flex; align-items:center; gap:8px; flex:1; }
+.person-info { display:flex; flex-direction:column; gap:1px; }
+.person-name { font-size:13px; font-weight:600; color:#111827; }
+.person-role { font-size:11px; color:#9ca3af; }
+.arrow-icon  { font-size:16px; color:#9ca3af; flex-shrink:0; }
+
+.focus-row  { display:flex; align-items:flex-start; gap:6px; }
+.focus-icon { color:#4f46e5; flex-shrink:0; margin-top:2px; }
+.focus-txt  { font-size:12.5px; color:#374151; line-height:1.4; }
+
+.session-row { display:flex; align-items:center; gap:10px; font-size:12.5px; color:#6b7280; }
+.session-label { white-space:nowrap; flex-shrink:0; }
+.next-session { font-size:12px; color:#9ca3af; }

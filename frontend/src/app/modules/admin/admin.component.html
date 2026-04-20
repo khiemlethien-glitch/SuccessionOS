@@ -1,0 +1,301 @@
+<div class="admin-page">
+
+  <!-- Hero -->
+  <div class="admin-hero">
+    <div class="hero-left">
+      <h1 class="hero-title">Quản trị hệ thống</h1>
+      <p class="hero-sub">Quản lý dữ liệu, người dùng, cấu hình & nhật ký hoạt động</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hs">
+        <span nz-icon nzType="user" class="hs-ico hs-ico-blue"></span>
+        <div><div class="hs-val">{{ stats().users }}</div><div class="hs-lbl">Người dùng</div></div>
+      </div>
+      <div class="hs">
+        <span nz-icon nzType="team" class="hs-ico hs-ico-purple"></span>
+        <div><div class="hs-val">{{ stats().talents }}</div><div class="hs-lbl">Nhân tài</div></div>
+      </div>
+      <div class="hs">
+        <span nz-icon nzType="apartment" class="hs-ico hs-ico-amber"></span>
+        <div><div class="hs-val">{{ stats().positions }}</div><div class="hs-lbl">Vị trí</div></div>
+      </div>
+      <div class="hs">
+        <span nz-icon nzType="audit" class="hs-ico hs-ico-green"></span>
+        <div><div class="hs-val">{{ stats().events30d }}</div><div class="hs-lbl">Events</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs bar -->
+  <div class="admin-tabs">
+    <button type="button" class="tab" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
+      <span nz-icon nzType="dashboard"></span> Tổng quan
+    </button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'data'" (click)="setTab('data')">
+      <span nz-icon nzType="database"></span> Dữ liệu hệ thống
+    </button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'users'" (click)="setTab('users')">
+      <span nz-icon nzType="user"></span> Người dùng
+    </button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">
+      <span nz-icon nzType="setting"></span> Cấu hình
+    </button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'audit'" (click)="setTab('audit')">
+      <span nz-icon nzType="file-search"></span> Audit Trail
+    </button>
+  </div>
+
+  <!-- ══ Tab: Tổng quan ══ -->
+  @if (activeTab() === 'overview') {
+    <div class="overview-grid">
+      <div class="panel">
+        <h3 class="panel-title">Hoạt động gần đây</h3>
+        <ul class="recent-list">
+          @for (log of recentLogs(); track log.id) {
+            <li class="recent-item">
+              <nz-tag [nzColor]="actionColor(log.action)" class="action-tag">{{ log.action }}</nz-tag>
+              <div class="recent-text">
+                <div class="recent-desc">{{ log.description }}</div>
+                <div class="recent-meta">{{ log.actor }} · {{ log.module }} · {{ formatDate(log.timestamp) }}</div>
+              </div>
+            </li>
+          } @empty {
+            <li class="recent-empty">Chưa có hoạt động nào.</li>
+          }
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Tóm tắt dữ liệu</h3>
+        <div class="data-summary">
+          @for (e of entities(); track e.key) {
+            <button type="button" class="ds-item" (click)="selectEntity(e.key); setTab('data')">
+              <span nz-icon [nzType]="e.icon" class="ds-ico"></span>
+              <div class="ds-info">
+                <div class="ds-label">{{ e.label }}</div>
+                <div class="ds-count">{{ e.data().length }} bản ghi</div>
+              </div>
+              <span nz-icon nzType="arrow-right" class="ds-arrow"></span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══ Tab: Dữ liệu ══ -->
+  @if (activeTab() === 'data') {
+    <div class="data-layout">
+      <aside class="data-sidebar">
+        <div class="side-title">Chọn đối tượng</div>
+        @for (e of entities(); track e.key) {
+          <button type="button" class="side-item" [class.active]="selectedEntity() === e.key" (click)="selectEntity(e.key)">
+            <span nz-icon [nzType]="e.icon"></span>
+            <span class="side-label">{{ e.label }}</span>
+            <span class="side-count">{{ e.data().length }}</span>
+          </button>
+        }
+      </aside>
+
+      <main class="data-main">
+        <div class="data-toolbar">
+          <div class="dt-title">
+            <span nz-icon [nzType]="currentEntity().icon"></span>
+            {{ currentEntity().label }}
+            <span class="dt-count">({{ filteredRows().length }})</span>
+          </div>
+          <div class="dt-actions">
+            <div class="dt-search">
+              <span nz-icon nzType="search"></span>
+              <input nz-input placeholder="Tìm kiếm..." [ngModel]="entitySearch()" (ngModelChange)="entitySearch.set($event)" />
+            </div>
+            <button nz-button nzType="primary" class="btn-navy" (click)="openAdd()">
+              <span nz-icon nzType="plus"></span> Thêm mới
+            </button>
+          </div>
+        </div>
+
+        <nz-table [nzData]="filteredRows()" [nzPageSize]="10" [nzLoading]="loading()" class="data-table">
+          <thead><tr>
+            @for (c of currentEntity().columns; track c.key) {
+              <th [style.width]="c.width">{{ c.label }}</th>
+            }
+            <th nzWidth="120px" nzAlign="center">Hành động</th>
+          </tr></thead>
+          <tbody>
+            @for (row of filteredRows(); track row[currentEntity().idKey]) {
+              <tr>
+                @for (c of currentEntity().columns; track c.key) {
+                  <td>
+                    @if (c.type === 'tag') {
+                      <nz-tag [nzColor]="tagColor(cellValue(row, c.key))">{{ cellValue(row, c.key) }}</nz-tag>
+                    } @else if (c.type === 'progress') {
+                      <div class="cell-progress">
+                        <div class="cp-track"><div class="cp-fill" [style.width.%]="cellValue(row, c.key)"></div></div>
+                        <span class="cp-val">{{ cellValue(row, c.key) }}%</span>
+                      </div>
+                    } @else {
+                      <span class="cell-text">{{ cellValue(row, c.key) }}</span>
+                    }
+                  </td>
+                }
+                <td nzAlign="center">
+                  <button class="row-btn row-btn-edit" (click)="openEdit(row)" title="Sửa">
+                    <span nz-icon nzType="edit"></span>
+                  </button>
+                  <button class="row-btn row-btn-del"
+                          nz-popconfirm nzPopconfirmTitle="Xác nhận xóa?"
+                          (nzOnConfirm)="deleteRow(row)" title="Xóa">
+                    <span nz-icon nzType="delete"></span>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </main>
+    </div>
+  }
+
+  <!-- ══ Tab: Người dùng ══ -->
+  @if (activeTab() === 'users') {
+    <div class="panel users-panel">
+      <div class="data-toolbar">
+        <div class="dt-title">
+          <span nz-icon nzType="user"></span>
+          Người dùng & Phân quyền
+          <span class="dt-count">({{ users().length }})</span>
+        </div>
+        <button nz-button nzType="primary" class="btn-navy" (click)="addUser()">
+          <span nz-icon nzType="user-add"></span> Thêm người dùng
+        </button>
+      </div>
+
+      <nz-table [nzData]="users()" [nzPageSize]="10" class="data-table">
+        <thead><tr>
+          <th nzWidth="140px">Username</th>
+          <th>Họ tên</th>
+          <th>Email</th>
+          <th nzWidth="140px">Vai trò</th>
+          <th nzWidth="120px">Trạng thái</th>
+          <th nzWidth="160px">Login gần nhất</th>
+          <th nzWidth="120px" nzAlign="center">Hành động</th>
+        </tr></thead>
+        <tbody>
+          @for (u of users(); track u.id) {
+            <tr>
+              <td><strong>{{ u.username }}</strong></td>
+              <td>{{ u.fullName }}</td>
+              <td class="cell-muted">{{ u.email }}</td>
+              <td><nz-tag [nzColor]="tagColor(u.role)">{{ u.role }}</nz-tag></td>
+              <td><nz-tag [nzColor]="tagColor(u.status)">{{ u.status }}</nz-tag></td>
+              <td class="cell-muted">{{ u.lastLogin }}</td>
+              <td nzAlign="center">
+                <button class="row-btn row-btn-edit" (click)="selectEntity('users'); setTab('data'); openEdit(u)" title="Sửa">
+                  <span nz-icon nzType="edit"></span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  }
+
+  <!-- ══ Tab: Cấu hình ══ -->
+  @if (activeTab() === 'settings') {
+    <div class="panel settings-panel">
+      <h3 class="panel-title">Module bật / tắt</h3>
+      <p class="panel-sub">Kích hoạt các module theo gói dịch vụ đã đăng ký. Module bị tắt sẽ ẩn khỏi sidebar.</p>
+
+      <div class="module-grid">
+        @for (m of modules(); track m.key) {
+          <div class="module-card" [class.enabled]="m.enabled">
+            <div class="mc-head">
+              <div class="mc-title-wrap">
+                <div class="mc-title">{{ m.name }}</div>
+                <span class="mc-tier" [class]="'tier-' + m.tier">{{ m.tier }}</span>
+              </div>
+              <nz-switch [ngModel]="m.enabled" (ngModelChange)="toggleModule(m.key, $event)"></nz-switch>
+            </div>
+            <div class="mc-desc">{{ m.desc }}</div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ══ Tab: Audit Trail ══ -->
+  @if (activeTab() === 'audit') {
+    <div class="panel audit-panel">
+      <div class="data-toolbar">
+        <div class="dt-title">
+          <span nz-icon nzType="file-search"></span>
+          Nhật ký hoạt động
+          <span class="dt-count">({{ logs().length }})</span>
+        </div>
+      </div>
+
+      <nz-table [nzData]="logs()" [nzLoading]="loading()" [nzPageSize]="10" class="data-table audit-tbl">
+        <thead><tr>
+          <th nzWidth="170px">Thời gian</th>
+          <th nzWidth="140px">Actor</th>
+          <th nzWidth="100px" nzAlign="center">Action</th>
+          <th nzWidth="120px">Entity</th>
+          <th>Mô tả</th>
+          <th nzWidth="120px">Module</th>
+        </tr></thead>
+        <tbody>
+          @for (log of logs(); track log.id) {
+            <tr>
+              <td class="cell-muted">{{ formatDate(log.timestamp) }}</td>
+              <td><strong>{{ log.actor }}</strong></td>
+              <td nzAlign="center"><nz-tag [nzColor]="actionColor(log.action)" class="action-tag">{{ log.action }}</nz-tag></td>
+              <td>{{ log.entity }}</td>
+              <td>{{ log.description }}</td>
+              <td><nz-tag nzColor="default">{{ log.module }}</nz-tag></td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </div>
+  }
+
+  <!-- ══ Edit/Add modal ══ -->
+  <nz-modal
+    [nzVisible]="editOpen()"
+    (nzVisibleChange)="editOpen.set($event)"
+    [nzTitle]="editMode() === 'add' ? 'Thêm mới' : 'Chỉnh sửa'"
+    [nzFooter]="null"
+    [nzWidth]="560"
+    nzCentered
+    (nzOnCancel)="closeEdit()"
+    nzClassName="admin-edit-modal"
+  >
+    <ng-container *nzModalContent>
+      <div class="edit-body">
+        @for (c of editableColumns(); track c.key) {
+          <div class="edit-field">
+            <label class="edit-label">{{ c.label }}</label>
+            @if (c.type === 'number' || c.type === 'progress') {
+              <input nz-input type="number"
+                     [ngModel]="editForm()[c.key]"
+                     (ngModelChange)="updateFormField(c.key, +$event)" />
+            } @else {
+              <input nz-input type="text"
+                     [ngModel]="editForm()[c.key]"
+                     (ngModelChange)="updateFormField(c.key, $event)" />
+            }
+          </div>
+        }
+      </div>
+      <div class="edit-footer">
+        <button nz-button nzType="default" (click)="closeEdit()">Hủy</button>
+        <button nz-button nzType="primary" class="btn-navy" (click)="saveEdit()">
+          <span nz-icon nzType="check"></span> Lưu
+        </button>
+      </div>
+    </ng-container>
+  </nz-modal>
+
+</div>

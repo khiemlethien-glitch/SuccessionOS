@@ -1,0 +1,71 @@
+<nz-layout class="app-layout">
+
+  <!-- ════ Sidebar ═══════════════════════════════════════════ -->
+  <nz-sider class="app-sider sidebar" [nzCollapsed]="isCollapsed()" [nzWidth]="240" [nzCollapsedWidth]="64" [nzTrigger]="null">
+
+    <div class="logo-wrapper" [class.collapsed]="isCollapsed()">
+      <img class="brand-logo-img" src="/logo.png" alt="PTSC" />
+    </div>
+
+    <!-- Navigation groups -->
+    <div class="menu-content nav-scroll">
+      @for (group of navGroups; track group.label) {
+        @if (!isCollapsed()) {
+          <div class="nav-group-label menu-group-label">{{ group.label }}</div>
+        }
+        <ul nz-menu nzTheme="light" nzMode="inline" class="nav-group">
+          @for (item of group.items; track item.route) {
+            <li nz-menu-item [routerLink]="item.route" routerLinkActive="active-item"
+                [nzTooltipTitle]="isCollapsed() ? item.label : ''" nzTooltipPlacement="right" nz-tooltip>
+              <span nz-icon [nzType]="item.icon"></span>
+              <span>{{ item.label }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!-- User profile dropdown -->
+    <div class="user-profile" nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="topLeft">
+      <nz-avatar
+        [nzText]="userInitials"
+        nzSize="default"
+        style="background: var(--color-accent); flex-shrink: 0;"
+      ></nz-avatar>
+
+      <div class="user-info">
+        <div class="user-name">{{ currentUser?.fullName || currentUser?.name || 'Hoàng Anh' }}</div>
+        <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
+      </div>
+
+      <span nz-icon nzType="more" class="more-icon"></span>
+    </div>
+
+    <nz-dropdown-menu #userMenu="nzDropdownMenu">
+      <ul nz-menu class="profile-dropdown">
+        <li nz-menu-item (click)="goToProfile()">
+          <span nz-icon nzType="user"></span>
+          <span>Hồ sơ cá nhân</span>
+        </li>
+        <li nz-menu-item (click)="goToSettings()">
+          <span nz-icon nzType="setting"></span>
+          <span>Cài đặt</span>
+        </li>
+        <li nz-menu-divider></li>
+        <li nz-menu-item (click)="logout()" class="logout-item">
+          <span nz-icon nzType="logout"></span>
+          <span>Đăng xuất</span>
+        </li>
+      </ul>
+    </nz-dropdown-menu>
+
+  </nz-sider>
+
+  <!-- ════ Main ═══════════════════════════════════════════════ -->
+  <nz-layout class="main-wrap">
+    <nz-content class="page-content">
+      <router-outlet />
+    </nz-content>
+  </nz-layout>
+
+</nz-layout>

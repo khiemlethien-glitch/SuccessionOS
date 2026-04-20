@@ -1,0 +1,43 @@
+{
+  "data": [
+    { "id": "IDP001", "talentId": "T002", "talentName": "Trần Thị Bình",   "year": 2026, "status": "Active",    "overallProgress": 65,
+      "goals": [
+        { "id": "G001", "title": "Hoàn thành PMP Certification",     "category": "Certification", "type": "Training",  "deadline": "2026-06-30", "status": "In Progress", "progress": 70, "mentor": "Đỗ Thanh Giang" },
+        { "id": "G002", "title": "Dẫn dắt dự án EPC độc lập",        "category": "On-the-job",   "type": "Stretch",   "deadline": "2026-09-30", "status": "In Progress", "progress": 45, "mentor": "Đỗ Thanh Giang" },
+        { "id": "G003", "title": "Khóa học Leadership Essentials",    "category": "Training",     "type": "Training",  "deadline": "2026-04-30", "status": "Completed",   "progress": 100,"mentor": null }
+      ]
+    },
+    { "id": "IDP002", "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "year": 2026, "status": "Active",    "overallProgress": 80,
+      "goals": [
+        { "id": "G004", "title": "Executive Leadership Program",       "category": "Training",     "type": "Training",  "deadline": "2026-05-31", "status": "In Progress", "progress": 85, "mentor": null },
+        { "id": "G005", "title": "Cross-functional rotation — Finance","category": "Rotation",     "type": "Rotation",  "deadline": "2026-08-31", "status": "In Progress", "progress": 60, "mentor": "Phạm Thị Dung" },
+        { "id": "G006", "title": "Strategic Planning Workshop",        "category": "Training",     "type": "Training",  "deadline": "2026-03-31", "status": "Completed",   "progress": 100,"mentor": null }
+      ]
+    },
+    { "id": "IDP003", "talentId": "T001", "talentName": "Nguyễn Văn An",   "year": 2026, "status": "Active",    "overallProgress": 40,
+      "goals": [
+        { "id": "G007", "title": "Advanced Structural Analysis Course","category": "Technical",    "type": "Training",  "deadline": "2026-07-31", "status": "In Progress", "progress": 50, "mentor": "Vũ Đình Long" },
+        { "id": "G008", "title": "Team lead thử nghiệm — dự án nhỏ",  "category": "Leadership",   "type": "Stretch",   "deadline": "2026-10-31", "status": "Not Started", "progress": 0,  "mentor": "Vũ Đình Long" }
+      ]
+    },
+    { "id": "IDP004", "talentId": "T020", "talentName": "Vũ Đình Long",    "year": 2026, "status": "Active",    "overallProgress": 30,
+      "goals": [
+        { "id": "G009", "title": "Management Development Program",     "category": "Leadership",   "type": "Training",  "deadline": "2026-06-30", "status": "In Progress", "progress": 40, "mentor": null },
+        { "id": "G010", "title": "International project exposure",     "category": "Rotation",     "type": "Rotation",  "deadline": "2026-12-31", "status": "In Progress", "progress": 20, "mentor": null }
+      ]
+    },
+    { "id": "IDP005", "talentId": "T019", "talentName": "Hoàng Thị Tâm",  "year": 2026, "status": "Pending",   "overallProgress": 10,
+      "goals": [
+        { "id": "G011", "title": "Commercial Strategy Masterclass",   "category": "Training",     "type": "Training",  "deadline": "2026-08-31", "status": "Not Started", "progress": 0,  "mentor": null },
+        { "id": "G012", "title": "Shadowing: Commercial Director",    "category": "Mentoring",    "type": "Stretch",   "deadline": "2026-11-30", "status": "Not Started", "progress": 0,  "mentor": "Vũ Thị Hoa" }
+      ]
+    },
+    { "id": "IDP006", "talentId": "T004", "talentName": "Phạm Thị Dung",  "year": 2026, "status": "Completed", "overallProgress": 100,
+      "goals": [
+        { "id": "G013", "title": "ACCA Financial Management",         "category": "Certification","type": "Training",  "deadline": "2025-12-31", "status": "Completed",   "progress": 100,"mentor": null },
+        { "id": "G014", "title": "Budget & Forecasting lead role",    "category": "On-the-job",   "type": "Stretch",   "deadline": "2025-11-30", "status": "Completed",   "progress": 100,"mentor": null }
+      ]
+    }
+  ],
+  "total": 6
+}
