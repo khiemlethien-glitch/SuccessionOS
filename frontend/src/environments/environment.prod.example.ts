@@ -6,7 +6,10 @@ export const environment = {
   production: true,
   apiUrl:     'https://api.successionos.vn/api/v1',
   stagingUrl: 'https://api.successionos.vn/api/v1',
-  useMock:    false,
+  // Backend .NET 8 chưa deploy (theo CLAUDE.md). Bật useMock để Vercel
+  // serve public/mock/*.json thay vì gọi api.successionos.vn (chưa có
+  // DNS record → ERR_NAME_NOT_RESOLVED). Tắt khi backend live.
+  useMock:    true,
 
   appUrl: 'https://succession-os-y6mt.vercel.app',
 

@@ -77,6 +77,7 @@ export class OidcService {
     const verifier  = this.generateCodeVerifier();
     const challenge = await this.generateCodeChallenge(verifier);
     const state     = this.generateState();
+    const nonce     = this.generateState();  // Same generator — 16-byte random
 
     this.saveOidcState(state, verifier);
 
@@ -86,6 +87,10 @@ export class OidcService {
       redirect_uri:          this.cfg.redirectUri,
       scope:                 this.cfg.scope,
       state,
+      // VnR docs §2.2 list `nonce` as required even for code flow. OIDC spec
+      // only mandates it when id_token is in the response_type, but VnR's
+      // IdentityServer config appears to enforce it regardless.
+      nonce,
       code_challenge:        challenge,
       code_challenge_method: 'S256',
     });
