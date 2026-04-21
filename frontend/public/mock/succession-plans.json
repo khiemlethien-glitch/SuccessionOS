@@ -4,7 +4,9 @@
       "successors": [
         { "talentId": "T002", "talentName": "Trần Thị Bình",   "readiness": "Ready Now",         "priority": 1, "gapScore": 5  },
         { "talentId": "T018", "talentName": "Nguyễn Văn Sơn",  "readiness": "Ready in 1 Year",   "priority": 2, "gapScore": 18 },
-        { "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "readiness": "Ready in 2 Years",  "priority": 3, "gapScore": 25 }
+        { "talentId": "T007", "talentName": "Đỗ Thanh Giang",  "readiness": "Ready in 2 Years",  "priority": 3, "gapScore": 25 },
+        { "talentId": "T012", "talentName": "Nguyễn Thị Mai",  "readiness": "Ready in 2 Years",  "priority": 4, "gapScore": 32 },
+        { "talentId": "T004", "talentName": "Phạm Thị Dung",   "readiness": "Ready in 1 Year",   "priority": 5, "gapScore": 28 }
       ] },
     { "id": "SP002", "positionId": "P002", "positionTitle": "Trưởng phòng Kỹ thuật", "department": "Kỹ thuật",
       "successors": [

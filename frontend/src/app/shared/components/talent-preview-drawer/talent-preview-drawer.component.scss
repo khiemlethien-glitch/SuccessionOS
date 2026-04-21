@@ -1,0 +1,56 @@
+:host {
+  display:block;
+  height:100%;
+}
+
+.tpd-root {
+  display:flex; flex-direction:column;
+  height:100%;
+  background:#f9fafb;
+}
+
+/* ═════ Header ═════ */
+.tpd-header {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px;
+  padding:14px 24px;
+  background:#fff;
+  border-bottom:1px solid #f1f5f9;
+  flex-shrink:0;
+  position:sticky; top:0; z-index:5;
+}
+.tpd-crumb {
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; color:#64748b; font-weight:500;
+}
+.tpd-crumb-ico { color:#4f46e5; font-size:14px; }
+.tpd-crumb-id  { font-size:11px; color:#94a3b8; font-family:'JetBrains Mono', monospace; }
+.tpd-sep       { color:#cbd5e1; }
+
+.tpd-header-actions { display:flex; gap:8px; align-items:center; }
+.tpd-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:8px; border:1px solid #e5e7eb;
+  background:#fff; color:#475569; cursor:pointer;
+  font-size:12.5px; font-weight:600;
+  transition:all .15s ease;
+  [nz-icon] { font-size:12px; }
+  &:hover { border-color:#c7d2fe; background:#fafbff; }
+}
+.tpd-btn-primary {
+  background:linear-gradient(135deg, #4f46e5, #6366f1);
+  border:none; color:#fff;
+  &:hover { background:linear-gradient(135deg, #4338ca, #4f46e5); transform:translateY(-1px); box-shadow:0 4px 10px rgba(79,70,229,.25); }
+}
+.tpd-btn-close {
+  width:32px; height:32px; padding:0; justify-content:center;
+  &:hover { background:#fee2e2; color:#dc2626; border-color:#fecaca; transform:rotate(90deg); }
+}
+
+/* ═════ Body ═════ */
+.tpd-body {
+  flex:1; overflow-y:auto;
+  padding:20px 24px;
+  ::ng-deep app-talent-profile { display:block; }
+  /* Ensure embedded profile uses available width but keeps readable inner paddings */
+}

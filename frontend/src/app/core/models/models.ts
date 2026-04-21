@@ -45,6 +45,8 @@ export interface KeyPosition {
   riskLevel: RiskLevel; criticalLevel: CriticalLevel;
   successors: string[];
   requiredCompetencies: string[];
+  /** Nearest key-position parent in the org tree. Null for root. */
+  parentId?: string | null;
 }
 export interface PositionListResponse { data: KeyPosition[]; total: number; }
 

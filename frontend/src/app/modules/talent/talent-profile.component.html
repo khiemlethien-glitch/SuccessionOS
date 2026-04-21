@@ -3,12 +3,14 @@
     <div class="loading-wrap"><nz-spin nzSimple nzSize="large"></nz-spin></div>
   } @else if (talent()) {
 
-    <!-- Breadcrumb -->
-    <div class="crumb">
-      <a routerLink="/talent" class="crumb-link">Nhân tài</a>
-      <span nz-icon nzType="right" class="crumb-sep"></span>
-      <span class="crumb-current">{{ talent()!.fullName }}</span>
-    </div>
+    <!-- Breadcrumb (hidden in embedded mode) -->
+    @if (!embedded) {
+      <div class="crumb">
+        <a routerLink="/talent" class="crumb-link">Nhân tài</a>
+        <span nz-icon nzType="right" class="crumb-sep"></span>
+        <span class="crumb-current">{{ talent()!.fullName }}</span>
+      </div>
+    }
 
     <!-- Risk banner -->
     @if (isHighRisk()) {

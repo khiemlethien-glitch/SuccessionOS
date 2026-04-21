@@ -108,68 +108,140 @@
 
       <!-- ═══ Tab 2: Succession Map ══════════════════════ -->
       <nz-tab nzTitle="Succession Map">
-        <div class="smap">
-          @for (plan of plans(); track plan.id) {
-            <div class="smap-block" [class.is-empty]="!plan.successors.length">
-              <!-- Position node -->
-              <div class="pos-node">
-                <div class="pn-left">
-                  <div class="pn-badge"><span nz-icon nzType="apartment"></span></div>
-                  <div class="pn-text">
-                    <div class="pn-title">{{ plan.positionTitle }}</div>
-                    <div class="pn-dept">
-                      <span nz-icon nzType="bank"></span> {{ plan.department }}
-                    </div>
+        @if (viewModeBanner(); as vb) {
+          <div class="view-banner" [ngClass]="'vb-' + vb.tone">
+            <div class="vb-ico"><span nz-icon [nzType]="vb.icon"></span></div>
+            <div class="vb-text">
+              <div class="vb-title">{{ vb.title }}</div>
+              <div class="vb-sub">{{ vb.sub }}</div>
+            </div>
+            @if (isRestrictedView()) {
+              <span class="vb-tag">Line Manager view</span>
+            }
+          </div>
+        }
+
+        <div class="smap smap-tree">
+          @if (treeRoots().length === 0 && isRestrictedView()) {
+            <div class="smap-empty-view">
+              <span nz-icon nzType="inbox"></span>
+              <div class="sev-title">Chưa có vị trí nào thuộc phạm vi của bạn</div>
+              <div class="sev-sub">Team của bạn chưa được định nghĩa vị trí then chốt hoặc bạn chưa được gán làm ứng viên kế thừa</div>
+            </div>
+          }
+
+          @for (root of treeRoots(); track root.positionId) {
+            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
+          }
+
+          <!-- Recursive template: compact row + gated details -->
+          <ng-template #nodeTpl let-node>
+            <div class="tree-node" [style.--depth]="node.depth" [class.tree-root]="node.depth === 0">
+
+              <!-- Compact clickable row — always visible -->
+              <div
+                role="button"
+                tabindex="0"
+                class="tree-row"
+                [ngClass]="['crit-' + criticalTone(node.criticalLevel), isNodeExpanded(node.positionId) ? 'is-expanded' : '']"
+                (click)="toggleNode(node.positionId)"
+                (keydown.enter)="toggleNode(node.positionId)"
+                (keydown.space)="$event.preventDefault(); toggleNode(node.positionId)"
+              >
+                <span nz-icon nzType="right" class="tr-chevron"></span>
+                <span class="tr-dot"></span>
+                <div class="tr-badge"><span nz-icon nzType="apartment"></span></div>
+                <div class="tr-main">
+                  <div class="tr-title">{{ node.title }}</div>
+                  <div class="tr-sub">
+                    {{ node.department }}
+                    @if (node.currentHolder) { · {{ node.currentHolder }} }
                   </div>
                 </div>
-                <div class="pn-right">
-                  <div class="pn-count-wrap">
-                    <span class="pn-count-val">{{ plan.successors.length }}</span>
-                    <span class="pn-count-lbl">kế thừa</span>
-                  </div>
+                <div class="tr-stats">
+                  @if (node.children.length) {
+                    <span class="tr-pill tr-pill-children">{{ node.children.length }} cấp dưới</span>
+                  }
+                  <span class="tr-pill" [class.tr-pill-zero]="!node.successors.length">
+                    @if (!node.successors.length) {
+                      <span nz-icon nzType="warning"></span>
+                    }
+                    {{ node.successors.length }} kế thừa
+                  </span>
+                  <button
+                    type="button"
+                    class="tr-info"
+                    (click)="openPositionDrawer(node, $event)"
+                    nz-tooltip
+                    nzTooltipTitle="Xem chi tiết vị trí"
+                  >
+                    <span nz-icon nzType="info-circle"></span>
+                  </button>
                 </div>
               </div>
 
-              <!-- Connector + successors -->
-              @if (plan.successors.length) {
-                <div class="smap-connector">
-                  <span class="conn-stem"></span>
-                  <span class="conn-bar"></span>
-                </div>
+              <!-- Expanded details: successors + children -->
+              @if (isNodeExpanded(node.positionId)) {
+                <div class="tree-details">
 
-                <div class="succ-pipeline" [style.--n]="plan.successors.length">
-                  @for (s of plan.successors; track s.talentId) {
-                    <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
-                      <span class="sn-branch"></span>
-                      <span class="sn-priority">#{{ s.priority }}</span>
-                      <div class="sn-avatar">
-                        <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                  @if (node.successors.length) {
+                    @let shown = successorsToShow(node);
+                    <div class="succ-pipeline" [style.--n]="shown.length + (hiddenCount(node) > 0 ? 1 : 0)">
+                      @for (s of shown; track s.talentId) {
+                        <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
+                          <span class="sn-priority">#{{ s.priority }}</span>
+                          <div class="sn-avatar">
+                            <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                          </div>
+                          <div class="sn-name">{{ s.talentName }}</div>
+                          <div class="sn-meta">
+                            <span class="sn-gap">
+                              <span nz-icon nzType="line-chart"></span>
+                              Gap {{ s.gapScore }}
+                            </span>
+                          </div>
+                          <span class="sn-ready">
+                            <span class="sn-ready-dot"></span>
+                            {{ readinessLabel(s.readiness) }}
+                          </span>
+                        </div>
+                      }
+                      @if (hiddenCount(node) > 0) {
+                        <button type="button" class="succ-more" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
+                          <div class="sm-circle"><span nz-icon nzType="plus"></span></div>
+                          <div class="sm-text">
+                            <div class="sm-count">+{{ hiddenCount(node) }}</div>
+                            <div class="sm-label">Xem thêm</div>
+                          </div>
+                        </button>
+                      }
+                    </div>
+                    @if (node.successors.length > 3 && isExpanded(node.positionId)) {
+                      <div class="succ-collapse-wrap">
+                        <button type="button" class="succ-collapse" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
+                          <span nz-icon nzType="arrow-up"></span>
+                          Thu gọn danh sách kế thừa
+                        </button>
                       </div>
-                      <div class="sn-name">{{ s.talentName }}</div>
-                      <div class="sn-meta">
-                        <span class="sn-gap">
-                          <span nz-icon nzType="line-chart"></span>
-                          Gap {{ s.gapScore }}
-                        </span>
-                      </div>
-                      <span class="sn-ready">
-                        <span class="sn-ready-dot"></span>
-                        {{ readinessLabel(s.readiness) }}
-                      </span>
+                    }
+                  } @else {
+                    <div class="tree-empty-line">
+                      <span nz-icon nzType="warning"></span>
+                      Chưa có kế hoạch kế thừa cho vị trí này — cần tuyển hoặc phát triển nội bộ
+                    </div>
+                  }
+
+                  @if (node.children.length) {
+                    <div class="tree-children">
+                      @for (child of node.children; track child.positionId) {
+                        <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+                      }
                     </div>
                   }
                 </div>
-              } @else {
-                <div class="smap-empty">
-                  <span nz-icon nzType="warning"></span>
-                  <div>
-                    <div class="se-title">Chưa có người kế thừa</div>
-                    <div class="se-sub">Vị trí này đang thiếu kế hoạch kế thừa — cần tuyển hoặc phát triển nội bộ</div>
-                  </div>
-                </div>
               }
             </div>
-          }
+          </ng-template>
         </div>
       </nz-tab>
 
@@ -318,5 +390,144 @@
         </button>
       </div>
     </div>
+  </ng-container>
+</nz-drawer>
+
+<!-- ══ Drawer: Chi tiết vị trí ═════════════════════════ -->
+<nz-drawer
+  [nzVisible]="positionDrawerOpen()"
+  (nzOnClose)="closePositionDrawer()"
+  nzPlacement="right"
+  [nzWidth]="520"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
+  [nzMaskClosable]="true"
+  nzWrapClassName="position-drawer"
+>
+  <ng-container *nzDrawerContent>
+    @if (drawerNode(); as node) {
+      <!-- Header -->
+      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
+        <div class="pd-hero-ico"><span nz-icon nzType="apartment"></span></div>
+        <div class="pd-hero-text">
+          <div class="pd-hero-title">{{ node.title }}</div>
+          <div class="pd-hero-sub">
+            <span nz-icon nzType="bank"></span>
+            {{ node.department }}
+            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
+              {{ node.criticalLevel }}
+            </span>
+          </div>
+        </div>
+        <button type="button" class="m-hero-close" (click)="closePositionDrawer()" title="Đóng">
+          <span nz-icon nzType="close"></span>
+        </button>
+      </div>
+
+      <!-- Section 1: Người đương nhiệm -->
+      <div class="pd-section">
+        <div class="pd-section-head">
+          <span nz-icon nzType="user" class="pd-ico pd-ico-blue"></span>
+          <h4>Người đương nhiệm</h4>
+        </div>
+
+        @if (node.currentHolder) {
+          <div class="pd-holder">
+            <app-avatar [name]="node.currentHolder" [size]="52"></app-avatar>
+            <div class="pd-holder-main">
+              <div class="pd-holder-name">{{ node.currentHolder }}</div>
+              @if (drawerHolderTalent(); as t) {
+                <div class="pd-holder-sub">{{ t.position }} · {{ t.department }}</div>
+                <div class="pd-holder-stats">
+                  <span class="pd-stat">Hiệu suất <strong>{{ t.performanceScore }}</strong></span>
+                  <span class="pd-stat">Tiềm năng <strong>{{ t.potentialScore }}</strong></span>
+                  <span class="pd-stat">Risk <strong>{{ t.riskScore }}</strong></span>
+                </div>
+                <button class="pd-link-btn" (click)="openTalentPreview(t.id, $event)">
+                  <span nz-icon nzType="user"></span> Xem hồ sơ
+                </button>
+              } @else {
+                <div class="pd-holder-sub pd-holder-note">Chưa liên kết với hồ sơ nhân tài</div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="pd-empty">
+            <span nz-icon nzType="warning"></span>
+            Vị trí này hiện chưa có người đảm nhiệm
+          </div>
+        }
+      </div>
+
+      <!-- Section 2: Ứng viên kế thừa -->
+      <div class="pd-section">
+        <div class="pd-section-head">
+          <span nz-icon nzType="team" class="pd-ico pd-ico-purple"></span>
+          <h4>Ứng viên kế thừa</h4>
+          <span class="pd-count-badge">{{ node.successors.length }}</span>
+        </div>
+
+        @if (node.successors.length) {
+          <ul class="pd-succ-list">
+            @for (s of drawerSuccessorTalents(); track s.talentId) {
+              <li class="pd-succ-item" [ngClass]="'rd-' + readinessTone(s.readiness)">
+                <span class="pd-priority">#{{ s.priority }}</span>
+                <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                <div class="pd-succ-main">
+                  <div class="pd-succ-name">{{ s.talentName }}</div>
+                  <div class="pd-succ-sub">
+                    @if (s.talent) { {{ s.talent.position }} · {{ s.talent.department }} }
+                    @else { Talent · {{ s.talentId }} }
+                  </div>
+                  <div class="pd-succ-meta">
+                    <span class="pd-ready">
+                      <span class="pd-ready-dot"></span>
+                      {{ readinessLabel(s.readiness) }}
+                    </span>
+                    <span class="pd-gap">
+                      <span nz-icon nzType="line-chart"></span>
+                      Gap {{ s.gapScore }}
+                    </span>
+                  </div>
+                </div>
+                @if (s.talent) {
+                  <button class="pd-succ-link" (click)="openTalentPreview(s.talent.id, $event)" title="Xem hồ sơ">
+                    <span nz-icon nzType="arrow-right"></span>
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="pd-empty">
+            <span nz-icon nzType="warning"></span>
+            Chưa có kế hoạch kế thừa — cần tuyển hoặc phát triển nội bộ
+          </div>
+        }
+      </div>
+    }
+  </ng-container>
+</nz-drawer>
+
+<!-- ══ Drawer: Preview hồ sơ nhân tài (chạm sidebar) ═══════ -->
+<nz-drawer
+  [nzVisible]="talentPreviewOpen()"
+  (nzOnClose)="closeTalentPreview()"
+  nzPlacement="right"
+  [nzWidth]="'calc(100vw - 240px)'"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
+  [nzMaskClosable]="true"
+  nzWrapClassName="talent-preview-drawer-wrap"
+>
+  <ng-container *nzDrawerContent>
+    <app-talent-preview
+      [talentId]="talentPreviewId()"
+      (closed)="closeTalentPreview()"
+      (openFull)="openFullTalent($event)"
+      (navigate)="switchPreview($event)"
+    ></app-talent-preview>
   </ng-container>
 </nz-drawer>

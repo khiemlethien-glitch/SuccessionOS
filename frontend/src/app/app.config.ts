@@ -87,6 +87,8 @@ import {
   FileSearchOutline,
   // Talent
   KeyOutline,
+  // Succession
+  InfoCircleOutline,
 } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
@@ -125,6 +127,8 @@ const icons = [
   DatabaseOutline, FileSearchOutline,
   // Talent
   KeyOutline,
+  // Succession
+  InfoCircleOutline,
 ];
 
 export const appConfig: ApplicationConfig = {

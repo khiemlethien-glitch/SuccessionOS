@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
@@ -22,7 +22,14 @@ import { Talent, TalentListResponse, Assessment, AssessmentListResponse, IdpPlan
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',
 })
-export class TalentProfileComponent implements OnInit {
+export class TalentProfileComponent implements OnInit, OnChanges {
+  /** Embed mode: pass the talent id directly instead of reading the route. */
+  @Input() embeddedTalentId: string | null = null;
+  /** Hides breadcrumb + re-routes internal navigation via embeddedNavigate event. */
+  @Input() embedded = false;
+  /** Emitted when user clicks a mentor/mentee/etc. inside the embedded view. */
+  @Output() embeddedNavigate = new EventEmitter<string>();
+
   talent     = signal<Talent | null>(null);
   assessment = signal<Assessment | null>(null);
   idp        = signal<IdpPlan | null>(null);
@@ -321,7 +328,23 @@ export class TalentProfileComponent implements OnInit {
   constructor(private route: ActivatedRoute, private router: Router, private api: ApiService) {}
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
+    const id = this.embedded
+      ? (this.embeddedTalentId ?? '')
+      : (this.route.snapshot.paramMap.get('id') ?? '');
+    this.loadTalentData(id);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.embedded) return;
+    if (changes['embeddedTalentId'] && !changes['embeddedTalentId'].firstChange) {
+      const id = this.embeddedTalentId ?? '';
+      this.loadTalentData(id);
+    }
+  }
+
+  private loadTalentData(id: string): void {
+    this.loading.set(true);
+    if (!id) { this.loading.set(false); return; }
     this.api.get<TalentListResponse>('talents', 'talents').subscribe(r => {
       this.allTalents.set(r.data);
       this.talent.set(r.data.find(t => t.id === id) ?? null);
@@ -333,7 +356,10 @@ export class TalentProfileComponent implements OnInit {
       this.idp.set(r.data.find(i => i.talentId === id) ?? null));
   }
 
-  goBack(): void { this.router.navigate(['/talent']); }
+  goBack(): void {
+    if (this.embedded) return;
+    this.router.navigate(['/talent']);
+  }
 
   // ---- Mentor picker ----
   openMentorModal(): void { this.mentorSearch.set(''); this.showMentorModal.set(true); }
@@ -494,6 +520,10 @@ export class TalentProfileComponent implements OnInit {
 
   switchCenter(id: string): void {
     if (!id || id === this.talent()?.id) return;
+    if (this.embedded) {
+      this.embeddedNavigate.emit(id);
+      return;
+    }
     this.router.navigate(['/talent', id]).then(() => {
       this.talent.set(this.allTalents().find(t => t.id === id) ?? null);
       this.api.get<AssessmentListResponse>('assessments', 'assessments').subscribe(r =>

@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-21 04:30
+> Cập nhật lần cuối: 2026-04-21 06:55
 
 ---
 
@@ -72,6 +72,14 @@ Backend:  Dev team build .NET 8 API (chưa có)
 - [x] Positions "Thêm vị trí then chốt": chuyển từ nz-modal sang nz-drawer từ phải (640px), giữ nguyên form + drag-drop competencies, hero có nút X, body scroll + footer sticky, backdrop blur, nzMaskClosable=false tránh mất input ✅
 - [x] Talent List: gỡ hẳn IDP column + "IDP active" mini-stat (vì data IDP chưa gắn flow hoàn chỉnh, cột chủ yếu hiện "Chưa có"), cleanup signals/computed/fetch + styles .idp* và .ms-indigo ✅
 - [x] Succession "Điều chỉnh thang đo 9-Box": chuyển từ nz-modal sang nz-drawer từ phải (640px), giữ 2 slider ranges + preview chips + Default/Cancel/Apply, hero có nút X, body scroll + footer sticky, mask blur — pattern nhất quán với drawer add-position & admin module config ✅
+- [x] Talent List enrichment: (1) icon key vàng bên tên khi talent đang giữ Key Position + tooltip; (2) sub "Kế thừa: [vị trí]" pill indigo cho tier Kế thừa, +N chip khi kế thừa >1 vị trí; (3) rename "Rủi ro" → "Rủi ro rời đi", hiện reason chip dưới pill khi High risk (từ mock `departureReasons` + fallback derive); (4) cột mới "Khoảng cách năng lực" — avg shortfall vs competencyTargets, pill 3-tone Đạt/Thiếu N (xanh/vàng/đỏ) ✅
+- [x] Succession Map role-based: view banner hiện mode (Admin/HR "Toàn bộ tổ chức" indigo vs Line Manager "Team của bạn · Department" amber + tag). Line Manager filter: chỉ hiện vị trí `department === user.department` OR user là successor. Login user extend với `department` + `talentId` (lm.kythuat → Kỹ thuật + T020). Empty state khi không match ✅
+- [x] Succession Map collapse: position có ≤3 successors hiện full; ≥4 thì show 3 đầu + card dashed "Xem thêm +N" (click expand), sau khi expand có nút "Thu gọn" pill indigo. Pad SP001 (Director QLDA) lên 5 successors để demo ✅
+- [x] Succession Map unified org tree: `KeyPosition.parentId` mới (nearest key-parent). Positions.json thêm 4 C-level (Chủ tịch → TGĐ → CFO/CHRO) + set parentId cho 11 vị trí hiện có. Component build tree từ flat list, prune cho Line Manager (giữ ancestors của node match). Template đổi flat @for → recursive ng-template + ngTemplateOutlet ✅
+- [x] Succession Map compact view: bỏ fat card, mỗi node là 1 compact row (chevron rotate, icon, title · dept · holder, pill "N cấp dưới" + "N kế thừa" hoặc warning). Border trái + dot halo màu theo criticalLevel (red/amber/blue/gray). Mọi node collapse mặc định — click row → expand panel chứa successors pipeline + tree-children (recursive, compact rows). Cấu trúc không lộn xộn, có cái nhìn bao quát ✅
+- [x] Succession Map position details: thêm nút `info-circle` trên mỗi compact row → mở drawer 520px 2 section: (1) Người đương nhiệm — avatar + tên + position/dept + stats (perf/pot/risk) + nút "Xem hồ sơ" nếu match talent; (2) Ứng viên kế thừa — list item priority + avatar + readiness + gap + arrow link → /talent/:id. Drawer hero gradient theo criticalLevel (red/amber/navy/slate) ✅
+- [x] Succession Map fix: successor card giờ fixed width 210px (flex thay vì grid auto-fit 1fr) → 1 card không còn stretch full, nhiều card cùng size ✅
+- [x] Talent preview drawer pattern: drawer rộng `calc(100vw - 240px)` chạm sidebar, dùng `Location.go()` để URL sync `/talent/:id` mà không navigate thật; close → restore savedUrl; click successor/holder không đóng position drawer (layer stack); hỗ trợ switch talent trong drawer qua event `embeddedNavigate`. `TalentProfileComponent` thêm 3 input/output (`embeddedTalentId`, `embedded`, `embeddedNavigate`) để render full profile bên trong drawer với breadcrumb ẩn + intercept `switchCenter` — preview giờ hiện **đầy đủ** giống `/talent/:id` (radar, network, risk factors, 360°, IDP, knowledge transfer...) ✅
 
 ### Placeholder routes
 - [x] `/profile` — ProfileComponent placeholder ✅

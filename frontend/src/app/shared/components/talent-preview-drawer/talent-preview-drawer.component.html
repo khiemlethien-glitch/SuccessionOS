@@ -1,0 +1,32 @@
+<div class="tpd-root">
+
+  <!-- Header — sticky -->
+  <div class="tpd-header">
+    <div class="tpd-crumb">
+      <span nz-icon nzType="team" class="tpd-crumb-ico"></span>
+      <span>Hồ sơ nhân tài</span>
+      @if (talentId) { <span class="tpd-sep">·</span> <span class="tpd-crumb-id">{{ talentId }}</span> }
+    </div>
+    <div class="tpd-header-actions">
+      @if (talentId) {
+        <button type="button" class="tpd-btn tpd-btn-primary" (click)="onOpenFull()" title="Mở hồ sơ đầy đủ trong trang riêng">
+          <span nz-icon nzType="arrow-right"></span> Mở trang riêng
+        </button>
+      }
+      <button type="button" class="tpd-btn tpd-btn-close" (click)="onClose()" title="Đóng">
+        <span nz-icon nzType="close"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Body hosts the full talent profile in embedded mode -->
+  <div class="tpd-body">
+    @if (talentId) {
+      <app-talent-profile
+        [embedded]="true"
+        [embeddedTalentId]="talentId"
+        (embeddedNavigate)="onInnerNavigate($event)"
+      ></app-talent-profile>
+    }
+  </div>
+</div>

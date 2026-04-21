@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -10,8 +11,11 @@ import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, SuccessionPlan, SuccessionPlanListResponse } from '../../core/models/models';
+import { AuthService } from '../../core/auth/auth.service';
+import { Talent, TalentListResponse, SuccessionPlan, SuccessionPlanListResponse,
+  KeyPosition, PositionListResponse, Successor } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
 interface BoxDef {
   row: number;      // 1=low perf, 3=high perf
@@ -25,6 +29,17 @@ interface BoxDef {
 const DEFAULT_PERF: [number, number] = [70, 85];
 const DEFAULT_POT:  [number, number] = [70, 85];
 
+interface TreeNode {
+  positionId: string;
+  title: string;
+  department: string;
+  currentHolder: string;
+  criticalLevel: string;
+  successors: Successor[];  // from matching SuccessionPlan, or []
+  children: TreeNode[];
+  depth: number;
+}
+
 @Component({
   selector: 'app-succession',
   standalone: true,
@@ -32,14 +47,15 @@ const DEFAULT_POT:  [number, number] = [70, 85];
     CommonModule, FormsModule,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
     NzDrawerModule, NzSliderModule, NzButtonModule,
-    AvatarComponent,
+    AvatarComponent, TalentPreviewDrawerComponent,
   ],
   templateUrl: './succession.component.html',
   styleUrl: './succession.component.scss',
 })
 export class SuccessionComponent implements OnInit {
-  talents = signal<Talent[]>([]);
-  plans   = signal<SuccessionPlan[]>([]);
+  talents   = signal<Talent[]>([]);
+  plans     = signal<SuccessionPlan[]>([]);
+  positions = signal<KeyPosition[]>([]);
 
   // ─── Scale thresholds ──────────────────────────────
   // [lowMidCutoff, midHighCutoff]  e.g. [70, 85] means:
@@ -52,6 +68,176 @@ export class SuccessionComponent implements OnInit {
   potDraft  = signal<[number, number]>([...DEFAULT_POT]);
 
   showScaleModal = signal(false);
+
+  // ─── Succession Map: role-based filter + collapse state ──────
+  // Tree-level: which org-tree nodes are expanded (click to drill down)
+  expandedNodes = signal<Set<string>>(new Set());
+  // Successor-list-level: which position has its >3 successors expanded
+  expandedPositions = signal<Set<string>>(new Set());
+  private readonly COLLAPSE_THRESHOLD = 3;
+
+  toggleNode(positionId: string): void {
+    const next = new Set(this.expandedNodes());
+    if (next.has(positionId)) next.delete(positionId);
+    else next.add(positionId);
+    this.expandedNodes.set(next);
+  }
+
+  isNodeExpanded(positionId: string): boolean {
+    return this.expandedNodes().has(positionId);
+  }
+
+  criticalTone(level: string): string {
+    const m: Record<string, string> = {
+      'Critical': 'critical',
+      'High':     'high',
+      'Medium':   'medium',
+      'Low':      'low',
+    };
+    return m[level] ?? 'medium';
+  }
+
+  // ── Position details drawer (opened via info button on tree-row)
+  positionDrawerOpen = signal(false);
+  drawerNode         = signal<TreeNode | null>(null);
+
+  openPositionDrawer(node: TreeNode, ev?: Event): void {
+    ev?.stopPropagation();
+    this.drawerNode.set(node);
+    this.positionDrawerOpen.set(true);
+  }
+  closePositionDrawer(): void { this.positionDrawerOpen.set(false); }
+
+  /** Match currentHolder string (plain name) against talents list if possible. */
+  drawerHolderTalent = computed<Talent | null>(() => {
+    const node = this.drawerNode();
+    if (!node?.currentHolder) return null;
+    return this.talents().find(t => t.fullName === node.currentHolder) ?? null;
+  });
+
+  /** Full talent records for successors of drawer node. */
+  drawerSuccessorTalents = computed<Array<Successor & { talent: Talent | null }>>(() => {
+    const node = this.drawerNode();
+    if (!node) return [];
+    return node.successors.map(s => ({
+      ...s,
+      talent: this.talents().find(t => t.id === s.talentId) ?? null,
+    }));
+  });
+
+  currentUser = signal<{ role?: string; department?: string; talentId?: string; fullName?: string; name?: string } | null>(null);
+
+  isRestrictedView = computed(() => this.currentUser()?.role === 'Line Manager');
+
+  /** Build tree from flat positions[] via parentId + attach successors from matching plan */
+  private buildTree(positions: KeyPosition[], plans: SuccessionPlan[]): TreeNode[] {
+    const planByPos = new Map(plans.map(p => [p.positionId, p]));
+    const nodeById  = new Map<string, TreeNode>();
+    positions.forEach(p => {
+      nodeById.set(p.id, {
+        positionId:    p.id,
+        title:         p.title,
+        department:    p.department,
+        currentHolder: p.currentHolder,
+        criticalLevel: p.criticalLevel,
+        successors:    planByPos.get(p.id)?.successors ?? [],
+        children:      [],
+        depth:         0,
+      });
+    });
+    const roots: TreeNode[] = [];
+    positions.forEach(p => {
+      const node = nodeById.get(p.id)!;
+      if (p.parentId && nodeById.has(p.parentId)) {
+        nodeById.get(p.parentId)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    // Propagate depth
+    const setDepth = (n: TreeNode, d: number) => {
+      n.depth = d;
+      n.children.forEach(c => setDepth(c, d + 1));
+    };
+    roots.forEach(r => setDepth(r, 0));
+    return roots;
+  }
+
+  /** Prune tree for Line Manager: keep only nodes matching filter + ancestors of matches */
+  private pruneTree(nodes: TreeNode[], match: (n: TreeNode) => boolean): TreeNode[] {
+    const result: TreeNode[] = [];
+    for (const n of nodes) {
+      const prunedChildren = this.pruneTree(n.children, match);
+      const selfMatch = match(n);
+      if (selfMatch || prunedChildren.length > 0) {
+        result.push({ ...n, children: prunedChildren });
+      }
+    }
+    return result;
+  }
+
+  treeRoots = computed<TreeNode[]>(() => {
+    const positions = this.positions();
+    const plans     = this.plans();
+    if (!positions.length) return [];
+    const full = this.buildTree(positions, plans);
+
+    const user = this.currentUser();
+    if (!user || user.role !== 'Line Manager') return full;
+
+    const match = (n: TreeNode) =>
+      (user.department ? n.department === user.department : false) ||
+      (user.talentId   ? n.successors.some(s => s.talentId === user.talentId) : false);
+    return this.pruneTree(full, match);
+  });
+
+  /** Flat count of all visible positions for banner display */
+  private countNodes(nodes: TreeNode[]): number {
+    return nodes.reduce((s, n) => s + 1 + this.countNodes(n.children), 0);
+  }
+
+  viewModeBanner = computed(() => {
+    const user = this.currentUser();
+    const count = this.countNodes(this.treeRoots());
+    if (!user) return null;
+    if (this.isRestrictedView()) {
+      return {
+        icon: 'team',
+        title: `Team của bạn · ${user.department ?? '—'}`,
+        sub: `${count} vị trí then chốt thuộc phạm vi của bạn`,
+        tone: 'restricted',
+      };
+    }
+    return {
+      icon: 'cluster',
+      title: `Toàn bộ tổ chức`,
+      sub: `${count} vị trí then chốt đã định nghĩa`,
+      tone: 'full',
+    };
+  });
+
+  toggleExpand(positionId: string): void {
+    const next = new Set(this.expandedPositions());
+    if (next.has(positionId)) next.delete(positionId);
+    else next.add(positionId);
+    this.expandedPositions.set(next);
+  }
+
+  isExpanded(positionId: string): boolean {
+    return this.expandedPositions().has(positionId);
+  }
+
+  successorsToShow(node: TreeNode): Successor[] {
+    if (node.successors.length <= this.COLLAPSE_THRESHOLD) return node.successors;
+    if (this.isExpanded(node.positionId)) return node.successors;
+    return node.successors.slice(0, this.COLLAPSE_THRESHOLD);
+  }
+
+  hiddenCount(node: TreeNode): number {
+    if (node.successors.length <= this.COLLAPSE_THRESHOLD) return 0;
+    if (this.isExpanded(node.positionId)) return 0;
+    return node.successors.length - this.COLLAPSE_THRESHOLD;
+  }
 
   // 9-box definitions — row=performance, col=potential
   boxes: BoxDef[] = [
@@ -66,11 +252,61 @@ export class SuccessionComponent implements OnInit {
     { row:1, col:3, num:3, label:'Enigma',             sublabel:'Hiệu suất thấp · Tiềm năng cao', tone:'risk'  },
   ];
 
-  constructor(private api: ApiService, private msg: NzMessageService) {}
+  constructor(
+    private api: ApiService,
+    private msg: NzMessageService,
+    private auth: AuthService,
+    private router: Router,
+    private location: Location,
+  ) {}
+
+  // ── Talent preview drawer (chạm sidebar, URL sync)
+  talentPreviewId  = signal<string | null>(null);
+  talentPreviewOpen = signal(false);
+  private savedUrl = '';
+
+  openTalentPreview(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!id) return;
+    // Remember URL once (first open); for sibling switches, keep the original
+    if (!this.talentPreviewOpen()) this.savedUrl = this.location.path() || this.router.url;
+    this.location.go(`/talent/${id}`);
+    this.talentPreviewId.set(id);
+    this.talentPreviewOpen.set(true);
+  }
+
+  closeTalentPreview(): void {
+    if (this.savedUrl) this.location.go(this.savedUrl);
+    this.savedUrl = '';
+    this.talentPreviewOpen.set(false);
+    this.talentPreviewId.set(null);
+  }
+
+  /** Switch which talent the preview drawer shows (e.g. click a mentor/mentee inside). */
+  switchPreview(id: string): void {
+    if (!id) return;
+    this.location.go(`/talent/${id}`);
+    this.talentPreviewId.set(id);
+  }
+
+  /** User wants the real full profile: close preview, real navigation. */
+  openFullTalent(id: string): void {
+    this.savedUrl = '';
+    this.talentPreviewOpen.set(false);
+    this.talentPreviewId.set(null);
+    this.router.navigate(['/talent', id]);
+  }
+
+  /** Legacy entry point — opens preview while keeping position drawer open. */
+  goToTalent(id: string): void {
+    this.openTalentPreview(id);
+  }
 
   ngOnInit(): void {
+    this.currentUser.set(this.auth.getCurrentUser());
     this.api.get<TalentListResponse>('talents','talents').subscribe(r => this.talents.set(r.data));
     this.api.get<SuccessionPlanListResponse>('succession-plans','succession-plans').subscribe(r => this.plans.set(r.data));
+    this.api.get<PositionListResponse>('positions','positions').subscribe(r => this.positions.set(r.data));
   }
 
   // ─── Scoring ───────────────────────────────────────
