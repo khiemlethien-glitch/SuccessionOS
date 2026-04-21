@@ -93,7 +93,25 @@ $header-h: 0px;
       .anticon { color:$sidebar-active-text !important; }
       &::after { display:none; }
     }
+    /* Disabled — "Sắp ra mắt" items */
+    &.nav-disabled, &.ant-menu-item-disabled {
+      color:#cbd5e1 !important;
+      cursor:not-allowed !important;
+      background:transparent !important;
+      opacity:1;
+      .anticon { color:#cbd5e1 !important; }
+      .nav-label { color:#94a3b8 !important; }
+      &:hover { background:transparent !important; color:#cbd5e1 !important; }
+    }
   }
+}
+
+.nav-label      { flex:1; min-width:0; }
+.nav-soon-badge {
+  font-size:9px; font-weight:700; letter-spacing:0.3px;
+  padding:2px 6px; border-radius:999px;
+  background:#f1f5f9; color:#94a3b8;
+  text-transform:uppercase; margin-left:auto; flex-shrink:0;
 }
 
 // User profile dropdown

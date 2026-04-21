@@ -15,10 +15,18 @@
         }
         <ul nz-menu nzTheme="light" nzMode="inline" class="nav-group">
           @for (item of group.items; track item.route) {
-            <li nz-menu-item [routerLink]="item.route" routerLinkActive="active-item"
-                [nzTooltipTitle]="isCollapsed() ? item.label : ''" nzTooltipPlacement="right" nz-tooltip>
+            <li nz-menu-item
+                [nzDisabled]="!!item.disabled"
+                [routerLink]="item.disabled ? null : item.route"
+                routerLinkActive="active-item"
+                [class.nav-disabled]="item.disabled"
+                [nzTooltipTitle]="item.disabled ? 'Sắp ra mắt' : (isCollapsed() ? item.label : '')"
+                nzTooltipPlacement="right" nz-tooltip>
               <span nz-icon [nzType]="item.icon"></span>
-              <span>{{ item.label }}</span>
+              <span class="nav-label">{{ item.label }}</span>
+              @if (item.disabled && !isCollapsed()) {
+                <span class="nav-soon-badge">Sắp ra mắt</span>
+              }
             </li>
           }
         </ul>

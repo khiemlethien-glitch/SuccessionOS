@@ -10,7 +10,7 @@ import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 
-interface NavItem { label: string; icon: string; route: string; }
+interface NavItem { label: string; icon: string; route: string; disabled?: boolean; }
 interface NavGroup { label: string; items: NavItem[]; }
 
 @Component({
@@ -35,16 +35,16 @@ export class ShellComponent {
       { label: 'Bản đồ kế thừa',     icon: 'cluster',   route: '/succession' },
     ]},
     { label: 'PHÁT TRIỂN', items: [
-      { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp' },
-      { label: 'Đánh giá',           icon: 'star',      route: '/assessment' },
-      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring' },
-      { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration' },
+      { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp',         disabled: true },
+      { label: 'Đánh giá',           icon: 'star',      route: '/assessment',  disabled: true },
+      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring',   disabled: true },
+      { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration', disabled: true },
     ]},
     { label: 'PHÂN TÍCH', items: [
-      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports' },
+      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports',     disabled: true },
     ]},
     { label: 'HỆ THỐNG', items: [
-      { label: 'Marketplace',        icon: 'shop',      route: '/marketplace' },
+      { label: 'Marketplace',        icon: 'shop',      route: '/marketplace', disabled: true },
       { label: 'Quản trị',           icon: 'setting',   route: '/admin' },
     ]},
   ];
