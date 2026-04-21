@@ -33,11 +33,16 @@ export class OidcCallbackComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    console.log('[callback] ngOnInit fired', {
+      time:      typeof window !== 'undefined' ? new Date().toISOString() : 'SSR',
+      isBrowser: typeof window !== 'undefined',
+      handled:   OidcCallbackComponent.handled,
+      url:       typeof window !== 'undefined' ? window.location.href : 'SSR',
+      storageKeys: typeof window !== 'undefined' ? Object.keys(sessionStorage) : [],
+    });
     if (typeof window === 'undefined') return;   // SSR — skip entirely
     if (OidcCallbackComponent.handled) return;   // already ran this page load
     OidcCallbackComponent.handled = true;
-    // Wrap trong Promise.resolve() để đẩy logic ra ngoài Angular change detection
-    // cycle hiện tại — tránh lỗi NG0100 ExpressionChangedAfterChecked
     Promise.resolve().then(() => this.handleCallback());
   }
 

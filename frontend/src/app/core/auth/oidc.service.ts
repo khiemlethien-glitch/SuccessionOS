@@ -59,12 +59,29 @@ export class OidcService {
     if (typeof window === 'undefined') return;
     sessionStorage.setItem('oidc_state', state);
     sessionStorage.setItem('oidc_verifier', verifier);
+    console.log('[oidc] SAVE state/verifier', {
+      time:     new Date().toISOString(),
+      origin:   window.location.origin,
+      pathname: window.location.pathname,
+      state:    state.slice(0, 12) + '...',
+      verifier: verifier.slice(0, 12) + '...',
+      allKeys:  Object.keys(sessionStorage),
+    });
   }
 
   popOidcState(): { state: string; verifier: string } | null {
     if (typeof window === 'undefined') return null;
     const state    = sessionStorage.getItem('oidc_state');
     const verifier = sessionStorage.getItem('oidc_verifier');
+    console.log('[oidc] POP state/verifier (before remove)', {
+      time:        new Date().toISOString(),
+      origin:      window.location.origin,
+      pathname:    window.location.pathname,
+      stateFound:    !!state,
+      verifierFound: !!verifier,
+      stateSnippet:  state?.slice(0, 12) + '...',
+      allKeys:     Object.keys(sessionStorage),
+    });
     sessionStorage.removeItem('oidc_state');
     sessionStorage.removeItem('oidc_verifier');
     if (!state || !verifier) return null;
