@@ -51,6 +51,10 @@ interface TreeNode {
   ],
   templateUrl: './succession.component.html',
   styleUrl: './succession.component.scss',
+  // nz-drawer moves its content to body's cdk-overlay-container on the
+  // client, so the SSR DOM doesn't line up with the hydrated DOM (NG0500).
+  // Skip hydration for this component — the client re-renders from scratch.
+  host: { ngSkipHydration: 'true' },
 })
 export class SuccessionComponent implements OnInit {
   talents   = signal<Talent[]>([]);
