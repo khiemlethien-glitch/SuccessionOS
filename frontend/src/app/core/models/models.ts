@@ -27,6 +27,7 @@ export interface Talent {
   targetPosition?: string;
   riskReasons?: string[];
   riskFactors?: RiskFactor[];
+  departureReasons?: string[];
 }
 
 export interface RiskFactor {

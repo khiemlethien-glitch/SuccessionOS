@@ -85,6 +85,8 @@ import {
   // Admin
   DatabaseOutline,
   FileSearchOutline,
+  // Talent
+  KeyOutline,
 } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
@@ -121,6 +123,8 @@ const icons = [
   SlidersOutline, ReloadOutline,
   // Admin
   DatabaseOutline, FileSearchOutline,
+  // Talent
+  KeyOutline,
 ];
 
 export const appConfig: ApplicationConfig = {

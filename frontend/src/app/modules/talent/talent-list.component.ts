@@ -11,7 +11,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, TalentTier } from '../../core/models/models';
+import { Talent, TalentListResponse, TalentTier, KeyPosition, PositionListResponse } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
 
@@ -31,6 +31,7 @@ type ReadinessUi = 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm';
 })
 export class TalentListComponent implements OnInit {
   all = signal<Talent[]>([]);
+  positions = signal<KeyPosition[]>([]);
   loading = signal(true);
   search = signal('');
 
@@ -77,10 +78,58 @@ export class TalentListComponent implements OnInit {
   constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit(): void {
+    let pending = 2;
+    const done = () => { if (--pending === 0) this.loading.set(false); };
     this.api.get<TalentListResponse>('talents', 'talents').subscribe({
-      next: r => { this.all.set(r.data); this.loading.set(false); },
-      error: () => this.loading.set(false),
+      next: r => { this.all.set(r.data); done(); }, error: done,
     });
+    this.api.get<PositionListResponse>('positions', 'positions').subscribe({
+      next: r => { this.positions.set(r.data); done(); }, error: done,
+    });
+  }
+
+  // ── Held position (current holder of a key position)
+  heldPosition(t: Talent): KeyPosition | null {
+    return this.positions().find(p => p.currentHolder === t.fullName) ?? null;
+  }
+
+  // ── Successor of which positions (for Kế thừa tier)
+  successorOf(t: Talent): KeyPosition[] {
+    return this.positions().filter(p => p.successors?.includes(t.id));
+  }
+
+  successorTitles(list: KeyPosition[]): string {
+    return list.map(p => p.title).join(' · ');
+  }
+
+  // ── Departure reasons (explicit from mock + derived from risk + seniority)
+  departureReasons(t: Talent): string[] {
+    if (t.departureReasons && t.departureReasons.length) return t.departureReasons;
+    if (t.riskScore >= 60 && t.yearsOfExperience >= 20) return ['Sắp nghỉ hưu'];
+    if (t.riskScore >= 60) return ['Cần làm rõ nguyên nhân'];
+    return [];
+  }
+
+  // ── Competency gap vs target (avg shortfall; 0 = meets target)
+  competencyGap(t: Talent): { gap: number; tone: 'good' | 'mid' | 'bad'; label: string } {
+    const actual = {
+      technical:   t.competencies?.technical    ?? 0,
+      performance: t.performanceScore,
+      behavior:    t.competencies?.communication ?? 0,
+      potential:   t.potentialScore,
+      leadership:  t.competencies?.leadership   ?? 0,
+    };
+    const target = t.competencyTargets ?? (
+      t.talentTier === 'Nòng cốt'
+        ? { technical: 90, performance: 90, behavior: 85, potential: 85, leadership: 90 }
+        : { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 }
+    );
+    const keys: (keyof typeof actual)[] = ['technical','performance','behavior','potential','leadership'];
+    const shortfall = keys.reduce((s, k) => s + Math.max(0, target[k] - actual[k]), 0);
+    const gap = Math.round(shortfall / keys.length);
+    if (gap <= 0) return { gap: 0, tone: 'good', label: 'Đạt' };
+    if (gap <= 5) return { gap, tone: 'mid', label: `Thiếu ${gap}` };
+    return { gap, tone: 'bad', label: `Thiếu ${gap}` };
   }
 
   navigate(t: Talent): void { this.router.navigate(['/talent', t.id]); }

@@ -112,8 +112,9 @@
           <th>Tầng</th>
           <th>Điểm đánh giá</th>
           <th>Overall</th>
+          <th>Khoảng cách năng lực</th>
           <th>Readiness</th>
-          <th>Rủi ro</th>
+          <th>Rủi ro rời đi</th>
           <th nzAlign="center" nzWidth="44px"></th>
         </tr>
       </thead>
@@ -124,8 +125,29 @@
               <div class="emp">
                 <app-avatar [name]="t.fullName" [size]="36"></app-avatar>
                 <div class="emp-meta">
-                  <div class="emp-name">{{ t.fullName }}</div>
+                  <div class="emp-name">
+                    {{ t.fullName }}
+                    @if (heldPosition(t); as kp) {
+                      <span class="key-badge" nz-tooltip [nzTooltipTitle]="'Đang giữ vị trí then chốt: ' + kp.title">
+                        <span nz-icon nzType="key"></span>
+                      </span>
+                    }
+                  </div>
                   <div class="emp-sub">{{ t.position }}</div>
+                  @if (t.talentTier === 'Kế thừa') {
+                    @let succ = successorOf(t);
+                    @if (succ.length > 0) {
+                      <div class="emp-succ"
+                           nz-tooltip
+                           [nzTooltipTitle]="succ.length > 1 ? successorTitles(succ) : ''">
+                        <span nz-icon nzType="cluster" class="es-ico"></span>
+                        Kế thừa: <strong>{{ succ[0].title }}</strong>
+                        @if (succ.length > 1) {
+                          <span class="es-more">+{{ succ.length - 1 }}</span>
+                        }
+                      </div>
+                    }
+                  }
                 </div>
               </div>
             </td>
@@ -153,11 +175,28 @@
             </td>
 
             <td>
+              @let gap = competencyGap(t);
+              <span class="gap-pill" [ngClass]="'gap-' + gap.tone">{{ gap.label }}</span>
+            </td>
+
+            <td>
               <span class="ready-pill" [ngClass]="readinessClass(t.readinessLevel)">{{ readinessLabel(t.readinessLevel) }}</span>
             </td>
 
             <td>
-              <span class="risk-pill" [ngClass]="riskLabel(t.riskScore).cls">{{ riskLabel(t.riskScore).text }}</span>
+              <div class="risk-cell">
+                <span class="risk-pill" [ngClass]="riskLabel(t.riskScore).cls">{{ riskLabel(t.riskScore).text }}</span>
+                @if (t.riskScore >= 60) {
+                  @let reasons = departureReasons(t);
+                  @if (reasons.length > 0) {
+                    <div class="risk-reasons">
+                      @for (r of reasons; track r) {
+                        <span class="risk-reason-chip">{{ r }}</span>
+                      }
+                    </div>
+                  }
+                }
+              </div>
             </td>
 
             <td nzAlign="center" nzRight>
