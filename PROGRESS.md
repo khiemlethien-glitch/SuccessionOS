@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-21 04:00
+> Cập nhật lần cuối: 2026-04-21 04:15
 
 ---
 
@@ -70,6 +70,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 - [x] Shell sidebar: disable 6 module chưa build (IDP, Đánh giá, Kèm cặp & Cố vấn, Họp hiệu chỉnh, Báo cáo, Marketplace) — routerLink=null không navigate, nzDisabled, style xám mờ, badge "Sắp ra mắt" + tooltip; giữ /admin enabled ✅
 - [x] Admin Cấu hình: mỗi module card có nút "Sửa" → mở nz-drawer từ phải 30% screen, backdrop blur dim phần còn lại. Drawer header gradient navy→indigo với tier tag, 4 section (Rules/Formulas/Sort/Settings), công thức render dark code block indigo. Data hardcode `moduleConfigs` cho 9 module, sẽ fetch `/api/v1/admin/modules/:key/config` sau ✅
 - [x] Positions "Thêm vị trí then chốt": chuyển từ nz-modal sang nz-drawer từ phải (640px), giữ nguyên form + drag-drop competencies, hero có nút X, body scroll + footer sticky, backdrop blur, nzMaskClosable=false tránh mất input ✅
+- [x] Talent List: gỡ hẳn IDP column + "IDP active" mini-stat (vì data IDP chưa gắn flow hoàn chỉnh, cột chủ yếu hiện "Chưa có"), cleanup signals/computed/fetch + styles .idp* và .ms-indigo ✅
 
 ### Placeholder routes
 - [x] `/profile` — ProfileComponent placeholder ✅

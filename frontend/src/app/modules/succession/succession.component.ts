@@ -5,7 +5,7 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
-import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzMessageService } from 'ng-zorro-antd/message';
@@ -31,7 +31,7 @@ const DEFAULT_POT:  [number, number] = [70, 85];
   imports: [
     CommonModule, FormsModule,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
-    NzModalModule, NzSliderModule, NzButtonModule,
+    NzDrawerModule, NzSliderModule, NzButtonModule,
     AvatarComponent,
   ],
   templateUrl: './succession.component.html',

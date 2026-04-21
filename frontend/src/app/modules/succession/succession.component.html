@@ -177,25 +177,28 @@
   </div>
 </div>
 
-<!-- ══ Modal: Điều chỉnh thang đo ═════════════════════ -->
-<nz-modal
+<!-- ══ Drawer: Điều chỉnh thang đo ═════════════════════ -->
+<nz-drawer
   [nzVisible]="showScaleModal()"
-  (nzVisibleChange)="showScaleModal.set($event)"
-  nzTitle=""
-  [nzFooter]="null"
+  (nzOnClose)="closeScaleModal()"
+  nzPlacement="right"
   [nzWidth]="640"
-  nzCentered
-  (nzOnCancel)="closeScaleModal()"
-  nzClassName="scale-modal"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
   [nzMaskClosable]="false"
+  nzWrapClassName="scale-drawer"
 >
-  <ng-container *nzModalContent>
+  <ng-container *nzDrawerContent>
     <div class="m-hero">
       <div class="m-hero-ico"><span nz-icon nzType="sliders"></span></div>
-      <div>
+      <div class="m-hero-text">
         <div class="m-hero-title">Điều chỉnh thang đo 9-Box</div>
         <div class="m-hero-sub">Thiết lập ngưỡng điểm để phân loại Hiệu suất và Tiềm năng</div>
       </div>
+      <button type="button" class="m-hero-close" (click)="closeScaleModal()" title="Đóng">
+        <span nz-icon nzType="close"></span>
+      </button>
     </div>
 
     <div class="m-body">
@@ -316,4 +319,4 @@
       </div>
     </div>
   </ng-container>
-</nz-modal>
+</nz-drawer>

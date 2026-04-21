@@ -587,16 +587,13 @@
 }
 
 // ══════════════════════════════════════════════════════
-// Scale Modal
+// Scale Drawer — "Điều chỉnh thang đo 9-Box"
 // ══════════════════════════════════════════════════════
-::ng-deep .scale-modal {
-  .ant-modal-content {
-    border-radius:20px !important;
-    overflow:hidden;
-    padding:0 !important;
-  }
-  .ant-modal-close { top:16px; right:16px; z-index:10; }
-  .ant-modal-body { padding:0 !important; }
+::ng-deep .scale-drawer {
+  .ant-drawer-header { display:none !important; }
+  .ant-drawer-body   { padding:0 !important; display:flex; flex-direction:column; background:#fff; }
+  .ant-drawer-mask   { background:rgba(15,23,42,.35); backdrop-filter:blur(2px); }
+  .ant-drawer-content-wrapper { min-width:420px; }
 }
 
 .m-hero {
@@ -618,6 +615,14 @@
 
   > * { position:relative; z-index:1; }
 }
+.m-hero-text { flex:1; min-width:0; }
+.m-hero-close {
+  width:32px; height:32px; border-radius:8px; border:none;
+  background:rgba(255,255,255,.6); color:#4f46e5; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:all .15s ease; flex-shrink:0;
+  &:hover { background:#fff; transform:rotate(90deg); box-shadow:0 2px 8px rgba(79,70,229,.2); }
+}
 .m-hero-ico {
   width:44px; height:44px;
   border-radius:12px;
@@ -635,6 +640,7 @@
   padding: 20px 24px 8px;
   display:flex; flex-direction:column;
   gap:18px;
+  flex:1; overflow-y:auto;
 }
 
 // Section
@@ -734,14 +740,14 @@
 .pv-mid  { --pv-color:#f59e0b; background: linear-gradient(135deg, #fffaf0 0%, #ffffff 60%); border-color:#fde68a; }
 .pv-high { --pv-color:#10b981; background: linear-gradient(135deg, #f3fdf8 0%, #ffffff 60%); border-color:#a7f3d0; }
 
-// Footer
+// Footer — sticky at bottom of drawer
 .m-footer {
   display:flex; align-items:center; justify-content:space-between;
   gap:12px;
   padding:14px 24px 18px;
   border-top:1px solid #f1f5f9;
   background:#fafbfc;
-  margin-top:4px;
+  position:sticky; bottom:0; z-index:1; flex-shrink:0;
 }
 .m-footer-right { display:flex; gap:10px; }
 .m-btn {
