@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Silent Refresh</title></head>
+<body>
+<script>
+  if (window.parent !== window) {
+    window.parent.postMessage(
+      { type: 'oidc_silent_refresh', url: window.location.href },
+      window.location.origin
+    );
+  }
+</script>
+</body>
+</html>

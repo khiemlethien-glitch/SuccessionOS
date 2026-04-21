@@ -60,9 +60,13 @@
           <span>Cài đặt</span>
         </li>
         <li nz-menu-divider></li>
-        <li nz-menu-item (click)="logout()" class="logout-item">
+        <li nz-menu-item (click)="logoutLocal()" class="logout-item">
           <span nz-icon nzType="logout"></span>
           <span>Đăng xuất</span>
+        </li>
+        <li nz-menu-item (click)="logoutSSO()" class="logout-sso-item">
+          <span nz-icon nzType="safety"></span>
+          <span>Đăng xuất khỏi tất cả thiết bị</span>
         </li>
       </ul>
     </nz-dropdown-menu>

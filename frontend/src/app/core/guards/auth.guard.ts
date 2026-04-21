@@ -1,10 +1,10 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, Router, RouterStateSnapshot, ActivatedRouteSnapshot } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
   const platformId = inject(PLATFORM_ID);
   // During SSR prerender, allow pass-through
   if (!isPlatformBrowser(platformId)) {
@@ -17,6 +17,11 @@ export const authGuard: CanActivateFn = () => {
   if (auth.isAuthenticatedSnapshot()) {
     return true;
   }
-  router.navigate(['/login']);
-  return false;
+
+  // Lưu URL đang cố truy cập để sau SSO callback redirect về đúng chỗ
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('oidc_redirect', state.url);
+  }
+
+  return router.createUrlTree(['/login']);
 };

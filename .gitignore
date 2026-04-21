@@ -11,3 +11,7 @@
 # Env
 .env
 .env.local
+
+# Angular environments (chứa OIDC clientSecret — KHÔNG commit)
+frontend/src/environments/environment.ts
+frontend/src/environments/environment.prod.ts

@@ -74,8 +74,24 @@ export class ShellComponent {
     this.router.navigate(['/settings']);
   }
 
-  logout(): void {
-    this.authService.logout();
+  /** Đăng xuất khỏi app — giữ nguyên session VnR */
+  logoutLocal(): void {
+    this.authService.logout(false);
     this.router.navigate(['/login']);
+  }
+
+  /** Đăng xuất khỏi tất cả thiết bị — xóa cả session VnR SSO */
+  logoutSSO(): void {
+    this.authService.logout(true);
+    // logout(true) tự redirect sang VnR endsession nếu có id_token,
+    // nếu không có (mock login) thì fallback về /login
+    if (typeof window !== 'undefined' && !localStorage.getItem('id_token')) {
+      this.router.navigate(['/login']);
+    }
+  }
+
+  /** @deprecated dùng logoutLocal() hoặc logoutSSO() */
+  logout(): void {
+    this.logoutLocal();
   }
 }

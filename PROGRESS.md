@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-21 06:55
+> Cập nhật lần cuối: 2026-04-21 16:30
 
 ---
 
@@ -13,7 +13,28 @@ Stack:    Angular 18 + ng-zorro-antd + TypeScript
 Dev:      localhost:4200
 Mock:     public/mock/*.json (useMock: true)
 Backend:  Dev team build .NET 8 API (chưa có)
+Staging:  https://succession-os-y6mt.vercel.app
 ```
+
+### Tiến độ tổng thể: ~72% ██████████████░░░░░░
+
+| Nhóm | Trạng thái | % |
+|---|---|---|
+| Core / Foundation / Auth | ✅ Hoàn thành | 100% |
+| Layout Shell | ✅ Hoàn thành | 100% |
+| Dashboard | ✅ Hoàn thành | 100% |
+| Talent List + Profile | ✅ Hoàn thành | 100% |
+| Key Positions | ✅ Hoàn thành | 100% |
+| Succession Map | ✅ Hoàn thành | 100% |
+| Admin Panel | ✅ Hoàn thành | 100% |
+| SSO / OIDC Integration | ✅ Hoàn thành | 100% |
+| IDP Module | 🔲 Chưa làm | 0% |
+| Assessment Module | 🔲 Chưa làm | 0% |
+| Mentoring Module | 🔲 Chưa làm | 0% |
+| Calibration Module | 🔲 Chưa làm | 0% |
+| Reports Module | 🔲 Chưa làm | 0% |
+| Marketplace Module | 🔲 Chưa làm | 0% |
+| RBAC / Permissions | 🔲 Chưa làm | 0% |
 
 ---
 
@@ -30,128 +51,147 @@ Backend:  Dev team build .NET 8 API (chưa có)
 ### Core Layer
 - [x] `core/services/api.service.ts` — HttpClient wrapper, đọc mock JSON nếu useMock=true, attach Bearer token
 - [x] `core/auth/auth.service.ts` — Login/logout, JWT localStorage, BehaviorSubject isLoggedIn + `setSession()`
-- [x] `core/guards/auth.guard.ts` — Redirect /login nếu chưa auth
-- [x] `core/interceptors/jwt.interceptor.ts` — Auto attach Authorization header
+- [x] `core/guards/auth.guard.ts` — Redirect /login nếu chưa auth (chuẩn CanActivateFn trả UrlTree)
+- [x] `core/interceptors/jwt.interceptor.ts` — Auto attach Authorization header, skip OIDC issuer endpoints
 
 ### Layout Shell
 - [x] `app.component.html` — nz-layout + nz-sider sidebar
-- [x] Sidebar background: #1E1B4B (navy)
-- [x] Logo "SuccessionOS" + tenant "PTSC M&C"
-- [x] User info footer: avatar HA + tên + role
+- [x] Sidebar background: #1E1B4B (navy), compact 240px, sticky 100vh
+- [x] Logo "SuccessionOS" + tenant "PTSC M&C" từ `/logo.png`
+- [x] User info footer: avatar + tên + role + dropdown (logout local / logout SSO)
 - [x] Header: bell icon + user name + avatar
 - [x] Menu groups: Quản lý nhân tài / Phát triển / Phân tích / Hệ thống
+- [x] Sidebar disable 6 module chưa build (IDP, Đánh giá, Kèm cặp, Họp hiệu chỉnh, Báo cáo, Marketplace) — badge "Sắp ra mắt" + tooltip
 
-### UI tweaks (theo prototype/Figma)
-- [x] Shell layout: sidebar theme light + spacing theo Figma
-- [x] Removed top header bar (màu xanh) theo yêu cầu mới
-- [x] Sidebar brand: dùng `logo/logo.png` (served as `/logo.png`) ✅
-- [x] Sidebar compact 240px + user profile dropdown ✅
-- [x] Dashboard KPI cards: màu nhẹ theo ngữ nghĩa (blue/green/red/amber) + gradient nền + accent border trái + halo icon ✅
-- [x] Dashboard donut "Phân bổ tầng nhân sự": SVG donut 4 tier (thêm "Chưa phân bổ"), tâm hiện tổng, hover highlight, legend có count+% (mock 12% unassigned, sẽ nối API sau) ✅
-- [x] Fix alignment risk list: `align-items:start` cho top-grid (cards không stretch), row hover bg inset + rounded, bỏ border-bottom dùng gap ✅
-- [x] Dashboard "12 Vị trí Then chốt" — redesign card to + màu theo readiness tone (good/warn/bad: green/amber/red) + accent border trái + gradient + halo + pulse dot + hover lift ✅
-- [x] Shell sidebar: sticky position (top:0, height:100vh) — luôn trong viewport khi scroll page, profile pin dưới cùng, nav scroll internal nếu dài ✅
-- [x] Talent List redesign: mini-stats chip pill màu (blue/red/indigo), bo tròn 16px, cột gọn (1100px + nzScroll), bỏ email, bỏ nút "Xem hồ sơ" → row clickable + chevron hover, Overall score dạng badge green gradient, bar gradient Perf/Pot ✅
-- [x] Positions page redesign: hero header gradient indigo, stats strip 4 chip màu, position cards tone theo criticalLevel (red/amber/blue/green) + accent bar + halo + gradient bg, nút "Thêm vị trí" gradient indigo-purple ✅
-- [x] Add Position modal: drag-drop competencies (CDK drag-drop + click fallback), segmented critical level, form validation, auto-add to local list (mock) ✅
-- [x] Succession 9-Box redesign: hero header gradient + stats (Ngôi sao / Tổng / Cần xử lý), 6-tone color system (star/great/core/watch/risk/low) + gradient + halo, axis labels Y/X modern, legend swatches ✅
-- [x] "Điều chỉnh thang đo" modal: nzSlider range cho Performance & Potential thresholds, preview count 3 mức (low/mid/high), nút Mặc định + Áp dụng, badge báo khi thang đo khác default ✅
-- [x] Talent Profile (`/talent/:id`) redesign: breadcrumb, risk banner (pink) với reasons chips khi riskScore≥60, hero 3-column (identity + metrics 2×2 bars + accent cards 2×2), pills tier/ready/IDP, mentor empty state — khớp prototype ✅
-- [x] Talent Profile: mentor row có nút `+` → mở modal picker (senior Nòng cốt/Kế thừa, ≥8 năm), search theo tên/vị trí/phòng ban, click gán; có nút `×` bỏ gán ✅
-- [x] Talent Profile charts row: (1) Radar "Hồ sơ năng lực" SVG pentagon 5 trục Kỹ thuật/Hiệu suất/Hành vi/Tiềm năng/Lãnh đạo, so sánh thực tế vs mục tiêu, badge vượt/cần cải thiện, 5 cột số + delta; (2) Network "Mạng lưới phát triển" hub-spoke (center=talent, Mục tiêu/Mentor/KTP/IDP + mentees), SVG edges + HTML nodes, click mentor/mentee để chuyển center ✅
-- [x] Talent Profile "Yếu tố rủi ro" card collapsible: header (icon warning + title + badge "Risk X · N yếu tố"), alert strip "Cao hơn X% trung bình phòng" (compute từ avg dept riskScore), list factors có dot màu theo severity + title/detail + tags (source + date) ✅
-- [x] Talent Profile "Kết quả đánh giá 360°" card collapsible (header indigo gradient): summary điểm tổng hợp + nguồn (QL/ĐN/CĐ), list 13 tiêu chí (dot xanh + score + bar /5 + /4.5 benchmark), blocks Điểm mạnh / Cần phát triển / Nhận xét quản lý (italic quote) / Điểm thành phần (0-100) pull từ talent. Data hardcode tạm thời, sẽ fetch backend sau ✅
-- [x] Talent Profile review grid (2-col): (L) Đánh giá năng lực — 4 bars weighted 40/30/20/10 + overall score big number + Điểm mạnh/Cần phát triển 2-col + manager quote, (R) Dự án hiện tại (name/EPC tag/role/client/value/status) + Thống kê nhanh 2×2 (training hrs/last promotion/IDP/risk). L col cũng có IDP card (target position + status badge + progress bar đỏ + Mục tiêu 12m/2-3y với icons). Tất cả data hardcode readonly, chú thích endpoint `/api/v1/talents/:id/...` để fetch sau ✅
-- [x] Talent Profile "Chuyển giao Tri thức" card: header (successor name + progress bar indigo + start/target dates), list knowledge items mỗi row (status dot green/amber/gray + title + category chip + status + individual progress bar + %) ✅
-- [x] Talent Profile: chỉ xóa tab "Năng lực" trong tabs-card (trùng với radar chart), giữ 3 tab còn lại (Đánh giá 360°, Kế hoạch IDP, Lịch sử) ✅
-- [x] Admin page redesign toàn bộ: hero gradient navy→indigo + 4 stats (users/talents/positions/events), tabs bar pill-style 5 tab (Tổng quan/Dữ liệu/Người dùng/Cấu hình/Audit). Tổng quan: recent activity + data summary grid click-through. Dữ liệu: sidebar chọn 8 entities (Talents/Positions/IDP/Assessments/Succession/Mentoring/Calibration/Users) + data grid với search + Add/Edit/Delete popconfirm, generic edit modal auto-gen fields theo entity columns. Người dùng: table users CRUD với role tags. Cấu hình: module toggles grid (core/pro/enterprise tier) với nz-switch. Audit Trail: table logs với action tags màu ✅
-- [x] Login: bỏ bypass-fake-login, thêm credential check với 4 mock accounts (admin/admin123, hr.manager/hr123, lm.kythuat/lm123, viewer/viewer123), error banner + demo-fill chips click để auto-điền ✅
-- [x] Deployment: tạo `vercel.json` ở repo root (buildCommand cd frontend, output `dist/frontend/browser`, SPA rewrites), repo đã push lên github.com/khiemlethien-glitch/SuccessionOS ✅
-- [x] Shell sidebar: disable 6 module chưa build (IDP, Đánh giá, Kèm cặp & Cố vấn, Họp hiệu chỉnh, Báo cáo, Marketplace) — routerLink=null không navigate, nzDisabled, style xám mờ, badge "Sắp ra mắt" + tooltip; giữ /admin enabled ✅
-- [x] Admin Cấu hình: mỗi module card có nút "Sửa" → mở nz-drawer từ phải 30% screen, backdrop blur dim phần còn lại. Drawer header gradient navy→indigo với tier tag, 4 section (Rules/Formulas/Sort/Settings), công thức render dark code block indigo. Data hardcode `moduleConfigs` cho 9 module, sẽ fetch `/api/v1/admin/modules/:key/config` sau ✅
-- [x] Positions "Thêm vị trí then chốt": chuyển từ nz-modal sang nz-drawer từ phải (640px), giữ nguyên form + drag-drop competencies, hero có nút X, body scroll + footer sticky, backdrop blur, nzMaskClosable=false tránh mất input ✅
-- [x] Talent List: gỡ hẳn IDP column + "IDP active" mini-stat (vì data IDP chưa gắn flow hoàn chỉnh, cột chủ yếu hiện "Chưa có"), cleanup signals/computed/fetch + styles .idp* và .ms-indigo ✅
-- [x] Succession "Điều chỉnh thang đo 9-Box": chuyển từ nz-modal sang nz-drawer từ phải (640px), giữ 2 slider ranges + preview chips + Default/Cancel/Apply, hero có nút X, body scroll + footer sticky, mask blur — pattern nhất quán với drawer add-position & admin module config ✅
-- [x] Talent List enrichment: (1) icon key vàng bên tên khi talent đang giữ Key Position + tooltip; (2) sub "Kế thừa: [vị trí]" pill indigo cho tier Kế thừa, +N chip khi kế thừa >1 vị trí; (3) rename "Rủi ro" → "Rủi ro rời đi", hiện reason chip dưới pill khi High risk (từ mock `departureReasons` + fallback derive); (4) cột mới "Khoảng cách năng lực" — avg shortfall vs competencyTargets, pill 3-tone Đạt/Thiếu N (xanh/vàng/đỏ) ✅
-- [x] Succession Map role-based: view banner hiện mode (Admin/HR "Toàn bộ tổ chức" indigo vs Line Manager "Team của bạn · Department" amber + tag). Line Manager filter: chỉ hiện vị trí `department === user.department` OR user là successor. Login user extend với `department` + `talentId` (lm.kythuat → Kỹ thuật + T020). Empty state khi không match ✅
-- [x] Succession Map collapse: position có ≤3 successors hiện full; ≥4 thì show 3 đầu + card dashed "Xem thêm +N" (click expand), sau khi expand có nút "Thu gọn" pill indigo. Pad SP001 (Director QLDA) lên 5 successors để demo ✅
-- [x] Succession Map unified org tree: `KeyPosition.parentId` mới (nearest key-parent). Positions.json thêm 4 C-level (Chủ tịch → TGĐ → CFO/CHRO) + set parentId cho 11 vị trí hiện có. Component build tree từ flat list, prune cho Line Manager (giữ ancestors của node match). Template đổi flat @for → recursive ng-template + ngTemplateOutlet ✅
-- [x] Succession Map compact view: bỏ fat card, mỗi node là 1 compact row (chevron rotate, icon, title · dept · holder, pill "N cấp dưới" + "N kế thừa" hoặc warning). Border trái + dot halo màu theo criticalLevel (red/amber/blue/gray). Mọi node collapse mặc định — click row → expand panel chứa successors pipeline + tree-children (recursive, compact rows). Cấu trúc không lộn xộn, có cái nhìn bao quát ✅
-- [x] Succession Map position details: thêm nút `info-circle` trên mỗi compact row → mở drawer 520px 2 section: (1) Người đương nhiệm — avatar + tên + position/dept + stats (perf/pot/risk) + nút "Xem hồ sơ" nếu match talent; (2) Ứng viên kế thừa — list item priority + avatar + readiness + gap + arrow link → /talent/:id. Drawer hero gradient theo criticalLevel (red/amber/navy/slate) ✅
-- [x] Succession Map fix: successor card giờ fixed width 210px (flex thay vì grid auto-fit 1fr) → 1 card không còn stretch full, nhiều card cùng size ✅
-- [x] Talent preview drawer pattern: drawer rộng `calc(100vw - 240px)` chạm sidebar, dùng `Location.go()` để URL sync `/talent/:id` mà không navigate thật; close → restore savedUrl; click successor/holder không đóng position drawer (layer stack); hỗ trợ switch talent trong drawer qua event `embeddedNavigate`. `TalentProfileComponent` thêm 3 input/output (`embeddedTalentId`, `embedded`, `embeddedNavigate`) để render full profile bên trong drawer với breadcrumb ẩn + intercept `switchCenter` — preview giờ hiện **đầy đủ** giống `/talent/:id` (radar, network, risk factors, 360°, IDP, knowledge transfer...) ✅
-
-### Placeholder routes
-- [x] `/profile` — ProfileComponent placeholder ✅
-- [x] `/settings` — SettingsComponent placeholder ✅
-
-### Routing (Lazy loaded)
-- [x] `/dashboard` → DashboardModule
-- [x] `/login` → AuthModule (fake login) ✅
-- [x] `/talent` → TalentModule
-- [x] `/succession` → SuccessionModule
-- [x] `/idp` → IdpModule
-- [x] `/assessment` → AssessmentModule
-- [x] All routes protected by authGuard
-
-### Mock Data
-- [x] `public/mock/talents.json` — nhân viên mẫu
-- [x] `public/mock/succession-plans.json` — succession plan mẫu
-- [x] `public/mock/idp.json` — IDP mẫu
-
-### Icons & App Config
-- [x] `app.config.ts` — `provideNzIcons([...])` đầy đủ 36 icons cho toàn app (fix lỗi user-o, safety-certificate-o)
-
-### Components đã build (session trước)
+### Shared Components
 - [x] `shared/components/stat-card/` — StatCardComponent
-- [x] `shared/components/avatar/` — AvatarComponent  
+- [x] `shared/components/avatar/` — AvatarComponent
 - [x] `shared/components/risk-badge/` — RiskBadgeComponent
 - [x] `shared/components/tier-badge/` — TierBadgeComponent
 - [x] `shared/components/shell/` — ShellComponent (layout sidebar + header)
-- [x] `modules/dashboard/` — DashboardComponent: KPI cards + high risk table + positions cần chú ý + IDP progress bars
+
+### Dashboard
+- [x] KPI cards màu nhẹ theo ngữ nghĩa (blue/green/red/amber) + gradient + accent border trái + halo icon
+- [x] Donut "Phân bổ tầng nhân sự": SVG 4 tier + "Chưa phân bổ", hover highlight, legend count+%
+- [x] "12 Vị trí Then chốt" — cards tone readiness (good/warn/bad: green/amber/red) + pulse dot + hover lift
+- [x] High risk table + IDP progress bars
+
+### Talent List
+- [x] Prototype UI + filter/sort + bind mock data
+- [x] Mini-stats chip pill màu, row clickable + chevron hover
+- [x] Overall score badge green gradient, bars Perf/Pot gradient
+- [x] Icon key vàng khi talent giữ Key Position + tooltip
+- [x] Sub-pill "Kế thừa: [vị trí]" cho tier Kế thừa, +N chip khi >1
+- [x] "Rủi ro rời đi" với reason chip khi High risk
+- [x] Cột "Khoảng cách năng lực" — avg shortfall, pill 3-tone Đạt/Thiếu N
+
+### Talent Profile (`/talent/:id`)
+- [x] Breadcrumb + risk banner (pink) + hero 3-column + pills tier/ready/IDP
+- [x] Mentor row: nút `+` → modal picker (search tên/vị trí/phòng ban), nút `×` bỏ gán
+- [x] Radar "Hồ sơ năng lực": SVG pentagon 5 trục, thực tế vs mục tiêu, badge vượt/cần cải thiện
+- [x] Network "Mạng lưới phát triển": hub-spoke SVG, click mentor/mentee → switch center
+- [x] "Yếu tố rủi ro" card collapsible: alert strip avg dept, factors dot màu severity + tags
+- [x] "Kết quả đánh giá 360°" card collapsible: radar + bảng 13 tiêu chí + Điểm mạnh/Cần phát triển + manager quote
+- [x] Review grid 2-col: đánh giá năng lực + dự án hiện tại + thống kê nhanh + IDP card
+- [x] "Chuyển giao Tri thức" card: successor + progress bar + knowledge items
+- [x] Tabs: Đánh giá 360° / Kế hoạch IDP / Lịch sử (bỏ tab Năng lực trùng)
+- [x] Talent preview drawer: `calc(100vw - 240px)`, URL sync `/talent/:id` qua `Location.go()`, layer stack không đóng position drawer, full profile embedded
+
+### Key Positions (`/positions`)
+- [x] Hero header gradient indigo + stats strip 4 chip màu
+- [x] Position cards tone theo criticalLevel (red/amber/blue/green) + accent bar + halo + gradient
+- [x] Add Position: nz-drawer 640px từ phải, drag-drop competencies (CDK + click fallback), form validation, auto-add local
+- [x] Position details drawer 520px: người đương nhiệm stats + ứng viên kế thừa list + link /talent/:id
+- [x] Successor card fixed width 210px
+
+### Succession Map (`/succession`)
+- [x] Hero header gradient + stats (Ngôi sao / Tổng / Cần xử lý)
+- [x] 9-Box 6-tone color system + gradient + halo + axis labels modern
+- [x] "Điều chỉnh thang đo" drawer 640px: nzSlider range Perf/Pot, preview count 3 mức, badge khi khác default
+- [x] Role-based view: Admin/HR "Toàn bộ tổ chức" vs Line Manager "Team của bạn · Department"
+- [x] Collapse/expand: ≤3 successors full, ≥4 show 3 + card "Xem thêm +N"
+- [x] Unified org tree: `KeyPosition.parentId`, 4 C-level nodes (Chủ tịch → TGĐ → CFO/CHRO), recursive ng-template
+- [x] Compact view: rows chevron rotate, mọi node collapse mặc định, click expand panel successors pipeline + tree-children
+- [x] Position info drawer: người đương nhiệm + successors list với readiness/gap + link talent
+
+### Admin Panel (`/admin`)
+- [x] Hero gradient navy→indigo + 4 stats (users/talents/positions/events)
+- [x] Tabs pill-style 5 tab: Tổng quan / Dữ liệu / Người dùng / Cấu hình / Audit
+- [x] Dữ liệu: sidebar 8 entities + data grid search + Add/Edit/Delete popconfirm + generic edit modal
+- [x] Người dùng: table CRUD + role tags
+- [x] Cấu hình: module toggles grid (core/pro/enterprise) + drawer 30% config per module
+- [x] Audit Trail: table logs + action tags màu
+
+### Login
+- [x] Credential check 4 mock accounts + error banner + demo-fill chips click
+- [x] Compact layout fit 100vh
+- [x] nz-divider "hoặc" + btn "Đăng nhập qua HRM VnResource" → loginWithVnR()
+
+### SSO / OIDC Integration
+- [x] `core/auth/oidc.service.ts` — PKCE (verifier/challenge/state), buildAuthorizeUrl(), exchangeCode(), refreshToken(), getUserInfo(), buildLogoutUrl()
+- [x] `core/auth/auth.service.ts` — setOidcSession(), scheduleSilentRefresh(), doSilentRefresh(), logout(redirectToSso?)
+- [x] `core/auth/oidc-callback/` — validate code+state, CSRF check, exchange → token → userInfo → redirect
+- [x] `core/auth/logout-callback/` — clear session + "Đăng xuất thành công" → /login sau 2s
+- [x] `public/silent-refresh.html` — postMessage về parent window
+- [x] Routes: `/auth/callback`, `/logout`, `/silent-refresh` (không có authGuard)
+- [x] Shell dropdown: "Đăng xuất khỏi tất cả thiết bị" → logoutSSO() màu tím
+- [x] jwt.interceptor.ts — skip Bearer header cho OIDC issuer endpoints (tránh 401)
+- [x] FIX NG0100: wrap ngOnInit trong Promise.resolve().then() + ChangeDetectorRef
+- [x] environments: issuer `ba.vnresource.net:1516`, clientId `hrm_scc_dev/prod`, client_secret, scope, URLs Vercel
+- [x] `.gitignore` — untrack environment files, tạo `.example` placeholders
+- [x] **Test Suite**: OidcService 16/16 ✅ / AuthService 14/14 ✅ / OidcCallback 5/5 ✅ / `SSO_TEST_REPORT.md` ✅
+- [x] **Chờ VnR whitelist** — 4 URLs cần đăng ký (dev + prod callback + logout)
+
+### Routing & Config
+- [x] Lazy loaded: `/dashboard`, `/talent`, `/succession`, `/positions`, `/idp`, `/assessment`, `/admin`
+- [x] All routes protected by authGuard (trừ /login, /auth/callback, /logout, /silent-refresh)
+- [x] Placeholder routes: `/profile`, `/settings`
+- [x] `app.config.ts` — provideNzIcons 36 icons đầy đủ
+- [x] `vercel.json` — buildCommand, output `dist/frontend/browser`, SPA rewrites
+
+### Mock Data
+- [x] `public/mock/talents.json` — 25 nhân viên
+- [x] `public/mock/positions.json` — 12 vị trí then chốt (+ 4 C-level nodes cho org tree)
+- [x] `public/mock/succession-plans.json`
+- [x] `public/mock/idp-plans.json`
+- [x] + 5 mock files khác
 
 ---
 
 ## 🔲 Chưa làm
 
-### Components cần build
-- [x] Dashboard — KPI cards + high risk table + IDP progress ✅
-- [x] Talent List — prototype UI + filter/sort + bind mock talents + IDP ✅
-- [x] LoginComponent — split layout + fake login qua AuthService ✅
-- [x] LoginComponent — compact layout fit 100vh ✅
-- [x] Talent Profile — hero redesign (breadcrumb + risk banner + 3-col hero + tabs) ✅
-- [ ] Key Positions — grid cards + dependency score
-- [ ] Succession Map — 9-Box grid + succession list
-- [ ] IDP — list cards + approval stepper + detail modal
-- [ ] Assessment — tabs + form nhập điểm + charts
-- [ ] Mentoring — pairs list + logbook
-- [ ] Calibration — session list + 9-Box interactive
-- [ ] Reports — charts + export
-- [ ] Marketplace — module cards + filter tabs
-- [ ] Admin Panel — CRUD tables + user management
+### Modules (sidebar đang disabled — "Sắp ra mắt")
+
+- [ ] **IDP Module** (`/idp`) — list cards + approval stepper 3 cấp + detail modal + draft status
+- [ ] **Assessment Module** (`/assessment`) — tabs HRM360 + form nhập điểm + charts radar
+- [ ] **Mentoring Module** (`/mentoring`) — pairs list + logbook + session tracking
+- [ ] **Calibration Module** (`/calibration`) — session list + 9-Box interactive + lock + audit
+- [ ] **Reports Module** (`/reports`) — charts + export PDF/Excel
+- [ ] **Marketplace Module** (`/marketplace`) — module cards + filter tabs + pricing
 
 ### RBAC (sau khi UI xong)
 - [ ] Role model: admin / moderator / user
-- [ ] PermissionDirective: *hasPermission="'employee.viewSalary'"
+- [ ] `PermissionDirective`: `*hasPermission="'employee.viewSalary'"`
 - [ ] Sidebar ẩn/hiện theo role
-- [ ] Table columns ẩn/hiện theo role
+- [ ] Table columns ẩn/hiện theo role (salary: số thực vs gap% vs ẩn)
 
-### Shared Components
-- [ ] TierBadgeComponent
-- [ ] RiskBadgeComponent
-- [ ] AvatarComponent
-- [ ] StatCardComponent
+### Backend Integration
+- [ ] Wire real API khi .NET 8 backend sẵn sàng (useMock: false)
+- [ ] Test import HRM360 CSV end-to-end với dữ liệu thật PTSC M&C
+- [ ] Verify field visibility RLS policies trên Supabase / .NET
 
 ---
 
-## 🐛 Bugs cần fix
+## 🐛 Bugs đã fix
 
-| Bug | File | Ưu tiên |
+| Bug | File | Trạng thái |
 |---|---|---|
-| SSR server deep-link có thể 404 (“Cannot GET /route”) → fallback serve `index.csr.html`/`index.html` nếu có | `frontend/src/server.ts` | High ✅ |
-| Dev SSR crash `localStorage is not defined` (AuthService chạy trên server) → guard localStorage chỉ ở browser | `frontend/src/app/core/auth/auth.service.ts` | High ✅ |
-| Local `:4200` trả “Cannot GET /dashboard” do process không phải `ng serve` → kill port + chạy `npm start` trong `frontend/` | env/process | High ✅ |
-| SSR crash `localStorage is not defined` trong ShellComponent.currentUser → dùng AuthService.getCurrentUser() thay vì đọc trực tiếp localStorage, sửa field `name` → `fullName` | `frontend/src/app/shared/components/shell/shell.component.ts` | High ✅ |
+| SSR deep-link 404 | `server.ts` | ✅ Fixed |
+| `localStorage is not defined` trên server (AuthService) | `auth.service.ts` | ✅ Fixed |
+| `localStorage is not defined` trên server (ShellComponent) | `shell.component.ts` | ✅ Fixed |
+| `ng serve` port conflict | env/process | ✅ Fixed |
+| NG0100 ExpressionChangedAfterItHasBeenChecked (OIDC callback) | `oidc-callback.component.ts` | ✅ Fixed |
+| 401 từ /connect/token khi interceptor attach Bearer | `jwt.interceptor.ts` | ✅ Fixed |
 
 ---
 
@@ -160,45 +200,50 @@ Backend:  Dev team build .NET 8 API (chưa có)
 ```
 frontend/src/
 ├── app/
-│   ├── app.ts                       ← Root component ✅
-│   ├── app.config.ts                ← Providers + Icons ✅ (fixed)
-│   ├── app.routes.ts                ← Routing ✅
+│   ├── app.ts                        ✅ Root component
+│   ├── app.config.ts                 ✅ Providers + 36 Icons
+│   ├── app.routes.ts                 ✅ Lazy routing + auth/callback + /logout
 │   ├── core/
-│   │   ├── services/api.service.ts  ✅
-│   │   ├── auth/auth.service.ts     ✅
-│   │   ├── guards/auth.guard.ts     ✅
-│   │   ├── interceptors/jwt.interceptor.ts ✅
-│   │   └── models/models.ts         ✅
+│   │   ├── services/api.service.ts   ✅
+│   │   ├── auth/
+│   │   │   ├── auth.service.ts       ✅ JWT + OIDC session + silent refresh
+│   │   │   ├── oidc.service.ts       ✅ PKCE + token exchange
+│   │   │   ├── oidc-callback/        ✅
+│   │   │   └── logout-callback/      ✅
+│   │   ├── guards/auth.guard.ts      ✅
+│   │   ├── interceptors/jwt.interceptor.ts ✅ (skip OIDC endpoints)
+│   │   └── models/models.ts          ✅
 │   ├── shared/components/
-│   │   ├── shell/                   ✅ Layout sidebar + header
-│   │   ├── stat-card/               ✅
-│   │   ├── avatar/                  ✅
-│   │   ├── risk-badge/              ✅
-│   │   └── tier-badge/              ✅
+│   │   ├── shell/                    ✅ Sidebar + header + SSO logout
+│   │   ├── stat-card/                ✅
+│   │   ├── avatar/                   ✅
+│   │   ├── risk-badge/               ✅
+│   │   └── tier-badge/               ✅
 │   └── modules/
-│       ├── dashboard/               ✅ KPI + table + IDP bars
-│       ├── talent/                  🔲 Cần build
-│       ├── positions/               🔲 Placeholder
-│       ├── succession/              🔲 Placeholder
-│       ├── idp/                     🔲 Placeholder
-│       └── assessment/              🔲 Placeholder
+│       ├── auth/login/               ✅ Credential check + SSO button
+│       ├── dashboard/                ✅ KPI + donut + positions + IDP bars
+│       ├── talent/
+│       │   ├── talent-list/          ✅ Filter + enrichment + key position icon
+│       │   └── talent-profile/       ✅ Full profile (radar, network, 360°, IDP, KT)
+│       ├── positions/                ✅ Cards + add drawer + details drawer + preview
+│       ├── succession/               ✅ 9-Box + org tree + compact view + drawers
+│       ├── admin/                    ✅ 5-tab CRUD + module config drawer + audit
+│       ├── idp/                      🔲 Placeholder (disabled)
+│       ├── assessment/               🔲 Placeholder (disabled)
+│       ├── mentoring/                🔲 Placeholder (disabled)
+│       ├── calibration/              🔲 Placeholder (disabled)
+│       ├── reports/                  🔲 Placeholder (disabled)
+│       └── marketplace/              🔲 Placeholder (disabled)
 ├── environments/
-│   ├── environment.ts               ✅
-│   └── environment.prod.ts          ✅
-└── public/mock/
-    ├── talents.json                 ✅ 25 employees
-    ├── positions.json               ✅ 12 positions
-    ├── idp-plans.json               ✅
-    ├── succession-plans.json        ✅
-    └── (+ 5 more mock files)        ✅
+│   ├── environment.ts                ✅ (gitignored — secret)
+│   ├── environment.ts.example        ✅
+│   ├── environment.prod.ts           ✅ (gitignored — secret)
+│   └── environment.prod.ts.example   ✅
+└── public/
+    ├── mock/*.json                   ✅ 9+ mock files
+    ├── logo.png                      ✅
+    └── silent-refresh.html           ✅
 ```
-
----
-
-## Prototype tham khảo
-
-- Staging: https://succession-os-git-staging-lethienkhiems-projects.vercel.app
-- CLAUDE.md Notion: https://www.notion.so/34819261e1f18157a277dd5116103f22
 
 ---
 
@@ -225,6 +270,13 @@ frontend/src/
 ```
 
 ---
+
+## URLs quan trọng
+
+- Staging: https://succession-os-y6mt.vercel.app
+- GitHub: https://github.com/khiemlethien-glitch/SuccessionOS
+- CLAUDE.md Notion: https://www.notion.so/34819261e1f18157a277dd5116103f22
+- OIDC Issuer: https://ba.vnresource.net:1516
 
 ## Cách mở session mới trong Claude Code
 

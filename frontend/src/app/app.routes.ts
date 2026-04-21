@@ -5,6 +5,22 @@ export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'login', loadChildren: () => import('./modules/auth/login.routes').then(m => m.LOGIN_ROUTES) },
   {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./core/auth/oidc-callback/oidc-callback.component')
+        .then(m => m.OidcCallbackComponent),
+  },
+  {
+    path: 'logout',
+    loadComponent: () =>
+      import('./core/auth/logout-callback/logout-callback.component')
+        .then(m => m.LogoutCallbackComponent),
+  },
+  {
+    path: 'silent-refresh',
+    redirectTo: '/',
+  },
+  {
     path: '',
     loadComponent: () => import('./shared/components/shell/shell.component').then(m => m.ShellComponent),
     canActivateChild: [authGuard],

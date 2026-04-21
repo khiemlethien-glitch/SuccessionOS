@@ -446,3 +446,39 @@
   .form-panel { padding: 28px 20px; min-height: 100vh; }
   .form-card { max-width: 100%; }
 }
+
+// ═════════════════ SSO ═════════════════
+.sso-divider {
+  margin: 16px 0 12px;
+  color: var(--color-text-2, #6B7280);
+  font-size: 12px;
+}
+
+.btn-sso {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 20px;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 20px;
+
+  &:hover {
+    border-color: #4CAF50;
+    background: #F0FDF4;
+    color: #166534;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}

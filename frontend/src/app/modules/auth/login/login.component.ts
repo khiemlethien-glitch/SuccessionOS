@@ -7,8 +7,16 @@ import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { AuthService } from '../../../core/auth/auth.service';
+import { OidcService } from '../../../core/auth/oidc.service';
 
-type DemoUser = { id: string; name: string; email: string; role: string };
+type DemoUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department?: string;
+  talentId?: string;
+};
 
 @Component({
   selector: 'app-login',
@@ -34,7 +42,7 @@ export class LoginComponent implements OnInit {
   private readonly mockCredentials: Array<{ username: string; password: string; user: DemoUser }> = [
     { username: 'admin',      password: 'admin123',  user: { id: 'U001', name: 'HR Admin',         email: 'admin@ptscmc.vn',   role: 'Admin' } },
     { username: 'hr.manager', password: 'hr123',     user: { id: 'U002', name: 'Nguyễn Thị Hoa',   email: 'hoa.nt@ptscmc.vn',  role: 'HR Manager' } },
-    { username: 'lm.kythuat', password: 'lm123',     user: { id: 'U003', name: 'Trần Minh Tuấn',   email: 'tuan.tm@ptscmc.vn', role: 'Line Manager' } },
+    { username: 'lm.kythuat', password: 'lm123',     user: { id: 'U003', name: 'Trần Minh Tuấn',   email: 'tuan.tm@ptscmc.vn', role: 'Line Manager', department: 'Kỹ thuật',      talentId: 'T020' } },
     { username: 'viewer',     password: 'viewer123', user: { id: 'U005', name: 'Phạm Quốc Việt',   email: 'viet.pq@ptscmc.vn', role: 'Viewer' } },
   ];
 
@@ -51,6 +59,7 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
+    private oidcService: OidcService,
     private router: Router
   ) {}
 
@@ -91,6 +100,17 @@ export class LoginComponent implements OnInit {
     this.username.set(username);
     this.password.set(password);
     this.errorMsg.set('');
+  }
+
+  async loginWithVnR(): Promise<void> {
+    try {
+      const url = await this.oidcService.buildAuthorizeUrl();
+      if (typeof window !== 'undefined') {
+        window.location.href = url;
+      }
+    } catch (err) {
+      this.errorMsg.set('Không thể kết nối HRM Pro. Vui lòng thử lại.');
+    }
   }
 }
 
