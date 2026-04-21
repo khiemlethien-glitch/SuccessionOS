@@ -55,13 +55,6 @@
           <span class="val">{{ highRiskCount() }}</span>
         </div>
       </div>
-      <div class="mini-stat ms-indigo">
-        <span nz-icon nzType="rocket" class="ms-ico"></span>
-        <div class="ms-body">
-          <span class="lbl">IDP active</span>
-          <span class="val">{{ idpActiveCount() }}</span>
-        </div>
-      </div>
     </div>
 
     @if (showFilters()) {
@@ -121,7 +114,6 @@
           <th>Overall</th>
           <th>Readiness</th>
           <th>Rủi ro</th>
-          <th>IDP</th>
           <th nzAlign="center" nzWidth="44px"></th>
         </tr>
       </thead>
@@ -166,20 +158,6 @@
 
             <td>
               <span class="risk-pill" [ngClass]="riskLabel(t.riskScore).cls">{{ riskLabel(t.riskScore).text }}</span>
-            </td>
-
-            <td>
-              @let idp = idpDisplay(t.id);
-              @switch (idp.kind) {
-                @case ('none') { <span class="idp-none">Chưa có</span> }
-                @case ('done') { <span class="idp-done"><span nz-icon nzType="check"></span> Hoàn thành</span> }
-                @case ('progress') {
-                  <div class="idp">
-                    <nz-progress [nzPercent]="idp.pct" [nzShowInfo]="false" nzSize="small" class="idp-bar"></nz-progress>
-                    <span class="idp-pct">{{ idp.pct }}%</span>
-                  </div>
-                }
-              }
             </td>
 
             <td nzAlign="center" nzRight>

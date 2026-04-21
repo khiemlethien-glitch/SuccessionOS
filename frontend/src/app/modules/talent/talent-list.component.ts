@@ -11,7 +11,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { ApiService } from '../../core/services/api.service';
-import { IdpListResponse, IdpPlan, Talent, TalentListResponse, TalentTier } from '../../core/models/models';
+import { Talent, TalentListResponse, TalentTier } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
 
@@ -31,7 +31,6 @@ type ReadinessUi = 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm';
 })
 export class TalentListComponent implements OnInit {
   all = signal<Talent[]>([]);
-  idps = signal<IdpPlan[]>([]);
   loading = signal(true);
   search = signal('');
 
@@ -78,20 +77,9 @@ export class TalentListComponent implements OnInit {
   constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit(): void {
-    let done = 0;
-    const markDone = () => {
-      done++;
-      if (done >= 2) this.loading.set(false);
-    };
-
     this.api.get<TalentListResponse>('talents', 'talents').subscribe({
-      next: r => { this.all.set(r.data); markDone(); },
-      error: () => markDone(),
-    });
-
-    this.api.get<IdpListResponse>('idp-plans', 'idp-plans').subscribe({
-      next: r => { this.idps.set(r.data); markDone(); },
-      error: () => markDone(),
+      next: r => { this.all.set(r.data); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
@@ -139,18 +127,6 @@ export class TalentListComponent implements OnInit {
     return { band: 'Low', text: `Low • ${score}`, cls: 'risk-low' };
   }
 
-  idpFor(talentId: string): IdpPlan | null {
-    return this.idps().find(p => p.talentId === talentId) ?? null;
-  }
-
-  idpDisplay(talentId: string): { kind: 'none' } | { kind: 'done' } | { kind: 'progress'; pct: number } {
-    const p = this.idpFor(talentId);
-    if (!p) return { kind: 'none' };
-    if (p.status === 'Completed') return { kind: 'done' };
-    if (p.status === 'Active') return { kind: 'progress', pct: p.overallProgress ?? 0 };
-    return { kind: 'progress', pct: p.overallProgress ?? 0 };
-  }
-
   readonly avgOverall = computed(() => {
     const list = this.filtered();
     if (!list.length) return 0;
@@ -158,7 +134,6 @@ export class TalentListComponent implements OnInit {
   });
 
   readonly highRiskCount = computed(() => this.filtered().filter(t => t.riskScore >= 60).length);
-  readonly idpActiveCount = computed(() => this.idps().filter(p => p.status === 'Active').reduce((s, p) => s + (p.goals?.length ?? 0), 0));
 
   private sort(list: Talent[]): Talent[] {
     const field = this.sortField();
