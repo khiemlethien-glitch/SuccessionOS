@@ -81,16 +81,27 @@ export class OidcCallbackComponent implements OnInit {
       this.router.navigate([redirectTo]);
 
     } catch (err: any) {
-      console.error('OIDC callback error:', {
+      // Stringify error.error explicitly so nested object contents show up
+      // in console (devtools sometimes collapses `error: {...}`).
+      const body = err?.error;
+      const bodyStr = typeof body === 'string'
+        ? body
+        : (() => { try { return JSON.stringify(body, null, 2); } catch { return String(body); } })();
+
+      console.error('OIDC callback error — full body:\n' + bodyStr);
+      console.error('OIDC callback error — meta:', {
         status:     err?.status,
         statusText: err?.statusText,
-        error:      err?.error,
         url:        err?.url,
         message:    err?.message,
       });
-      this.message = 'Đăng nhập thất bại. Đang chuyển về trang đăng nhập...';
+
+      // Pull standardized OAuth error fields if present, else show raw body.
+      const code  = body?.error ?? err?.status ?? 'unknown';
+      const desc  = body?.error_description ?? err?.message ?? bodyStr?.slice(0, 200);
+      this.message = `Đăng nhập thất bại [${code}]: ${desc}`;
       this.cdr.detectChanges();
-      setTimeout(() => this.router.navigate(['/login']), 3000);
+      setTimeout(() => this.router.navigate(['/login']), 8000);
     }
   }
 }

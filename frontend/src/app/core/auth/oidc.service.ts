@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 export interface OidcTokenResponse {
@@ -93,59 +93,53 @@ export class OidcService {
     return `${this.cfg.issuer}/connect/authorize?${params.toString()}`;
   }
 
-  // ─── Basic Auth header for /connect/token ────────────────────
-  //
-  // VnR yêu cầu credentials ở header (Basic Auth), KHÔNG để trong body.
-  // Theo RFC 6749 §2.3.1, clientId + clientSecret phải được URL-encode
-  // (form-urlencoded) TRƯỚC khi base64, vì ký tự đặc biệt như `:`, `+`,
-  // `/`, `=` hoặc unicode sẽ phá vỡ Basic Auth parsing phía server.
-
-  private tokenEndpointHeaders(): HttpHeaders {
-    const user = encodeURIComponent(this.cfg.clientId);
-    const pass = encodeURIComponent(this.cfg.clientSecret);
-    // Unicode-safe base64: chuyển sang UTF-8 bytes trước khi btoa.
-    const bytes = new TextEncoder().encode(`${user}:${pass}`);
-    let binary = '';
-    bytes.forEach(b => (binary += String.fromCharCode(b)));
-    const credentials = btoa(binary);
-
-    return new HttpHeaders({
-      'Content-Type':  'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${credentials}`,
-    });
-  }
-
   // ─── Exchange code → tokens ───────────────────────────────────
+  //
+  // Theo tài liệu VnR Identity §3.2.1 (Authorization Code flow):
+  //   - Header: CHỈ Content-Type: application/x-www-form-urlencoded
+  //   - Body  : client_id, client_secret, grant_type, code, redirect_uri
+  //             (+ code_verifier khi PKCE enabled)
+  // KHÔNG dùng Authorization: Basic header — đó là quy ước riêng cho
+  // grant "password" (§3.2.2), không áp dụng cho authorization_code.
 
   exchangeCode(code: string, verifier: string): Promise<OidcTokenResponse> {
-    const body = new HttpParams()
-      .set('grant_type',    'authorization_code')
-      .set('code',          code)
-      .set('redirect_uri',  this.cfg.redirectUri)
-      .set('code_verifier', verifier);
+    // IMPORTANT: dùng URLSearchParams, KHÔNG dùng HttpParams của Angular.
+    // HttpParams default encoder để `+` unencoded (coi là query char hợp lệ),
+    // nhưng trong application/x-www-form-urlencoded, `+` = space. Nếu
+    // clientSecret chứa `+` (như base64 secret của VnR), server sẽ decode
+    // sai → invalid_client.
+    const body = new URLSearchParams();
+    body.set('grant_type',    'authorization_code');
+    body.set('client_id',     this.cfg.clientId);
+    body.set('client_secret', this.cfg.clientSecret);
+    body.set('code',          code);
+    body.set('redirect_uri',  this.cfg.redirectUri);
+    body.set('code_verifier', verifier);
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    });
 
     return this.http
-      .post<OidcTokenResponse>(
-        `${this.cfg.issuer}/connect/token`,
-        body.toString(),
-        { headers: this.tokenEndpointHeaders() },
-      )
+      .post<OidcTokenResponse>(`${this.cfg.issuer}/connect/token`, body.toString(), { headers })
       .toPromise() as Promise<OidcTokenResponse>;
   }
 
   // ─── Refresh token ────────────────────────────────────────────
 
   refreshToken(refreshToken: string): Promise<OidcTokenResponse> {
-    const body = new HttpParams()
-      .set('grant_type',    'refresh_token')
-      .set('refresh_token', refreshToken);
+    const body = new URLSearchParams();
+    body.set('grant_type',    'refresh_token');
+    body.set('client_id',     this.cfg.clientId);
+    body.set('client_secret', this.cfg.clientSecret);
+    body.set('refresh_token', refreshToken);
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    });
 
     return this.http
-      .post<OidcTokenResponse>(
-        `${this.cfg.issuer}/connect/token`,
-        body.toString(),
-        { headers: this.tokenEndpointHeaders() },
-      )
+      .post<OidcTokenResponse>(`${this.cfg.issuer}/connect/token`, body.toString(), { headers })
       .toPromise() as Promise<OidcTokenResponse>;
   }
 
