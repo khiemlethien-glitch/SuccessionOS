@@ -18,6 +18,12 @@ import { OidcService } from '../oidc.service';
 })
 export class OidcCallbackComponent implements OnInit {
   message = 'Đang xác thực, vui lòng chờ...';
+  // One-shot guard. `ngOnInit` can fire more than once when the prerendered
+  // shell is hydrated client-side, and popOidcState() destructively
+  // removes the PKCE entries from sessionStorage — so the second run used
+  // to fail with "State không hợp lệ (CSRF protection)". This flag makes
+  // sure handleCallback runs at most once per page load.
+  private static handled = false;
 
   constructor(
     private router: Router,
@@ -27,6 +33,9 @@ export class OidcCallbackComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (typeof window === 'undefined') return;   // SSR — skip entirely
+    if (OidcCallbackComponent.handled) return;   // already ran this page load
+    OidcCallbackComponent.handled = true;
     // Wrap trong Promise.resolve() để đẩy logic ra ngoài Angular change detection
     // cycle hiện tại — tránh lỗi NG0100 ExpressionChangedAfterChecked
     Promise.resolve().then(() => this.handleCallback());
