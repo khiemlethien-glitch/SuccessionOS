@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-21 03:00
+> Cập nhật lần cuối: 2026-04-21 03:20
 
 ---
 
@@ -67,6 +67,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 - [x] Admin page redesign toàn bộ: hero gradient navy→indigo + 4 stats (users/talents/positions/events), tabs bar pill-style 5 tab (Tổng quan/Dữ liệu/Người dùng/Cấu hình/Audit). Tổng quan: recent activity + data summary grid click-through. Dữ liệu: sidebar chọn 8 entities (Talents/Positions/IDP/Assessments/Succession/Mentoring/Calibration/Users) + data grid với search + Add/Edit/Delete popconfirm, generic edit modal auto-gen fields theo entity columns. Người dùng: table users CRUD với role tags. Cấu hình: module toggles grid (core/pro/enterprise tier) với nz-switch. Audit Trail: table logs với action tags màu ✅
 - [x] Login: bỏ bypass-fake-login, thêm credential check với 4 mock accounts (admin/admin123, hr.manager/hr123, lm.kythuat/lm123, viewer/viewer123), error banner + demo-fill chips click để auto-điền ✅
 - [x] Deployment: tạo `vercel.json` ở repo root (buildCommand cd frontend, output `dist/frontend/browser`, SPA rewrites), repo đã push lên github.com/khiemlethien-glitch/SuccessionOS ✅
+- [x] Shell sidebar: disable 6 module chưa build (IDP, Đánh giá, Kèm cặp & Cố vấn, Họp hiệu chỉnh, Báo cáo, Marketplace) — routerLink=null không navigate, nzDisabled, style xám mờ, badge "Sắp ra mắt" + tooltip; giữ /admin enabled ✅
 
 ### Placeholder routes
 - [x] `/profile` — ProfileComponent placeholder ✅

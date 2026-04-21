@@ -216,7 +216,12 @@
                 <div class="mc-title">{{ m.name }}</div>
                 <span class="mc-tier" [class]="'tier-' + m.tier">{{ m.tier }}</span>
               </div>
-              <nz-switch [ngModel]="m.enabled" (ngModelChange)="toggleModule(m.key, $event)"></nz-switch>
+              <div class="mc-actions">
+                <button type="button" class="mc-edit" (click)="openModuleDrawer(m.key)" title="Xem rule & công thức">
+                  <span nz-icon nzType="edit"></span> Sửa
+                </button>
+                <nz-switch [ngModel]="m.enabled" (ngModelChange)="toggleModule(m.key, $event)"></nz-switch>
+              </div>
             </div>
             <div class="mc-desc">{{ m.desc }}</div>
           </div>
@@ -260,6 +265,133 @@
       </nz-table>
     </div>
   }
+
+  <!-- ══ Module config drawer ══ -->
+  <nz-drawer
+    [nzVisible]="drawerOpen()"
+    (nzOnClose)="closeModuleDrawer()"
+    nzPlacement="right"
+    nzWidth="30%"
+    nzTitle=""
+    [nzClosable]="false"
+    [nzMask]="true"
+    [nzMaskClosable]="true"
+    nzWrapClassName="module-drawer-wrap"
+  >
+    <ng-container *nzDrawerContent>
+      @if (currentModule(); as m) {
+        <div class="md-head">
+          <div class="md-head-top">
+            <div class="md-title-wrap">
+              <div class="md-title">{{ m.name }}</div>
+              <span class="mc-tier" [class]="'tier-' + m.tier">{{ m.tier }}</span>
+            </div>
+            <button class="md-close" (click)="closeModuleDrawer()" title="Đóng">
+              <span nz-icon nzType="close"></span>
+            </button>
+          </div>
+          <p class="md-desc">{{ m.desc }}</p>
+          <div class="md-status">
+            <span class="md-status-dot" [class.md-status-on]="m.enabled"></span>
+            {{ m.enabled ? 'Đang kích hoạt' : 'Đã tắt' }}
+          </div>
+        </div>
+
+        @if (currentModuleConfig(); as cfg) {
+          <!-- Rules -->
+          <div class="md-section">
+            <div class="md-section-head">
+              <span nz-icon nzType="safety-certificate" class="md-ico md-ico-blue"></span>
+              <h4>Rules & điều kiện</h4>
+            </div>
+            <ul class="md-list">
+              @for (r of cfg.rules; track r.name) {
+                <li class="md-rule">
+                  <div class="md-rule-head">
+                    <span class="md-dot" [class.md-dot-on]="r.active"></span>
+                    <div class="md-rule-name">{{ r.name }}</div>
+                    <span class="md-rule-state" [class.on]="r.active">{{ r.active ? 'ON' : 'OFF' }}</span>
+                  </div>
+                  <div class="md-rule-desc">{{ r.description }}</div>
+                </li>
+              } @empty {
+                <li class="md-empty">Chưa có rule cấu hình.</li>
+              }
+            </ul>
+          </div>
+
+          <!-- Formulas -->
+          <div class="md-section">
+            <div class="md-section-head">
+              <span nz-icon nzType="line-chart" class="md-ico md-ico-purple"></span>
+              <h4>Công thức tính</h4>
+            </div>
+            <ul class="md-list">
+              @for (f of cfg.formulas; track f.name) {
+                <li class="md-formula">
+                  <div class="md-formula-name">{{ f.name }}</div>
+                  <code class="md-formula-expr">{{ f.expression }}</code>
+                  @if (f.note) { <div class="md-formula-note">{{ f.note }}</div> }
+                </li>
+              } @empty {
+                <li class="md-empty">Chưa có công thức.</li>
+              }
+            </ul>
+          </div>
+
+          <!-- Sort logic -->
+          <div class="md-section">
+            <div class="md-section-head">
+              <span nz-icon nzType="sliders" class="md-ico md-ico-amber"></span>
+              <h4>Sắp xếp & ưu tiên</h4>
+            </div>
+            <ul class="md-list">
+              @for (s of cfg.sort; track s.field) {
+                <li class="md-sort">
+                  <span class="md-sort-field"><code>{{ s.field }}</code></span>
+                  <span class="md-sort-order" [class.desc]="s.order === 'desc'">
+                    <span nz-icon [nzType]="s.order === 'desc' ? 'arrow-down' : 'arrow-up'"></span>
+                    {{ s.order === 'desc' ? 'Giảm dần' : 'Tăng dần' }}
+                  </span>
+                  @if (s.note) { <div class="md-sort-note">{{ s.note }}</div> }
+                </li>
+              } @empty {
+                <li class="md-empty">Chưa có cấu hình sắp xếp.</li>
+              }
+            </ul>
+          </div>
+
+          <!-- Settings -->
+          <div class="md-section">
+            <div class="md-section-head">
+              <span nz-icon nzType="setting" class="md-ico md-ico-green"></span>
+              <h4>Thông số</h4>
+            </div>
+            <div class="md-settings">
+              @for (s of cfg.settings; track s.label) {
+                <div class="md-setting">
+                  <span class="md-setting-label">{{ s.label }}</span>
+                  <span class="md-setting-value">{{ s.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="md-empty md-empty-center">
+            <span nz-icon nzType="inbox"></span>
+            <p>Chưa có cấu hình cho module này.</p>
+          </div>
+        }
+
+        <div class="md-foot">
+          <button nz-button nzType="default" (click)="closeModuleDrawer()">Đóng</button>
+          <button nz-button nzType="primary" class="btn-navy" disabled title="Sắp ra mắt">
+            <span nz-icon nzType="edit"></span> Chỉnh sửa cấu hình
+          </button>
+        </div>
+      }
+    </ng-container>
+  </nz-drawer>
 
   <!-- ══ Edit/Add modal ══ -->
   <nz-modal

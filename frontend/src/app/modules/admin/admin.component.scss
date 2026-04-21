@@ -201,6 +201,15 @@
   }
 }
 .mc-head         { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+.mc-actions      { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.mc-edit         {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 10px; font-size:12px; font-weight:600; color:#4f46e5;
+  background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px;
+  cursor:pointer; transition:all .15s ease;
+  [nz-icon] { font-size:11px; }
+  &:hover { background:#4f46e5; color:#fff; border-color:#4f46e5; transform:translateY(-1px); }
+}
 .mc-title-wrap   { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .mc-title        { font-size:14px; font-weight:700; color:#111827; }
 .mc-tier         {
@@ -216,6 +225,122 @@
 /* ══ Users / Audit panels ══ */
 .users-panel     { padding:16px 20px; }
 .audit-panel     { padding:16px 20px; }
+
+/* ══ Module config drawer ══ */
+::ng-deep .module-drawer-wrap {
+  .ant-drawer-header { display:none !important; }
+  .ant-drawer-body   { padding:0 !important; background:#fafbfc; }
+  .ant-drawer-mask   { background:rgba(15, 23, 42, .35); backdrop-filter:blur(2px); }
+  .ant-drawer-content-wrapper { min-width:420px; }
+}
+
+.md-head         {
+  background:linear-gradient(135deg,#1e1b4b,#4f46e5); color:#fff;
+  padding:20px 22px;
+}
+.md-head-top     { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+.md-title-wrap   { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:1; min-width:0; }
+.md-title        { font-size:17px; font-weight:700; color:#fff; }
+.md-head .mc-tier { background:rgba(255,255,255,.2); color:#fff; border:1px solid rgba(255,255,255,.3);
+  &.tier-core { background:rgba(134,239,172,.2); color:#bbf7d0; }
+  &.tier-pro  { background:rgba(199,210,254,.2); color:#e0e7ff; }
+  &.tier-enterprise { background:rgba(253,230,138,.2); color:#fde68a; }
+}
+.md-close        {
+  width:30px; height:30px; border-radius:8px; border:none;
+  background:rgba(255,255,255,.1); color:#fff; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:all .15s ease; flex-shrink:0;
+  &:hover { background:rgba(255,255,255,.2); transform:rotate(90deg); }
+}
+.md-desc         { margin:0 0 10px; font-size:13px; color:rgba(255,255,255,.8); }
+.md-status       { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,.9); }
+.md-status-dot   { width:8px; height:8px; border-radius:50%; background:#94a3b8; }
+.md-status-dot.md-status-on { background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.25); }
+
+.md-section      {
+  background:#fff; margin:12px; padding:14px 16px;
+  border:1px solid #f1f3f5; border-radius:10px;
+}
+.md-section-head { display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  h4 { margin:0; font-size:13px; font-weight:700; color:#1e1b4b; }
+}
+.md-ico          {
+  width:26px; height:26px; border-radius:7px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:13px; flex-shrink:0;
+}
+.md-ico-blue     { background:#dbeafe; color:#1d4ed8; }
+.md-ico-purple   { background:#ede9fe; color:#7c3aed; }
+.md-ico-amber    { background:#fef3c7; color:#b45309; }
+.md-ico-green    { background:#dcfce7; color:#15803d; }
+
+.md-list         { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+
+.md-rule         { padding:10px 12px; background:#fafbfc; border-radius:8px; }
+.md-rule-head    { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.md-dot          { width:6px; height:6px; border-radius:50%; background:#d1d5db; flex-shrink:0; }
+.md-dot.md-dot-on { background:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.15); }
+.md-rule-name    { font-size:13px; font-weight:600; color:#111827; flex:1; }
+.md-rule-state   {
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;
+  background:#f3f4f6; color:#9ca3af; letter-spacing:0.5px;
+  &.on { background:#dcfce7; color:#15803d; }
+}
+.md-rule-desc    { font-size:12px; color:#6b7280; line-height:1.45; padding-left:14px; }
+
+.md-formula      { padding:10px 12px; background:#fafbfc; border-radius:8px; }
+.md-formula-name { font-size:13px; font-weight:600; color:#111827; margin-bottom:6px; }
+.md-formula-expr {
+  display:block; padding:8px 10px;
+  background:#1e1b4b; color:#c7d2fe;
+  font-family:'JetBrains Mono', 'Fira Code', monospace;
+  font-size:11.5px; border-radius:6px; line-height:1.5;
+  overflow-x:auto; white-space:pre-wrap; word-break:break-word;
+}
+.md-formula-note { font-size:11px; color:#9ca3af; margin-top:5px; font-style:italic; }
+
+.md-sort         {
+  padding:10px 12px; background:#fafbfc; border-radius:8px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+}
+.md-sort-field code {
+  font-family:'JetBrains Mono', 'Fira Code', monospace;
+  font-size:12px; background:#eef2ff; color:#4338ca;
+  padding:3px 8px; border-radius:6px;
+}
+.md-sort-order   {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:11px; font-weight:600; padding:3px 10px; border-radius:999px;
+  background:#dbeafe; color:#1d4ed8;
+  [nz-icon] { font-size:10px; }
+  &.desc { background:#fee2e2; color:#991b1b; }
+}
+.md-sort-note    { flex-basis:100%; font-size:11px; color:#9ca3af; padding-left:2px; }
+
+.md-settings     { display:flex; flex-direction:column; gap:6px; }
+.md-setting      {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 12px; background:#fafbfc; border-radius:8px;
+  font-size:13px;
+}
+.md-setting-label { color:#6b7280; }
+.md-setting-value { color:#111827; font-weight:600; }
+
+.md-empty        { padding:20px; text-align:center; color:#9ca3af; font-size:13px; }
+.md-empty-center {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:40px 20px;
+  [nz-icon] { font-size:32px; color:#cbd5e1; }
+  p { margin:0; }
+}
+
+.md-foot         {
+  position:sticky; bottom:0;
+  display:flex; justify-content:flex-end; gap:8px;
+  padding:14px 22px; background:#fff;
+  border-top:1px solid #f1f3f5;
+}
 
 /* ══ Edit modal ══ */
 .edit-body       { display:flex; flex-direction:column; gap:14px; padding:4px 0 10px; }

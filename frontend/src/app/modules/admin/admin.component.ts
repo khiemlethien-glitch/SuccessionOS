@@ -10,6 +10,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { ApiService } from '../../core/services/api.service';
 import {
   AuditLog, AuditLogListResponse,
@@ -56,7 +57,7 @@ interface EntityDef {
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
-    NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule],
+    NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
 })
@@ -94,6 +95,189 @@ export class AdminComponent implements OnInit {
     { key: 'reports',     name: 'Báo cáo & Xuất dữ liệu',     desc: 'Charts + Excel/PDF export',      enabled: false, tier: 'pro' },
     { key: 'api',         name: 'API & Webhook',             desc: 'HRMS integration',               enabled: false, tier: 'enterprise' },
   ]);
+
+  // ── Module config drawer
+  drawerOpen         = signal(false);
+  drawerModuleKey    = signal<string>('');
+
+  // TODO: fetch từ /api/v1/admin/modules/:key/config
+  readonly moduleConfigs: Record<string, {
+    rules:    { name: string; description: string; active: boolean }[];
+    formulas: { name: string; expression: string; note?: string }[];
+    sort:     { field: string; order: 'asc' | 'desc'; note?: string }[];
+    settings: { label: string; value: string }[];
+  }> = {
+    talent: {
+      rules: [
+        { name: 'Phân tầng Talent Tier', description: 'Nòng cốt: perf≥85 & pot≥85. Kế thừa: perf≥75 & pot≥70. Tiềm năng: còn lại', active: true },
+        { name: 'Ngưỡng Readiness',      description: 'Ready Now: gapScore≤10. Ready 1Y: gap 11-25. Ready 2Y: gap>25', active: true },
+        { name: 'Cờ rủi ro cao',          description: 'Risk score ≥ 60 → banner đỏ + card "Yếu tố rủi ro" auto-hiển thị', active: true },
+      ],
+      formulas: [
+        { name: 'Overall Score',   expression: 'round((performance + potential + max(competencies)) / 3)', note: 'Dùng cho điểm tổng hợp trên profile' },
+        { name: 'Risk vs Dept Avg', expression: 'round(((talent.risk - avg(dept.risk)) / avg(dept.risk)) × 100)', note: 'Hiện trong alert strip' },
+        { name: 'Readiness Gap',   expression: 'target.requiredScore − current.overallScore', note: 'Càng thấp càng sẵn sàng' },
+      ],
+      sort: [
+        { field: 'overallScore', order: 'desc', note: 'Mặc định danh sách nhân tài' },
+        { field: 'riskScore',    order: 'desc', note: 'Khi lọc "High Risk"' },
+      ],
+      settings: [
+        { label: 'Chu kỳ review',    value: '6 tháng' },
+        { label: 'Số mentor tối đa', value: '5 mentees / mentor' },
+      ],
+    },
+    positions: {
+      rules: [
+        { name: 'Phân loại criticality', description: 'Critical: impact=high & time-to-hire>6m. High: 2 trong 3 yếu tố. Medium/Low: còn lại', active: true },
+        { name: 'Yêu cầu kế thừa',        description: 'Vị trí Critical phải có ≥3 successors, ≥1 Ready Now', active: true },
+      ],
+      formulas: [
+        { name: 'Criticality Score', expression: '(impact × 0.4) + (replaceability × 0.35) + (knowledgeDepth × 0.25)' },
+        { name: 'Dependency Score',  expression: '1 − (readyNowCount / requiredSuccessors)', note: '0 = an toàn, 1 = nguy hiểm' },
+      ],
+      sort: [
+        { field: 'criticalLevel',  order: 'desc' },
+        { field: 'dependencyScore', order: 'desc', note: 'Vị trí thiếu kế thừa lên đầu' },
+      ],
+      settings: [
+        { label: 'Số successors tối thiểu', value: '3' },
+        { label: 'Cảnh báo khi < Ready Now', value: '1' },
+      ],
+    },
+    succession: {
+      rules: [
+        { name: '9-Box mapping',        description: 'Box = f(performance tier, potential tier) — threshold Perf: <70/70-84/≥85, Pot: <70/70-84/≥85', active: true },
+        { name: 'Ưu tiên kế thừa',       description: 'Box 9 (star) > Box 8 > Box 6 > Box 7 > còn lại', active: true },
+        { name: 'Loại trừ',             description: 'Không đưa vào succession pool nếu: riskScore≥80 OR readiness=Ready in 2 Years cho vị trí Critical', active: true },
+      ],
+      formulas: [
+        { name: 'Match Score', expression: '(skillMatch × 0.5) + (readinessScore × 0.3) + (potentialScore × 0.2)' },
+        { name: 'Gap Score',   expression: 'Σ (targetCompetency[i] − currentCompetency[i]) / n' },
+      ],
+      sort: [
+        { field: 'matchScore', order: 'desc' },
+        { field: 'readiness',  order: 'asc', note: 'Ready Now lên đầu' },
+      ],
+      settings: [
+        { label: 'Threshold Performance', value: '70 / 85' },
+        { label: 'Threshold Potential',   value: '70 / 85' },
+      ],
+    },
+    idp: {
+      rules: [
+        { name: 'Workflow duyệt',   description: 'Draft → Pending Review → Approved → Active → Completed. Cần 2 cấp duyệt (Line Manager + HR)', active: true },
+        { name: 'Tự động nhắc',     description: 'Nhắc mentor/mentee 7 ngày trước deadline goal', active: true },
+        { name: 'Khoá khi Completed', description: 'IDP đã Completed không sửa lại, phải tạo IDP mới', active: true },
+      ],
+      formulas: [
+        { name: 'Overall Progress', expression: 'avg(goal.progress for goal in goals where status != "Not Started")' },
+        { name: 'At Risk Goal',     expression: 'deadline < today + 14d AND progress < 50%' },
+      ],
+      sort: [
+        { field: 'deadline', order: 'asc', note: 'Goal sắp đến hạn lên đầu' },
+        { field: 'progress', order: 'asc', note: 'Khi filter "At Risk"' },
+      ],
+      settings: [
+        { label: 'Chu kỳ review IDP',       value: '3 tháng' },
+        { label: 'Số goals/năm khuyến nghị', value: '3 – 5' },
+      ],
+    },
+    assessment: {
+      rules: [
+        { name: 'Trọng số người đánh giá', description: 'Quản lý (QL) 50% · Đồng nghiệp (ĐN) 30% · Cấp dưới (CĐ) 20%', active: true },
+        { name: 'Số rater tối thiểu',     description: '≥1 QL + ≥3 ĐN + ≥2 CĐ để kết quả có hiệu lực', active: true },
+        { name: 'Ẩn danh',                description: 'Rater ĐN/CĐ luôn ẩn danh, chỉ HR thấy raw data', active: true },
+      ],
+      formulas: [
+        { name: 'Overall Score', expression: '(avg(QL) × 0.5) + (avg(ĐN) × 0.3) + (avg(CĐ) × 0.2)' },
+        { name: 'Criterion Score', expression: 'avg(rater_score[criterion]) theo trọng số rater' },
+      ],
+      sort: [
+        { field: 'overallScore', order: 'desc' },
+        { field: 'period',       order: 'desc', note: 'Kỳ gần nhất lên đầu' },
+      ],
+      settings: [
+        { label: 'Thang điểm',        value: '5 (1.0 – 5.0, step 0.01)' },
+        { label: 'Benchmark/Target',  value: '4.5 / 5' },
+        { label: 'Chu kỳ đánh giá',   value: '1 năm' },
+      ],
+    },
+    mentoring: {
+      rules: [
+        { name: 'Ghép cặp',     description: 'Mentor phải có ≥8 năm KN, tier Nòng cốt/Kế thừa, không cùng line mentee', active: true },
+        { name: 'Tải tối đa',   description: 'Mỗi mentor không có quá 5 mentees đang active', active: true },
+        { name: 'Logbook',      description: 'Bắt buộc log sau mỗi session, quá 14 ngày không log → nhắc', active: true },
+      ],
+      formulas: [
+        { name: 'Effectiveness', expression: '(sessionsCompleted / sessionsTotal) × (menteeProgress / 100)' },
+        { name: 'Match Score',   expression: '(skillOverlap × 0.5) + (experienceGap × 0.3) + (departmentAffinity × 0.2)' },
+      ],
+      sort: [
+        { field: 'effectiveness', order: 'desc' },
+        { field: 'nextSession',   order: 'asc', note: 'Sắp tới lên đầu' },
+      ],
+      settings: [
+        { label: 'Min năm KN mentor',  value: '8 năm' },
+        { label: 'Max mentees/mentor', value: '5' },
+      ],
+    },
+    calibration: {
+      rules: [
+        { name: 'Quorum',       description: 'Phiên cần ≥3 người tham gia + ≥1 HR để hợp lệ', active: true },
+        { name: 'Lock session', description: 'Sau khi Lock không sửa được, chỉ HR Admin mới unlock', active: true },
+        { name: 'Biến động lớn', description: 'Score thay đổi >15 cần ghi chú justification', active: true },
+      ],
+      formulas: [
+        { name: 'Delta Score', expression: 'after − before (cho cả performance & potential)' },
+        { name: 'Box Move',    expression: 'boxAfter − boxBefore (âm=tụt hạng, dương=thăng hạng)' },
+      ],
+      sort: [
+        { field: 'date',   order: 'desc' },
+        { field: 'status', order: 'asc' },
+      ],
+      settings: [
+        { label: 'Ngưỡng biến động cần note', value: '15 điểm' },
+        { label: 'Min participants',          value: '3' },
+      ],
+    },
+    reports: {
+      rules: [
+        { name: 'Phân quyền xuất',   description: 'Admin/HR: full. Line Manager: chỉ team mình. Viewer: read-only', active: false },
+        { name: 'Lưu lịch sử export', description: 'Mỗi lần xuất ghi audit log (actor + format + range)', active: false },
+      ],
+      formulas: [
+        { name: 'Đang xây dựng', expression: '—', note: 'Module chưa kích hoạt' },
+      ],
+      sort: [],
+      settings: [
+        { label: 'Format hỗ trợ', value: 'Excel (.xlsx), PDF (A4)' },
+      ],
+    },
+    api: {
+      rules: [
+        { name: 'Rate limit',       description: '60 req/min/token, 1000 req/hour/token', active: false },
+        { name: 'Webhook retry',    description: 'Exponential backoff 3 lần, max 24h', active: false },
+      ],
+      formulas: [
+        { name: 'Token scope', expression: 'read:talents | write:idp | admin:* | ...', note: 'Scope-based authorization' },
+      ],
+      sort: [],
+      settings: [
+        { label: 'Base URL', value: 'https://api.successionos.vn/api/v1' },
+        { label: 'Auth',     value: 'Bearer JWT (OIDC compatible)' },
+      ],
+    },
+  };
+
+  currentModuleConfig = computed(() => this.moduleConfigs[this.drawerModuleKey()] ?? null);
+  currentModule = computed(() => this.modules().find(m => m.key === this.drawerModuleKey()) ?? null);
+
+  openModuleDrawer(key: string): void {
+    this.drawerModuleKey.set(key);
+    this.drawerOpen.set(true);
+  }
+  closeModuleDrawer(): void { this.drawerOpen.set(false); }
 
   // ── Data tab: entity selector
   selectedEntity = signal<string>('talents');
