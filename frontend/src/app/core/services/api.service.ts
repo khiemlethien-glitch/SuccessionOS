@@ -13,7 +13,11 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('access_token');
+    // SSR-safe: localStorage only exists in the browser. During prerender
+    // or server render we just send a token-less request.
+    const token = typeof window !== 'undefined'
+      ? window.localStorage?.getItem('access_token') ?? null
+      : null;
     let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);
