@@ -313,16 +313,13 @@
 }
 
 // ════════════════════════════════════════════════════
-// Modal styling
+// Drawer styling — "Thêm vị trí then chốt"
 // ════════════════════════════════════════════════════
-::ng-deep .add-pos-modal {
-  .ant-modal-content {
-    border-radius: 20px !important;
-    overflow: hidden;
-    padding: 0 !important;
-  }
-  .ant-modal-close { top:16px; right:16px; z-index:10; }
-  .ant-modal-body { padding: 0 !important; }
+::ng-deep .add-pos-drawer {
+  .ant-drawer-header { display:none !important; }
+  .ant-drawer-body   { padding:0 !important; display:flex; flex-direction:column; background:#fff; }
+  .ant-drawer-mask   { background:rgba(15,23,42,.35); backdrop-filter:blur(2px); }
+  .ant-drawer-content-wrapper { min-width:420px; }
 }
 
 .m-hero {
@@ -341,6 +338,15 @@
     background: radial-gradient(circle, rgba(255,255,255,.6), transparent 70%);
     pointer-events:none;
   }
+}
+.m-hero-text { flex:1; min-width:0; }
+.m-hero-close {
+  position:relative; z-index:2;
+  width:32px; height:32px; border-radius:8px; border:none;
+  background:rgba(255,255,255,.6); color:#4f46e5; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:all .15s ease; flex-shrink:0;
+  &:hover { background:#fff; transform:rotate(90deg); box-shadow:0 2px 8px rgba(79,70,229,.2); }
 }
 .m-hero-ico {
   width:44px; height:44px;
@@ -543,13 +549,17 @@
 }
 ::ng-deep .cdk-drop-list-dragging .cdk-drag { transition: transform .2s cubic-bezier(0, 0, 0.2, 1); }
 
-// Modal footer
+// Drawer body scrolls; footer pinned bottom
+.m-body {
+  flex:1; overflow-y:auto;
+}
 .m-footer {
   display:flex; justify-content:flex-end; gap:10px;
   padding:14px 24px 20px;
   border-top:1px solid #f1f5f9;
-  margin-top:10px;
   background: #fafbfc;
+  position:sticky; bottom:0; z-index:1;
+  flex-shrink:0;
 }
 .m-btn {
   height:40px !important;

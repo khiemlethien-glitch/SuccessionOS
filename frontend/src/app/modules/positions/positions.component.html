@@ -125,25 +125,28 @@
   </div>
 </div>
 
-<!-- ══ Modal: Thêm vị trí ══════════════════════════════ -->
-<nz-modal
+<!-- ══ Drawer: Thêm vị trí ══════════════════════════════ -->
+<nz-drawer
   [nzVisible]="showAddModal()"
-  (nzVisibleChange)="showAddModal.set($event)"
+  (nzOnClose)="closeAddModal()"
+  nzPlacement="right"
+  [nzWidth]="640"
   nzTitle=""
-  [nzFooter]="null"
-  [nzWidth]="720"
-  nzCentered
-  (nzOnCancel)="closeAddModal()"
-  nzClassName="add-pos-modal"
+  [nzClosable]="false"
+  [nzMask]="true"
   [nzMaskClosable]="false"
+  nzWrapClassName="add-pos-drawer"
 >
-  <ng-container *nzModalContent>
+  <ng-container *nzDrawerContent>
     <div class="m-hero">
       <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
       <div class="m-hero-text">
         <div class="m-hero-title">Thêm vị trí then chốt</div>
         <div class="m-hero-sub">Định nghĩa vị trí chiến lược và yêu cầu năng lực</div>
       </div>
+      <button type="button" class="m-hero-close" (click)="closeAddModal()" title="Đóng">
+        <span nz-icon nzType="close"></span>
+      </button>
     </div>
 
     <div class="m-body">
@@ -302,4 +305,4 @@
       </button>
     </div>
   </ng-container>
-</nz-modal>
+</nz-drawer>

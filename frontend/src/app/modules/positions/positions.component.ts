@@ -6,7 +6,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
@@ -34,7 +34,7 @@ interface NewPositionDraft {
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterLink, DragDropModule,
-    NzTagModule, NzButtonModule, NzIconModule, NzModalModule,
+    NzTagModule, NzButtonModule, NzIconModule, NzDrawerModule,
     NzInputModule, NzSelectModule, NzRadioModule, NzFormModule,
     AvatarComponent,
   ],
