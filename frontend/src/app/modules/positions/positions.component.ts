@@ -40,6 +40,9 @@ interface NewPositionDraft {
   ],
   templateUrl: './positions.component.html',
   styleUrl: './positions.component.scss',
+  // Add-position nz-drawer portals content outside the component tree;
+  // skip hydration to avoid Cannot-read-null errors on the hydrated page.
+  host: { ngSkipHydration: 'true' },
 })
 export class PositionsComponent implements OnInit {
   positions = signal<KeyPosition[]>([]);

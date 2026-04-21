@@ -60,6 +60,10 @@ interface EntityDef {
     NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
+  // nz-drawer / nz-modal portal content to the body's cdk-overlay-container
+  // on the client, so SSR-prerendered DOM doesn't match what the client
+  // expects and hydration throws "Cannot read properties of null".
+  host: { ngSkipHydration: 'true' },
 })
 export class AdminComponent implements OnInit {
   activeTab = signal<TabKey>('overview');

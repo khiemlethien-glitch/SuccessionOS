@@ -21,6 +21,9 @@ import { Talent, TalentListResponse, Assessment, AssessmentListResponse, IdpPlan
     NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule],
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',
+  // Mentor picker modal + dynamic SVG charts don't hydrate cleanly;
+  // skip hydration to avoid Cannot-read-null errors during client boot.
+  host: { ngSkipHydration: 'true' },
 })
 export class TalentProfileComponent implements OnInit, OnChanges {
   /** Embed mode: pass the talent id directly instead of reading the route. */
