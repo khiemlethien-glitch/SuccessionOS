@@ -17,8 +17,7 @@ import { NzStepsModule } from 'ng-zorro-antd/steps';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { ApiService } from '../../core/services/api.service';
-import { IdpPlan, IdpGoal, IdpListResponse } from '../../core/models/models';
+import { IdpPlan } from '../../core/models/models';
 import { IdpService } from '../../core/services/data/idp.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
@@ -69,7 +68,7 @@ export class IdpComponent implements OnInit {
     { role: 'Ban Giám đốc',      approver: 'Nguyễn Văn Khoa', status: 'pending', note: '' },
   ]);
 
-  constructor(private api: ApiService, private idpSvc: IdpService, private msg: NzMessageService) {}
+  constructor(private idpSvc: IdpService, private msg: NzMessageService) {}
 
   async ngOnInit(): Promise<void> {
     try {

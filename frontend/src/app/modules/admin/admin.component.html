@@ -40,6 +40,9 @@
     <button type="button" class="tab" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">
       <span nz-icon nzType="setting"></span> Cấu hình
     </button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'assessment'" (click)="setTab('assessment')">
+      <span nz-icon nzType="star"></span> Đánh giá năng lực
+    </button>
     <button type="button" class="tab" [class.active]="activeTab() === 'audit'" (click)="setTab('audit')">
       <span nz-icon nzType="file-search"></span> Audit Trail
     </button>
@@ -260,6 +263,88 @@
             <div class="mc-desc">{{ m.desc }}</div>
           </div>
         }
+      </div>
+    </div>
+  }
+
+  <!-- ══ Tab: Đánh giá năng lực (drag-drop cấu hình tiêu chí hiển thị) ══ -->
+  @if (activeTab() === 'assessment') {
+    <div class="panel assessment-panel">
+      <div class="data-toolbar">
+        <div class="dt-title">
+          <span nz-icon nzType="star"></span>
+          Cấu hình tiêu chí hiển thị
+          <span class="dt-count">{{ selectedCriteria().length }}/4</span>
+        </div>
+        <div class="dt-actions">
+          @if (!isAdmin()) {
+            <span class="assess-note">Chỉ Admin được phép chỉnh sửa</span>
+          }
+          <button nz-button nzType="primary" class="btn-navy"
+                  [disabled]="!isAdmin() || savingDisplayConfig()"
+                  (click)="saveAssessmentConfig()">
+            <span nz-icon nzType="check"></span>
+            {{ savingDisplayConfig() ? 'Đang lưu...' : 'Lưu cấu hình' }}
+          </button>
+        </div>
+      </div>
+
+      <p class="assess-hint">
+        Chọn tối đa <strong>4 tiêu chí</strong> để hiển thị trong card "Đánh giá năng lực" ở hồ sơ
+        nhân viên. Kéo thả hoặc bấm <span nz-icon nzType="plus"></span> / <span nz-icon nzType="close"></span>.
+      </p>
+
+      <div class="assess-dd" cdkDropListGroup>
+        <div class="dd-col">
+          <div class="dd-col-hdr">
+            <span nz-icon nzType="unordered-list"></span>
+            Có sẵn
+            <span class="dd-count">{{ availableCriteria().length }}</span>
+          </div>
+          <div id="available-criteria" class="dd-zone" cdkDropList
+               [cdkDropListData]="availableCriteria()"
+               (cdkDropListDropped)="onDropCriterion($event)">
+            @for (c of availableCriteria(); track c.id) {
+              <div class="dd-chip" cdkDrag [cdkDragDisabled]="!isAdmin()" (click)="isAdmin() && addCriterion(c)">
+                <div class="chip-main">
+                  <div class="chip-label">{{ c.label }}</div>
+                  @if (c.description) { <div class="chip-desc">{{ c.description }}</div> }
+                </div>
+                <span nz-icon nzType="plus" class="dd-chip-add"></span>
+              </div>
+            } @empty {
+              <div class="dd-empty">Đã chọn hết</div>
+            }
+          </div>
+        </div>
+
+        <div class="dd-arrow"><span nz-icon nzType="swap"></span></div>
+
+        <div class="dd-col dd-col-active">
+          <div class="dd-col-hdr">
+            <span nz-icon nzType="check-circle"></span>
+            Đã chọn hiển thị
+            <span class="dd-count dd-count-active">{{ selectedCriteria().length }}/4</span>
+          </div>
+          <div id="selected-criteria" class="dd-zone dd-zone-active" cdkDropList
+               [cdkDropListData]="selectedCriteria()"
+               (cdkDropListDropped)="onDropCriterion($event)">
+            @for (c of selectedCriteria(); track c.id) {
+              <div class="dd-chip dd-chip-active" cdkDrag [cdkDragDisabled]="!isAdmin()" (click)="isAdmin() && removeCriterion(c)">
+                <div class="chip-main">
+                  <div class="chip-label">{{ c.label }}</div>
+                  @if (c.description) { <div class="chip-desc">{{ c.description }}</div> }
+                </div>
+                <span nz-icon nzType="close" class="dd-chip-add"></span>
+              </div>
+            } @empty {
+              <div class="dd-empty">
+                <span nz-icon nzType="inbox"></span>
+                Kéo tiêu chí từ bên trái vào đây
+              </div>
+            }
+          </div>
+        </div>
       </div>
     </div>
   }

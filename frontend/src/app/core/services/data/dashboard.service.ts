@@ -4,7 +4,43 @@ import { SupabaseService } from '../supabase.service';
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private sb = inject(SupabaseService).client;
-  async getKpi() { return {}; }
-  async getRiskAlerts(limit = 5) { return []; }
-  async getDepartments() { return []; }
+
+  async getKpi() {
+    const active = { is_active: true };
+    const [total, core, potential, successor, highRisk] = await Promise.all([
+      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match(active),
+      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Nòng cốt' }),
+      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Tiềm năng' }),
+      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Kế thừa' }),
+      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match(active).gte('risk_score', 60),
+    ]);
+    return {
+      totalTalents:   total.count     ?? 0,
+      coreCount:      core.count      ?? 0,
+      potentialCount: potential.count ?? 0,
+      successorCount: successor.count ?? 0,
+      highRiskCount:  highRisk.count  ?? 0,
+    };
+  }
+
+  async getRiskAlerts(limit = 5) {
+    const { data, error } = await this.sb
+      .from('v_employees')
+      .select('id, full_name, position, department_name, risk_score, risk_reasons')
+      .eq('is_active', true)
+      .gte('risk_score', 60)
+      .order('risk_score', { ascending: false })
+      .limit(limit);
+    if (error) { console.error('[DashboardService.getRiskAlerts]', error); return []; }
+    return data ?? [];
+  }
+
+  async getDepartments() {
+    const { data, error } = await this.sb
+      .from('departments')
+      .select('id, name, parent_id, head_id')
+      .order('name');
+    if (error) { console.error('[DashboardService.getDepartments]', error); return []; }
+    return data ?? [];
+  }
 }

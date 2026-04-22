@@ -554,12 +554,24 @@
   flex:1; overflow-y:auto;
 }
 .m-footer {
-  display:flex; justify-content:flex-end; gap:10px;
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
   padding:14px 24px 20px;
   border-top:1px solid #f1f5f9;
   background: #fafbfc;
   position:sticky; bottom:0; z-index:1;
   flex-shrink:0;
+}
+.m-footer-right { display:flex; gap:10px; margin-left:auto; }
+.m-btn-delete   { min-width:auto !important; }
+
+/* Card clickable (admin edit) */
+.pos-card.clickable {
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.08);
+  }
 }
 .m-btn {
   height:40px !important;

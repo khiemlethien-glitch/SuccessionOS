@@ -185,8 +185,8 @@
 
             <td>
               <div class="risk-cell">
-                <span class="risk-pill" [ngClass]="riskLabel(t.risk_score).cls">{{ riskLabel(t.risk_score).text }}</span>
-                @if (t.risk_score >= 60) {
+                <span class="risk-pill" [ngClass]="riskLabel(t.risk_score ?? 0).cls">{{ riskLabel(t.risk_score ?? 0).text }}</span>
+                @if ((t.risk_score ?? 0) >= 60) {
                   @let reasons = departureReasons(t);
                   @if (reasons.length > 0) {
                     <div class="risk-reasons">

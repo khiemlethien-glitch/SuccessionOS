@@ -4,18 +4,12 @@ import { authGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'login', loadChildren: () => import('./modules/auth/login.routes').then(m => m.LOGIN_ROUTES) },
-<<<<<<< HEAD
-  { path: 'auth/callback', redirectTo: '/dashboard' },
-  { path: 'logout',        redirectTo: '/login' },
-  { path: 'silent-refresh', redirectTo: '/' },
-=======
   {
     path: 'auth/callback',
     loadComponent: () =>
       import('./modules/auth/callback/callback.component')
         .then(m => m.CallbackComponent),
   },
->>>>>>> claude/sleepy-margulis-3c9b5d
   {
     path: '',
     loadComponent: () => import('./shared/components/shell/shell.component').then(m => m.ShellComponent),

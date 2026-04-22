@@ -70,7 +70,7 @@ export class TalentListComponent implements OnInit {
     if (this.tier()) list = list.filter(t => t.talent_tier === this.tier());
     if (this.dept()) list = list.filter(t => t.department === this.dept());
     if (this.readiness()) list = list.filter(t => this.readinessLabel(t.readiness_level) === this.readiness());
-    if (this.riskBand()) list = list.filter(t => this.riskLabel(t.risk_score).band === this.riskBand());
+    if (this.riskBand()) list = list.filter(t => this.riskLabel(t.risk_score ?? 0).band === this.riskBand());
     list = this.sort(list);
     return list;
   });
@@ -79,15 +79,17 @@ export class TalentListComponent implements OnInit {
 
   constructor(private router: Router) {}
 
-  ngOnInit(): void {
-    // TODO: await employeeSvc.getList() → this.all.set(...)
-    // TODO: positions fetch sẽ do PositionService cung cấp
+  async ngOnInit(): Promise<void> {
+    this.loading.set(true);
+    const res = await this.employeeSvc.getAll();
+    this.all.set(res.data);
+    // TODO: positions fetch (chờ fix RLS key_positions)
     this.loading.set(false);
   }
 
   // ── Held position (current holder of a key position)
   heldPosition(t: Talent): KeyPosition | null {
-    return this.positions().find(p => p.currentHolder === t.full_name) ?? null;
+    return this.positions().find(p => p.current_holder === t.full_name) ?? null;
   }
 
   // ── Successor of which positions (for Kế thừa tier)
@@ -101,9 +103,9 @@ export class TalentListComponent implements OnInit {
 
   // ── Departure reasons (explicit from mock + derived from risk + seniority)
   departureReasons(t: Talent): string[] {
-    if (t.departureReasons && t.departureReasons.length) return t.departureReasons;
-    if (t.risk_score >= 60 && t.yearsOfExperience >= 20) return ['Sắp nghỉ hưu'];
-    if (t.risk_score >= 60) return ['Cần làm rõ nguyên nhân'];
+    if (t.departure_reasons && t.departure_reasons.length) return t.departure_reasons;
+    if ((t.risk_score ?? 0) >= 60 && t.years_of_experience >= 20) return ['Sắp nghỉ hưu'];
+    if ((t.risk_score ?? 0) >= 60) return ['Cần làm rõ nguyên nhân'];
     return [];
   }
 
@@ -111,18 +113,18 @@ export class TalentListComponent implements OnInit {
   competencyGap(t: Talent): { gap: number; tone: 'good' | 'mid' | 'bad'; label: string } {
     const actual = {
       technical:   t.competencies?.technical    ?? 0,
-      performance: t.performance_score,
+      performance: t.performance_score ?? 0,
       behavior:    t.competencies?.communication ?? 0,
-      potential:   t.potential_score,
+      potential:   t.potential_score ?? 0,
       leadership:  t.competencies?.leadership   ?? 0,
     };
-    const target = t.competencyTargets ?? (
+    const target = t.competency_targets ?? (
       t.talent_tier === 'Nòng cốt'
         ? { technical: 90, performance: 90, behavior: 85, potential: 85, leadership: 90 }
         : { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 }
     );
     const keys: (keyof typeof actual)[] = ['technical','performance','behavior','potential','leadership'];
-    const shortfall = keys.reduce((s, k) => s + Math.max(0, target[k] - actual[k]), 0);
+    const shortfall = keys.reduce((s, k) => s + Math.max(0, (target[k] ?? 0) - actual[k]), 0);
     const gap = Math.round(shortfall / keys.length);
     if (gap <= 0) return { gap: 0, tone: 'good', label: 'Đạt' };
     if (gap <= 5) return { gap, tone: 'mid', label: `Thiếu ${gap}` };
@@ -179,7 +181,7 @@ export class TalentListComponent implements OnInit {
     return Math.round(list.reduce((s, t) => s + this.overallScore(t), 0) / list.length);
   });
 
-  readonly highRiskCount = computed(() => this.filtered().filter(t => t.risk_score >= 60).length);
+  readonly highRiskCount = computed(() => this.filtered().filter(t => (t.risk_score ?? 0) >= 60).length);
 
   private sort(list: Talent[]): Talent[] {
     const field = this.sortField();

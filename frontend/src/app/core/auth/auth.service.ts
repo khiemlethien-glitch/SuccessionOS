@@ -20,6 +20,27 @@ export class AuthService {
 
   readonly isAuthenticated = computed(() => this.session() !== null);
 
+  /**
+   * RBAC — phân quyền theo role. Hierarchy: Admin > HR Manager > Line Manager > Viewer.
+   * Hiện tại auth bypass → trả `true` để tất cả user đều được coi là Admin.
+   * Khi gỡ bypass + login thật, sẽ dùng `this.currentUser()?.role === 'Admin'`.
+   */
+  readonly isAdmin = computed(() => {
+    const user = this.currentUser();
+    // Bypass mode: không có login → mặc định Admin để test admin features
+    if (!user) return true;
+    return user.role === 'Admin';
+  });
+
+  readonly hasRole = (role: string) => {
+    const user = this.currentUser();
+    if (!user) return true; // bypass
+    const hierarchy = ['Viewer', 'Line Manager', 'HR Manager', 'Admin'];
+    const userLevel = hierarchy.indexOf(user.role);
+    const neededLevel = hierarchy.indexOf(role);
+    return userLevel >= neededLevel;
+  };
+
   private get sb() {
     return this.supabaseService.client;
   }

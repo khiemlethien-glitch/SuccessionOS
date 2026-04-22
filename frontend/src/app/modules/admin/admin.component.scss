@@ -366,3 +366,61 @@
 .edit-label      { font-size:12px; font-weight:600; color:#374151; }
 .edit-field input { border-radius:8px; height:36px; }
 .edit-footer     { display:flex; justify-content:flex-end; gap:8px; padding-top:12px; border-top:1px solid #f3f4f6; }
+
+/* ═════════ Assessment tab — drag-drop tiêu chí ═════════ */
+.assessment-panel { padding: 20px 24px; }
+.assess-note      { color:#dc2626; font-size:12px; font-style:italic; margin-right:12px; }
+.assess-hint      {
+  color:#6b7280; font-size:13px; line-height:1.55; margin:4px 0 18px;
+  span[nz-icon] { color:#6366f1; }
+}
+
+.assess-dd {
+  display:grid; grid-template-columns: 1fr 40px 1fr; gap:16px; align-items:stretch;
+}
+.dd-col {
+  background:#fafafa; border:1px solid #e5e7eb; border-radius:12px;
+  display:flex; flex-direction:column; overflow:hidden;
+  &.dd-col-active { background:#eef2ff; border-color:#c7d2fe; }
+}
+.dd-col-hdr {
+  padding:10px 14px; font-weight:600; font-size:13px; color:#374151;
+  border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:8px;
+  .dd-count          { margin-left:auto; background:#e5e7eb; color:#4b5563; padding:2px 8px; border-radius:10px; font-size:11px; }
+  .dd-count-active   { background:#4f46e5; color:#fff; }
+  span[nz-icon]      { color:#6366f1; }
+}
+.dd-zone {
+  padding:10px; min-height:280px; display:flex; flex-direction:column; gap:8px;
+  &.dd-zone-active { background:rgba(99,102,241,.04); }
+}
+.dd-chip {
+  background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+  padding:10px 12px; display:flex; align-items:center; gap:10px;
+  cursor:grab; user-select:none; transition:all .15s;
+  &:hover        { border-color:#6366f1; box-shadow:0 2px 6px rgba(99,102,241,.12); }
+  &:active       { cursor:grabbing; }
+  &.dd-chip-active {
+    background:linear-gradient(180deg, #eef2ff, #fff); border-color:#c7d2fe;
+  }
+  .chip-main     { flex:1; min-width:0; }
+  .chip-label    { font-weight:600; font-size:13px; color:#111827; }
+  .chip-desc     { font-size:11px; color:#6b7280; margin-top:2px; line-height:1.4; }
+  .dd-chip-add   {
+    flex-shrink:0; width:22px; height:22px; border-radius:50%;
+    background:#eef2ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-size:11px;
+  }
+  &.dd-chip-active .dd-chip-add { background:#fee2e2; color:#dc2626; }
+}
+.dd-arrow        {
+  display:flex; align-items:center; justify-content:center;
+  color:#9ca3af; font-size:20px;
+}
+.dd-empty        {
+  flex:1; display:flex; flex-direction:column; gap:6px;
+  align-items:center; justify-content:center;
+  color:#9ca3af; font-size:12px; font-style:italic;
+  span[nz-icon] { font-size:24px; }
+}
+.cdk-drag-preview { box-shadow:0 8px 24px rgba(0,0,0,.15); }
+.cdk-drag-placeholder { opacity:.3; }

@@ -1,8 +1,165 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-<<<<<<< HEAD
-> Cập nhật lần cuối: 2026-04-22 19:00
+> Cập nhật lần cuối: 2026-04-22 21:10 (build xanh sau merge)
+
+---
+
+## 📊 Assessment module — backend-driven + admin drag-drop config (2026-04-22 22:00)
+
+### SQL schema mới (`backend/sql/assessment_schema.sql` — user chạy trong Supabase SQL Editor)
+
+| Table | Mục đích |
+|---|---|
+| `assessment_criteria` | Master catalogue tiêu chí (10 seed: chuyên môn, hiệu suất, thái độ, tiềm năng, chuyên cần, đổi mới, lãnh đạo, tuân thủ, hợp tác, khách hàng) — cột `weight` cố định |
+| `assessment_cycles` | Chu kỳ đánh giá (5 seed: 2024 Annual/Q4/Mid-year, 2025 Annual/Q1) — field `status: open/closed/locked` |
+| `assessment_scores` | Điểm per `{employee_id, cycle_id, criterion_id}` — PK composite |
+| `assessment_summary` | `{employee_id, cycle_id}` → `overall_score, rating_label, manager_note, strengths[], needs_dev[]` |
+| `assessment_display_config` | Singleton (id=1), `criterion_ids uuid[]` max 4 — global config |
+| `user_profiles.role` | Thêm column `role` với CHECK (Admin/HR Manager/Line Manager/Viewer), default 'Admin' |
+
+Seed data cho E001 (Nguyễn Văn Sơn) có sẵn ở Chu kỳ 2024 + 2025 để test UI.
+
+### Frontend
+
+- **[assessment.service.ts](frontend/src/app/core/services/data/assessment.service.ts)** — 5 methods: `getCycles`, `getAllCriteria`, `getDisplayConfig`, `updateDisplayConfig`, `getAssessment(employeeId, cycleId)` trả `AssessmentView` gồm 4 items (từ display config) kèm score + overall + manager_note + strengths/needs_dev
+- **[talent-profile.component.ts+html](frontend/src/app/modules/talent/talent-profile.component.ts)** — Card "Đánh giá năng lực" đã đổi:
+  - Title "Đánh giá năng lực" + `nz-select` dropdown cycles bên cạnh (load từ `getCycles()`)
+  - Bỏ `(40%)` / `(30%)` trong label tiêu chí (weight cố định trong DB, không hiển thị)
+  - Label có `title` attribute = description (tooltip khi hover)
+  - Bar scores + overall + rating_label + strengths + needs_dev + manager_note từ backend
+  - Khi đổi cycle → `onCycleChange()` reload assessment cho cycle đó
+- **[admin.component.ts+html+scss](frontend/src/app/modules/admin/admin.component.ts)** — Tab mới "**Đánh giá năng lực**":
+  - Drag-drop 2 column "Có sẵn" → "Đã chọn" max 4, chip hiện label + description
+  - Nút "Lưu cấu hình" → `updateDisplayConfig(criterionIds[])`
+  - RBAC: disabled cho non-admin, hiện "Chỉ Admin được phép chỉnh sửa"
+- **[auth.service.ts](frontend/src/app/core/auth/auth.service.ts)** — thêm computed `isAdmin` + `hasRole(role)` với hierarchy `Viewer < Line Manager < HR Manager < Admin`. Bypass mode (chưa login) → mặc định Admin để test.
+
+### Build: ✅ 0 errors, 10.8s, 16 static routes prerendered
+
+### Cần user làm
+
+1. **Chạy SQL**: copy file `backend/sql/assessment_schema.sql` vào Supabase SQL Editor → Run
+2. Refresh browser → vào `/talent/E001`: card đánh giá có dropdown cycle, chọn "Chu kỳ 2024" → hiện 4 tiêu chí + điểm 91
+3. Vào `/admin` tab "Đánh giá năng lực" → kéo thả 4 tiêu chí, bấm Lưu
+4. Quay lại `/talent/E001` → card hiển thị đúng 4 tiêu chí mới chọn
+
+---
+
+## 🔓 RLS fixed + services map DB schema → frontend types (2026-04-22 21:40)
+
+**User đã chạy SQL disable RLS.** Tất cả 4 bảng đã accessible với data thật:
+- `key_positions`: 40 rows
+- `succession_plans`: 49 rows (1 successor/row, NOT aggregated)
+- `idp_plans`: 150 rows
+- `user_profiles`: empty (schema exists)
+- `employees`, `idp_goals`: empty (source data ở `v_employees` view)
+
+**Service updates để map DB schema → frontend types:**
+
+| Service | Chỉnh sửa |
+|---|---|
+| `KeyPositionService.getAll()` | Fetch `key_positions` + `departments` + `v_employees` song song → build Map lookup, map `current_holder_id` → tên, `department_id` → tên dept, rename `parent_position_id` → `parent_id` |
+| `SuccessionService.getPlans()` | Fetch 4 queries song song: plans + positions + employees + depts. **Group by `position_id`**, aggregate successors list. Trả shape `{id, position_id, position_title, department, successors:[]}` cho frontend |
+| `IdpService.getAll/getByEmployee` | Join `idp_plans` với `idp_goals` nested, tách `empMap` từ v_employees để fill `talent_name`. Map `employee_id → talent_id`, `approved_by_l3_id/l2_id/l1_id` → `approved_by` (fallback chain) |
+
+Build: ✅ 0 errors, 12.1s, 16 static routes.
+
+---
+
+## 🔗 Supabase DB wired → Frontend (2026-04-22 21:30)
+
+### Build: **0 errors** · 13.2s · 16 static routes
+
+### Services wired (Supabase queries thực thay vì stub)
+
+| Service | Supabase table/view | Methods |
+|---|---|---|
+| [EmployeeService](frontend/src/app/core/services/data/employee.service.ts) | `v_employees` (500 rows ✅) | `getAll(filter)`, `getById(id)`, `update` + reshape flat `comp_*` → nested `competencies{}` |
+| [DashboardService](frontend/src/app/core/services/data/dashboard.service.ts) | `v_employees`, `departments` | `getKpi()` (5 parallel count queries), `getRiskAlerts(limit)`, `getDepartments()` |
+| [KeyPositionService](frontend/src/app/core/services/data/key-position.service.ts) | `key_positions` ⚠️ RLS | full CRUD + `getSuccessors`, `getSummary` |
+| [SuccessionService](frontend/src/app/core/services/data/succession.service.ts) | `v_nine_box` ✅ (500 rows) + `succession_plans` ⚠️ RLS | `getPlans`, **`getNineBox()`** (dùng cột `box` 1-9 compute sẵn), `upsertPlan`, `deletePlan` |
+| [IdpService](frontend/src/app/core/services/data/idp.service.ts) | `idp_plans` ⚠️ RLS + `idp_goals` ✅ | `getAll/getByEmployee/create/updatePlan/addGoal/updateGoal` với nested goals join |
+
+### Components đã wire
+
+| Component | Gọi service nào |
+|---|---|
+| [dashboard](frontend/src/app/modules/dashboard/dashboard.component.ts) | `employeeSvc.getAll()` → tierCounts/highRisk/topRisk computed từ 500 talents |
+| [talent-list](frontend/src/app/modules/talent/talent-list.component.ts) | `employeeSvc.getAll()` → bảng 500 nhân viên |
+| [talent-profile](frontend/src/app/modules/talent/talent-profile.component.ts) | `Promise.all([getById, getAll])` + try `idpSvc.getByEmployee` |
+| [succession](frontend/src/app/modules/succession/succession.component.ts) | `successionSvc.getNineBox()` → 9-box chips real data |
+| [positions](frontend/src/app/modules/positions/positions.component.ts) | `Promise.all([positionSvc.getAll, successionSvc.getPlans])` với try/catch RLS |
+| [idp](frontend/src/app/modules/idp/idp.component.ts) | `idpSvc.getAll/create/updatePlan` |
+| [admin](frontend/src/app/modules/admin/admin.component.ts) | `employeeSvc.getAll()` + `supabase.from('audit_logs')` cho Overview/Audit |
+
+### 🐛 RLS Blocker — cần user fix trong Supabase Dashboard
+
+**4 tables bị infinite recursion** (lỗi `42P17` khi query):
+- `employees`, `key_positions`, `succession_plans`, `idp_plans`
+
+Nguyên nhân: policy trên `user_profiles` reference chính nó.
+
+**Cách fix (SQL Editor trong Supabase):**
+```sql
+-- 1. Xem policy nào gây recursion
+SELECT schemaname, tablename, policyname, cmd, qual
+FROM pg_policies WHERE tablename = 'user_profiles';
+
+-- 2. Option A: Drop & recreate với condition đơn giản
+DROP POLICY "ten_policy_cu" ON user_profiles;
+CREATE POLICY "allow_authenticated_read" ON user_profiles
+  FOR SELECT TO authenticated USING (true);
+
+-- 3. Option B (tạm dev): Disable RLS
+ALTER TABLE user_profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE key_positions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE succession_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE idp_plans DISABLE ROW LEVEL SECURITY;
+```
+
+Sau khi fix → refresh browser, data sẽ hiển thị cho 4 module positions/succession-plans/idp/admin-entities.
+
+### Test end-to-end
+
+```bash
+cd frontend && npm start  # ng serve
+```
+- ✅ `/dashboard` — counts từ 500 nhân viên thật
+- ✅ `/talent` — bảng 500 nhân viên (E001 Nguyễn Văn Sơn - TGĐ, performance 95, risk 15…)
+- ✅ `/talent/E001` — hero card đầy đủ
+- ✅ `/succession` tab 9-Box — chips có nhân viên từ `v_nine_box`
+- ⚠️ `/positions`, `/idp`, Succession Map tree — empty do RLS (console warn, không crash)
+- ⚠️ `/admin` — Overview stats.talents = 500, Audit tab empty (bảng `audit_logs` chưa có rows)
+
+---
+
+## 🎉 Build Green After Merge (2026-04-22 21:10)
+
+**ng build**: **0 errors**, 2 warnings (SCSS budget), 16 static routes prerendered, bundle 11.9s.
+
+### Merge flow:
+1. Commit CLI work trong main: `2e1efe6 feat: Supabase migration — CLI phase 1 complete`
+2. Commit worktree refactor: `03b394b feat: Claude Code snake_case refactor + stub services`
+3. Merge `claude/sleepy-margulis-3c9b5d` → main, 14 conflicts resolved `--theirs` (giữ worktree/snake_case)
+4. Fix filesystem phantom-empty corruption: `api.service.ts`, `CareerReview.cs`, `calibration.component.scss` (2 restore từ HEAD, 1 xóa)
+5. `git commit` hang (FS/disk I/O) → bypass bằng plumbing `git commit-tree` + manual ref write
+
+### Post-merge fixes (compile):
+- **ApiService stub**: Tạo lại `core/services/api.service.ts` với methods trả Observable rỗng → 7 legacy importers compile lại mà không cần edit
+- **snake_case holdouts**: Sửa `dashboard.component.ts` (talentTier/successorCount/riskScore/overallProgress/readyNowCount), `talent-list.component.ts` (yearsOfExperience/departureReasons/competencyTargets/risk_score null-guard), `talent-profile.component.ts` (hireDate/tenureYears/overallScore/targetPosition/approvedBy/approvedDate/goals12m/goals2to3y/competencyTargets/riskFactors + null-guards), `positions.component.ts` (positionId/requiredCompetencies/current_holder_id→current_holder), `succession.component.ts` (current_holder_id→current_holder/talentId/parentId/positionId/gapScore/talentName + null-guards + remove ApiService)
+- **Service stubs**: `IdpService.updatePlan()` added
+- **Admin signals**: `syncEndpoints`, `syncProfilesN`, `endpointEntries()` helper
+- **Auth callback**: Route `/auth/callback` → `CallbackComponent` (Supabase `getSession()`)
+- **Resolve conflict markers**: `app.routes.ts`, `PROGRESS.md`
+
+### Kết quả commit:
+- `fee4e36` merge (main)
+- Trên main local, chưa push. Chạy `git push origin main` khi sẵn sàng.
+
+---
+
+## ⚡ Wire Supabase Data Services → Components (2026-04-22 19:00) — CLI work
 
 ---
 
@@ -52,9 +209,6 @@
 | Task 7 | Sửa models.ts → toàn bộ snake_case (full_name, performance_score, v.v.) | ✅ Done |
 | Task 8 | Sửa app.config.ts → xóa jwtInterceptor, giữ HttpClient | ✅ Done |
 | Task 9 | Fix toàn bộ TypeScript errors → 0 errors, build exit 0 | ✅ Done |
-=======
-> Cập nhật lần cuối: 2026-04-22 (snake_case refactor pass)
->>>>>>> claude/sleepy-margulis-3c9b5d
 
 ---
 

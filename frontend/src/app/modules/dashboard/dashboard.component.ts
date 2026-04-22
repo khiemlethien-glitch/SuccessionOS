@@ -4,6 +4,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { DashboardService } from '../../core/services/data/dashboard.service';
+import { EmployeeService } from '../../core/services/data/employee.service';
 import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
@@ -22,6 +23,7 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
 })
 export class DashboardComponent implements OnInit {
   private dashboardSvc = inject(DashboardService);
+  private employeeSvc = inject(EmployeeService);
 
   isLoading = signal(false);
 
@@ -35,19 +37,19 @@ export class DashboardComponent implements OnInit {
   readonly tierCounts = computed(() => {
     const acc = { core: 0, potential: 0, successor: 0 };
     for (const t of this.talents()) {
-      if (t.talentTier === 'Nòng cốt') acc.core++;
-      else if (t.talentTier === 'Tiềm năng') acc.potential++;
+      if (t.talent_tier === 'Nòng cốt') acc.core++;
+      else if (t.talent_tier === 'Tiềm năng') acc.potential++;
       else acc.successor++;
     }
     return acc;
   });
 
-  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successorCount > 0).length);
-  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successorCount === 0).length);
+  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successor_count > 0).length);
+  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successor_count === 0).length);
 
   // High risk threshold aligned with RiskBadge: >=60.
   readonly highRiskTalents = computed(() =>
-    [...this.talents()].filter(t => t.riskScore >= 60).sort((a, b) => b.riskScore - a.riskScore)
+    [...this.talents()].filter(t => (t.risk_score ?? 0) >= 60).sort((a, b) => (b.risk_score ?? 0) - (a.risk_score ?? 0))
   );
   readonly highRiskCount = computed(() => this.highRiskTalents().length);
   readonly topRiskNow = computed(() => this.highRiskTalents().slice(0, 3));
@@ -62,13 +64,18 @@ export class DashboardComponent implements OnInit {
   readonly avgIdpProgress = computed(() => {
     const list = this.activeIdps();
     if (!list.length) return 0;
-    return Math.round(list.reduce((s, p) => s + (p.overallProgress ?? 0), 0) / list.length);
+    return Math.round(list.reduce((s, p) => s + (p.overall_progress ?? 0), 0) / list.length);
   });
 
   today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  ngOnInit(): void {
-    // TODO: await dashboardSvc.getKpi()
+  async ngOnInit(): Promise<void> {
+    this.isLoading.set(true);
+    // Lấy full list cho dashboard computed (tierCounts/highRiskTalents/topRisk).
+    // Positions + IDPs wire sau khi RLS sửa xong.
+    const res = await this.employeeSvc.getAll();
+    this.talents.set(res.data);
+    this.isLoading.set(false);
   }
 
   positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {
@@ -80,8 +87,8 @@ export class DashboardComponent implements OnInit {
   }
 
   readinessLabel(p: KeyPosition): 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm' | 'Đang tuyển dụng' {
-    if ((p.readyNowCount ?? 0) > 0) return 'Sẵn sàng ngay';
-    if ((p.successorCount ?? 0) > 0) return '1-2 năm';
+    if ((p.ready_now_count ?? 0) > 0) return 'Sẵn sàng ngay';
+    if ((p.successor_count ?? 0) > 0) return '1-2 năm';
     return 'Đang tuyển dụng';
   }
 
@@ -93,14 +100,14 @@ export class DashboardComponent implements OnInit {
   }
 
   riskReason(t: Talent): string {
-    if (t.riskScore >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
-    if (t.riskScore >= 70) return 'Hiệu suất giảm sút';
+    if ((t.risk_score ?? 0) >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
+    if ((t.risk_score ?? 0) >= 70) return 'Hiệu suất giảm sút';
     return 'Cần theo dõi nguy cơ nghỉ việc';
   }
 
   riskPill(t: Talent): { text: string; cls: string } {
-    if (t.riskScore >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
-    if (t.riskScore >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
+    if ((t.risk_score ?? 0) >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
+    if ((t.risk_score ?? 0) >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
     return { text: 'Rủi ro thấp', cls: 'pill-risk-low' };
   }
 

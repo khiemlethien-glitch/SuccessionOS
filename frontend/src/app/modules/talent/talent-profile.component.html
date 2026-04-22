@@ -75,21 +75,21 @@
           </div>
         </div>
 
-        <div class="mentor-row" [class.empty]="!talent()!.mentor_name">
-          <span nz-icon [nzType]="talent()!.mentor_name ? 'user' : 'user-delete'" class="mentor-icon"></span>
+        <div class="mentor-row" [class.empty]="!talent()!.mentor">
+          <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
           <span class="mentor-text">
-            @if (talent()!.mentor_name) {
-              Mentor: <strong>{{ talent()!.mentor_name }}</strong>
+            @if (talent()!.mentor) {
+              Mentor: <strong>{{ talent()!.mentor }}</strong>
             } @else {
               Chưa có mentor được gán
             }
           </span>
-          @if (talent()!.mentor_name) {
+          @if (talent()!.mentor) {
             <button type="button" class="mentor-btn mentor-btn-clear" (click)="clearMentor()" title="Bỏ gán">
               <span nz-icon nzType="close"></span>
             </button>
           }
-          <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor_name ? 'Đổi mentor' : 'Gán mentor'">
+          <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor ? 'Đổi mentor' : 'Gán mentor'">
             <span nz-icon nzType="plus"></span>
           </button>
         </div>
@@ -108,7 +108,7 @@
           <div class="metric-sub">{{ riskLabel() }}</div>
         </div>
         <div class="metric metric-green">
-          <div class="metric-val metric-val-sm">{{ talent()!.targetPosition ?? '—' }}</div>
+          <div class="metric-val metric-val-sm">{{ talent()!.target_position ?? '—' }}</div>
           <div class="metric-label">Vị trí mục tiêu</div>
           <div class="metric-sub">Kế thừa ưu tiên</div>
         </div>
@@ -350,12 +350,12 @@
 
         <div class="a360-block">
           <div class="a360-block-title">Cần phát triển</div>
-          @for (s of assessment360Data().needsDev; track s) { <div class="a360-line">{{ s }}</div> }
+          @for (s of assessment360Data().needs_dev; track s) { <div class="a360-line">{{ s }}</div> }
         </div>
 
         <div class="a360-block">
           <div class="a360-block-title">Nhận xét quản lý</div>
-          <div class="a360-quote">"{{ assessment360Data().managerNote }}"</div>
+          <div class="a360-quote">"{{ assessment360Data().manager_note }}"</div>
         </div>
 
         <div class="a360-block">
@@ -375,47 +375,72 @@
       <!-- LEFT COLUMN -->
       <div class="review-col">
 
-        <!-- Đánh giá năng lực -->
+        <!-- Đánh giá năng lực (backend-driven + cycle dropdown) -->
         <div class="eval-card">
-          <h3 class="eval-title">Đánh giá năng lực — {{ careerReviewData().period }}</h3>
+          <div class="eval-head">
+            <h3 class="eval-title">Đánh giá năng lực</h3>
+            <nz-select
+              class="eval-cycle-sel"
+              [ngModel]="selectedCycleId()"
+              (ngModelChange)="onCycleChange($event)"
+              nzSize="small"
+            >
+              @for (cy of cycles(); track cy.id) {
+                <nz-option [nzValue]="cy.id" [nzLabel]="cy.name"></nz-option>
+              }
+            </nz-select>
+          </div>
 
-          <div class="eval-bars">
-            @for (c of careerReviewData().categories; track c.label) {
-              <div class="eval-bar-row">
-                <span class="eb-label">{{ c.label }} <span class="eb-weight">({{ c.weight }}%)</span></span>
-                <div class="eb-track">
-                  <div class="eb-fill" [class]="reviewBarClass(c.score)" [style.width.%]="c.score"></div>
+          @if (assessmentView(); as av) {
+            <div class="eval-bars">
+              @for (c of av.items; track c.id) {
+                <div class="eval-bar-row">
+                  <span class="eb-label" [title]="c.description ?? ''">{{ c.label }}</span>
+                  <div class="eb-track">
+                    <div class="eb-fill" [class]="reviewBarClass(c.score ?? 0)" [style.width.%]="c.score ?? 0"></div>
+                  </div>
+                  <span class="eb-score">{{ c.score ?? '—' }}</span>
                 </div>
-                <span class="eb-score">{{ c.score }}</span>
+              }
+              @if (av.items.length === 0) {
+                <div class="empty-msg">Chưa có cấu hình tiêu chí hiển thị. Liên hệ Admin.</div>
+              }
+            </div>
+
+            <div class="eval-overall">
+              <div class="eo-value">{{ av.overall_score ?? '—' }}<span class="eo-max">/ 100</span></div>
+              <div class="eo-label">{{ av.rating_label ?? reviewLabel(av.overall_score ?? 0) }}</div>
+            </div>
+
+            <div class="eval-notes">
+              <div class="en-col">
+                <div class="en-head en-head-good">
+                  <span nz-icon nzType="check-circle"></span> Điểm mạnh
+                </div>
+                @for (s of av.strengths; track s) {
+                  <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
+                } @empty {
+                  <div class="en-item en-empty">— chưa có ghi nhận —</div>
+                }
               </div>
+              <div class="en-col">
+                <div class="en-head en-head-warn">
+                  <span nz-icon nzType="exclamation-circle"></span> Cần phát triển
+                </div>
+                @for (s of av.needs_dev; track s) {
+                  <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
+                } @empty {
+                  <div class="en-item en-empty">— chưa có ghi nhận —</div>
+                }
+              </div>
+            </div>
+
+            @if (av.manager_note) {
+              <p class="eval-quote">"{{ av.manager_note }}"</p>
             }
-          </div>
-
-          <div class="eval-overall">
-            <div class="eo-value">{{ careerReviewData().overall }}<span class="eo-max">/ 100</span></div>
-            <div class="eo-label">{{ reviewLabel(careerReviewData().overall) }}</div>
-          </div>
-
-          <div class="eval-notes">
-            <div class="en-col">
-              <div class="en-head en-head-good">
-                <span nz-icon nzType="check-circle"></span> Điểm mạnh
-              </div>
-              @for (s of careerReviewData().strengths; track s) {
-                <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
-              }
-            </div>
-            <div class="en-col">
-              <div class="en-head en-head-warn">
-                <span nz-icon nzType="exclamation-circle"></span> Cần phát triển
-              </div>
-              @for (s of careerReviewData().needsDev; track s) {
-                <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
-              }
-            </div>
-          </div>
-
-          <p class="eval-quote">"{{ careerReviewData().managerNote }}"</p>
+          } @else {
+            <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
+          }
         </div>
 
         <!-- IDP Plan -->
@@ -498,7 +523,7 @@
             </div>
             <div class="qs-cell">
               <div class="qs-label">Risk Score</div>
-              <div class="qs-value qs-value-risk">{{ quickStats().risk_score }} / 100</div>
+              <div class="qs-value qs-value-risk">{{ quickStats().riskScore }} / 100</div>
             </div>
           </div>
         </div>
@@ -511,17 +536,17 @@
       <div class="kt-head">
         <div>
           <h3 class="kt-title">Chuyển giao Tri thức</h3>
-          <p class="kt-sub">Người kế thừa: <strong>{{ knowledgeTransferData().successor }}</strong> · {{ knowledgeTransferData().successorRole }}</p>
+          <p class="kt-sub">Người kế thừa: <strong>{{ knowledgeTransferData().successor }}</strong> · {{ knowledgeTransferData().successor_role }}</p>
         </div>
         <div class="kt-progress-wrap">
           <div class="kt-progress-head">
             <span>Tiến độ chuyển giao</span>
-            <strong>{{ knowledgeTransferData().overallProgress }}%</strong>
+            <strong>{{ knowledgeTransferData().overall_progress }}%</strong>
           </div>
           <div class="kt-progress-track">
-            <div class="kt-progress-fill" [style.width.%]="knowledgeTransferData().overallProgress"></div>
+            <div class="kt-progress-fill" [style.width.%]="knowledgeTransferData().overall_progress"></div>
           </div>
-          <div class="kt-dates">{{ knowledgeTransferData().startDate }} → {{ knowledgeTransferData().targetDate }}</div>
+          <div class="kt-dates">{{ knowledgeTransferData().start_date }} → {{ knowledgeTransferData().target_date }}</div>
         </div>
       </div>
 
@@ -553,8 +578,8 @@
           @if (assessment()) {
             <div class="assess-header">
               <span class="assess-period">Kỳ: {{ assessment()!.period }}</span>
-              <span class="assess-overall">Overall: <strong>{{ assessment()!.overallScore }}</strong>/100</span>
-              <span class="assess-count">{{ assessment()!.assessorCount }} người đánh giá</span>
+              <span class="assess-overall">Overall: <strong>{{ assessment()!.overall_score }}</strong>/100</span>
+              <span class="assess-count">{{ assessment()!.assessor_count }} người đánh giá</span>
             </div>
             <div class="comp-list">
               @for (a of assessmentEntries; track a.key) {
@@ -577,7 +602,7 @@
               <nz-tag [nzColor]="idp()!.status === 'Completed' ? 'green' : idp()!.status === 'Active' ? 'blue' : 'orange'">
                 {{ idp()!.status }}
               </nz-tag>
-              <span>Tiến độ tổng: <strong>{{ idp()!.overallProgress }}%</strong></span>
+              <span>Tiến độ tổng: <strong>{{ idp()!.overall_progress }}%</strong></span>
             </div>
             <div class="goal-list">
               @for (g of idp()!.goals; track g.id) {
@@ -656,7 +681,7 @@
             </div>
             <div class="mm-meta">
               <span class="mm-tag mm-tag-tier">{{ m.talent_tier }}</span>
-              <span class="mm-exp">{{ m.yearsOfExperience }} năm KN</span>
+              <span class="mm-exp">{{ m.years_of_experience }} năm KN</span>
             </div>
             <span nz-icon nzType="arrow-right" class="mm-arrow"></span>
           </button>

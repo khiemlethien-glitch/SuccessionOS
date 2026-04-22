@@ -155,7 +155,7 @@
                   <div class="tr-title">{{ node.title }}</div>
                   <div class="tr-sub">
                     {{ node.department }}
-                    @if (node.current_holder_id) { · {{ node.current_holder_id }} }
+                    @if (node.current_holder) { · {{ node.current_holder }} }
                   </div>
                 </div>
                 <div class="tr-stats">
@@ -187,17 +187,17 @@
                   @if (node.successors.length) {
                     @let shown = successorsToShow(node);
                     <div class="succ-pipeline" [style.--n]="shown.length + (hiddenCount(node) > 0 ? 1 : 0)">
-                      @for (s of shown; track s.talentId) {
+                      @for (s of shown; track s.talent_id) {
                         <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
                           <span class="sn-priority">#{{ s.priority }}</span>
                           <div class="sn-avatar">
-                            <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                            <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
                           </div>
-                          <div class="sn-name">{{ s.talentName }}</div>
+                          <div class="sn-name">{{ s.talent_name }}</div>
                           <div class="sn-meta">
                             <span class="sn-gap">
                               <span nz-icon nzType="line-chart"></span>
-                              Gap {{ s.gapScore }}
+                              Gap {{ s.gap_score }}
                             </span>
                           </div>
                           <span class="sn-ready">
@@ -432,11 +432,11 @@
           <h4>Người đương nhiệm</h4>
         </div>
 
-        @if (node.current_holder_id) {
+        @if (node.current_holder) {
           <div class="pd-holder">
-            <app-avatar [name]="node.current_holder_id" [size]="52"></app-avatar>
+            <app-avatar [name]="node.current_holder" [size]="52"></app-avatar>
             <div class="pd-holder-main">
-              <div class="pd-holder-name">{{ node.current_holder_id }}</div>
+              <div class="pd-holder-name">{{ node.current_holder }}</div>
               @if (drawerHolderTalent(); as t) {
                 <div class="pd-holder-sub">{{ t.position }} · {{ t.department }}</div>
                 <div class="pd-holder-stats">
@@ -470,15 +470,15 @@
 
         @if (node.successors.length) {
           <ul class="pd-succ-list">
-            @for (s of drawerSuccessorTalents(); track s.talentId) {
+            @for (s of drawerSuccessorTalents(); track s.talent_id) {
               <li class="pd-succ-item" [ngClass]="'rd-' + readinessTone(s.readiness)">
                 <span class="pd-priority">#{{ s.priority }}</span>
-                <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
                 <div class="pd-succ-main">
-                  <div class="pd-succ-name">{{ s.talentName }}</div>
+                  <div class="pd-succ-name">{{ s.talent_name }}</div>
                   <div class="pd-succ-sub">
                     @if (s.talent) { {{ s.talent.position }} · {{ s.talent.department }} }
-                    @else { Talent · {{ s.talentId }} }
+                    @else { Talent · {{ s.talent_id }} }
                   </div>
                   <div class="pd-succ-meta">
                     <span class="pd-ready">
@@ -487,7 +487,7 @@
                     </span>
                     <span class="pd-gap">
                       <span nz-icon nzType="line-chart"></span>
-                      Gap {{ s.gapScore }}
+                      Gap {{ s.gap_score }}
                     </span>
                   </div>
                 </div>

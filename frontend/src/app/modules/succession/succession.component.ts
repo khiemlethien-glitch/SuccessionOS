@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,10 +10,11 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { ApiService } from '../../core/services/api.service';
+import { EmployeeService } from '../../core/services/data/employee.service';
+import { KeyPositionService } from '../../core/services/data/key-position.service';
+import { SuccessionService } from '../../core/services/data/succession.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { Talent, TalentListResponse, SuccessionPlan, SuccessionPlanListResponse,
-  KeyPosition, PositionListResponse, Successor } from '../../core/models/models';
+import { Talent, SuccessionPlan, KeyPosition, Successor } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
@@ -33,7 +34,7 @@ interface TreeNode {
   positionId: string;
   title: string;
   department: string;
-  current_holder_id: string;
+  current_holder: string;
   critical_level: string;
   successors: Successor[];  // from matching SuccessionPlan, or []
   children: TreeNode[];
@@ -112,11 +113,11 @@ export class SuccessionComponent implements OnInit {
   }
   closePositionDrawer(): void { this.positionDrawerOpen.set(false); }
 
-  /** Match current_holder_id against talents list if possible. */
+  /** Match current_holder against talents list if possible. */
   drawerHolderTalent = computed<Talent | null>(() => {
     const node = this.drawerNode();
-    if (!node?.current_holder_id) return null;
-    return this.talents().find(t => t.id === node.current_holder_id) ?? null;
+    if (!node?.current_holder) return null;
+    return this.talents().find(t => t.id === node.current_holder) ?? null;
   });
 
   /** Full talent records for successors of drawer node. */
@@ -125,7 +126,7 @@ export class SuccessionComponent implements OnInit {
     if (!node) return [];
     return node.successors.map(s => ({
       ...s,
-      talent: this.talents().find(t => t.id === s.talentId) ?? null,
+      talent: this.talents().find(t => t.id === s.talent_id) ?? null,
     }));
   });
 
@@ -135,14 +136,14 @@ export class SuccessionComponent implements OnInit {
 
   /** Build tree from flat positions[] via parentId + attach successors from matching plan */
   private buildTree(positions: KeyPosition[], plans: SuccessionPlan[]): TreeNode[] {
-    const planByPos = new Map(plans.map(p => [p.positionId, p]));
+    const planByPos = new Map(plans.map(p => [p.position_id, p]));
     const nodeById  = new Map<string, TreeNode>();
     positions.forEach(p => {
       nodeById.set(p.id, {
         positionId:    p.id,
         title:         p.title,
         department:    p.department,
-        current_holder_id: p.current_holder_id,
+        current_holder: p.current_holder,
         critical_level: p.critical_level,
         successors:    planByPos.get(p.id)?.successors ?? [],
         children:      [],
@@ -152,8 +153,8 @@ export class SuccessionComponent implements OnInit {
     const roots: TreeNode[] = [];
     positions.forEach(p => {
       const node = nodeById.get(p.id)!;
-      if (p.parentId && nodeById.has(p.parentId)) {
-        nodeById.get(p.parentId)!.children.push(node);
+      if (p.parent_id && nodeById.has(p.parent_id)) {
+        nodeById.get(p.parent_id)!.children.push(node);
       } else {
         roots.push(node);
       }
@@ -191,7 +192,7 @@ export class SuccessionComponent implements OnInit {
 
     const match = (n: TreeNode) =>
       (user.department ? n.department === user.department : false) ||
-      (user.talentId   ? n.successors.some(s => s.talentId === user.talentId) : false);
+      (user.talentId   ? n.successors.some(s => s.talent_id === user.talentId) : false);
     return this.pruneTree(full, match);
   });
 
@@ -256,8 +257,11 @@ export class SuccessionComponent implements OnInit {
     { row:1, col:3, num:3, label:'Enigma',             sublabel:'Hiệu suất thấp · Tiềm năng cao', tone:'risk'  },
   ];
 
+  private employeeSvc = inject(EmployeeService);
+  private positionSvc = inject(KeyPositionService);
+  private successionSvc = inject(SuccessionService);
+
   constructor(
-    private api: ApiService,
     private msg: NzMessageService,
     private auth: AuthService,
     private router: Router,
@@ -306,11 +310,20 @@ export class SuccessionComponent implements OnInit {
     this.openTalentPreview(id);
   }
 
-  ngOnInit(): void {
-    this.currentUser.set(this.auth.getCurrentUser());
-    this.api.get<TalentListResponse>('employees','talents').subscribe(r => this.talents.set(r.data));
-    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
-    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => this.positions.set(r.data));
+  async ngOnInit(): Promise<void> {
+    this.currentUser.set(this.auth.currentUser() as any);
+    // Nine-box dùng v_nine_box view (có cột `box` 1-9 compute sẵn) — wire vào talents.
+    const nineBox = await this.successionSvc.getNineBox();
+    this.talents.set(nineBox as any);
+    // Plans + positions: RLS chưa mở, tolerate lỗi
+    try {
+      const plans = await this.successionSvc.getPlans();
+      this.plans.set(plans as any);
+    } catch {}
+    try {
+      const positions = await this.positionSvc.getAll();
+      this.positions.set(positions as any);
+    } catch {}
   }
 
   // ─── Scoring ───────────────────────────────────────
@@ -327,11 +340,11 @@ export class SuccessionComponent implements OnInit {
 
   readonly totalInGrid = computed(() => this.talents().length);
   readonly starCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score, this.perfThresholds()) === 3 &&
-    this.tier(t.potential_score,  this.potThresholds())  === 3
+    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 3 &&
+    this.tier(t.potential_score ?? 0,  this.potThresholds())  === 3
   ).length);
   readonly needsActionCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score, this.perfThresholds()) === 1
+    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 1
   ).length);
 
   // ─── Preview counts for each tier while editing thresholds ────
@@ -339,18 +352,18 @@ export class SuccessionComponent implements OnInit {
     const [lo, hi] = this.perfDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => t.performance_score < lo).length,
-      mid:  list.filter(t => t.performance_score >= lo && t.performance_score < hi).length,
-      high: list.filter(t => t.performance_score >= hi).length,
+      low:  list.filter(t => (t.performance_score ?? 0) < lo).length,
+      mid:  list.filter(t => (t.performance_score ?? 0) >= lo && (t.performance_score ?? 0) < hi).length,
+      high: list.filter(t => (t.performance_score ?? 0) >= hi).length,
     };
   });
   readonly previewPot = computed(() => {
     const [lo, hi] = this.potDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => t.potential_score < lo).length,
-      mid:  list.filter(t => t.potential_score >= lo && t.potential_score < hi).length,
-      high: list.filter(t => t.potential_score >= hi).length,
+      low:  list.filter(t => (t.potential_score ?? 0) < lo).length,
+      mid:  list.filter(t => (t.potential_score ?? 0) >= lo && (t.potential_score ?? 0) < hi).length,
+      high: list.filter(t => (t.potential_score ?? 0) >= hi).length,
     };
   });
 

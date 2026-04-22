@@ -49,7 +49,9 @@
   <!-- ── Position cards grid ─────────────────────────── -->
   <div class="pos-grid">
     @for (p of positions(); track p.id) {
-      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.critical_level)">
+      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.critical_level)"
+           [class.clickable]="isAdmin()"
+           (click)="isAdmin() && openEditModal(p, $event)">
         <div class="card-accent"></div>
 
         <!-- Header -->
@@ -69,9 +71,9 @@
 
         <!-- Current holder -->
         <div class="card-holder">
-          <app-avatar [name]="p.current_holder_id" [size]="38"></app-avatar>
+          <app-avatar [name]="p.current_holder" [size]="38"></app-avatar>
           <div class="holder-meta">
-            <div class="holder-name">{{ p.current_holder_id }}</div>
+            <div class="holder-name">{{ p.current_holder }}</div>
             <div class="holder-sub">Đương nhiệm · {{ p.department }}</div>
           </div>
         </div>
@@ -99,10 +101,10 @@
         <!-- Successors -->
         @if (getPlan(p.id)?.successors?.length) {
           <div class="succ-list">
-            @for (s of getPlan(p.id)!.successors; track s.talentId) {
+            @for (s of getPlan(p.id)!.successors; track s.talent_id) {
               <div class="succ-row">
-                <app-avatar [name]="s.talentName" [size]="24"></app-avatar>
-                <span class="succ-name">{{ s.talentName }}</span>
+                <app-avatar [name]="s.talent_name" [size]="24"></app-avatar>
+                <span class="succ-name">{{ s.talent_name }}</span>
                 <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">
                   {{ readinessLabel(s.readiness) }}
                 </span>
@@ -116,7 +118,7 @@
           </div>
         }
 
-        <button class="card-cta" routerLink="/succession">
+        <button class="card-cta" routerLink="/succession" (click)="$event.stopPropagation()">
           Xem kế thừa
           <span nz-icon nzType="arrow-right"></span>
         </button>
@@ -141,8 +143,10 @@
     <div class="m-hero">
       <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
       <div class="m-hero-text">
-        <div class="m-hero-title">Thêm vị trí then chốt</div>
-        <div class="m-hero-sub">Định nghĩa vị trí chiến lược và yêu cầu năng lực</div>
+        <div class="m-hero-title">{{ modalTitle() }}</div>
+        <div class="m-hero-sub">
+          {{ isEditMode() ? 'Cập nhật thông tin vị trí và yêu cầu năng lực' : 'Định nghĩa vị trí chiến lược và yêu cầu năng lực' }}
+        </div>
       </div>
       <button type="button" class="m-hero-close" (click)="closeAddModal()" title="Đóng">
         <span nz-icon nzType="close"></span>
@@ -150,19 +154,24 @@
     </div>
 
     <div class="m-body">
-      <!-- Row 1: Title -->
+      <!-- Row 1: Title (dropdown từ v_employees.position distinct) -->
       <div class="m-field">
         <label class="m-label">
           <span class="m-label-dot"></span> Tên vị trí
           <span class="m-req">*</span>
         </label>
-        <input
-          nz-input
-          class="m-input"
-          placeholder="VD: Operations Director, HR Manager…"
+        <nz-select
+          class="m-sel"
+          nzShowSearch
+          nzAllowClear
+          nzPlaceHolder="Chọn hoặc gõ tên vị trí…"
           [ngModel]="draft().title"
           (ngModelChange)="updateDraft('title', $event)"
-        />
+        >
+          @for (t of titleOptions(); track t) {
+            <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
+          }
+        </nz-select>
       </div>
 
       <!-- Row 2: Dept + Holder -->
@@ -180,8 +189,8 @@
             [ngModel]="draft().department"
             (ngModelChange)="updateDraft('department', $event)"
           >
-            @for (d of deptOptions(); track d) {
-              <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
+            @for (d of allDepts(); track d.id) {
+              <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
             }
           </nz-select>
         </div>
@@ -190,14 +199,22 @@
           <label class="m-label">
             <span class="m-label-dot"></span> Đương nhiệm
             <span class="m-req">*</span>
+            @if (draft().current_holder_id && empOptionsForDept().length > 0) {
+              <span class="m-hint">Đã tự gợi ý từ phòng ban</span>
+            }
           </label>
-          <input
-            nz-input
-            class="m-input"
-            placeholder="Họ tên người đang giữ vị trí"
+          <nz-select
+            class="m-sel"
+            nzShowSearch
+            nzAllowClear
+            nzPlaceHolder="Chọn nhân viên đang giữ vị trí…"
             [ngModel]="draft().current_holder_id"
-            (ngModelChange)="updateDraft('current_holder_id', $event)"
-          />
+            (ngModelChange)="selectHolder($event)"
+          >
+            @for (e of empOptionsForDept(); track e.id) {
+              <nz-option [nzValue]="e.id" [nzLabel]="e.full_name + ' — ' + e.position"></nz-option>
+            }
+          </nz-select>
         </div>
       </div>
 
@@ -292,17 +309,34 @@
     </div>
 
     <div class="m-footer">
-      <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="closeAddModal()">Hủy</button>
-      <button
-        nz-button
-        nzType="primary"
-        class="m-btn m-btn-submit"
-        [disabled]="!canSubmit()"
-        (click)="submit()"
-      >
-        <span nz-icon nzType="check"></span>
-        Tạo vị trí
-      </button>
+      @if (isEditMode() && isAdmin()) {
+        <button
+          nz-button
+          nzDanger
+          class="m-btn m-btn-delete"
+          nz-popconfirm
+          nzPopconfirmTitle="Xóa vị trí này? Hành động không thể hoàn tác."
+          nzPopconfirmPlacement="topLeft"
+          (nzOnConfirm)="deletePosition()"
+          [nzLoading]="deleting()"
+        >
+          <span nz-icon nzType="delete"></span>
+          Xóa vị trí
+        </button>
+      }
+      <div class="m-footer-right">
+        <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="closeAddModal()">Hủy</button>
+        <button
+          nz-button
+          nzType="primary"
+          class="m-btn m-btn-submit"
+          [disabled]="!canSubmit()"
+          (click)="submit()"
+        >
+          <span nz-icon nzType="check"></span>
+          {{ submitLabel() }}
+        </button>
+      </div>
     </div>
   </ng-container>
 </nz-drawer>

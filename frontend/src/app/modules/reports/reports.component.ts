@@ -7,8 +7,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzStatisticModule } from 'ng-zorro-antd/statistic';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTableModule } from 'ng-zorro-antd/table';
-import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, IdpPlan, IdpListResponse, Assessment, AssessmentListResponse } from '../../core/models/models';
+import { Talent, IdpPlan, Assessment } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 @Component({
@@ -65,11 +64,9 @@ export class ReportsComponent implements OnInit {
 
   idpStatusColor(s: string): string { return ({ Active: 'blue', Completed: 'green', Pending: 'orange' } as any)[s] ?? 'default'; }
 
-  constructor(private api: ApiService) {}
+  constructor() {}
 
   ngOnInit(): void {
-    this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
-    this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
-    this.api.get<AssessmentListResponse>('assessments', 'assessments').subscribe(r => this.assessments.set(r.data));
+    // TODO: await employeeSvc.getAll() + idpSvc.getAll() + assessmentSvc.getAll()
   }
 }

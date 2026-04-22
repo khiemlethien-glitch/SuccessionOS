@@ -14,6 +14,11 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
+import { SupabaseService } from '../../core/services/supabase.service';
+import { EmployeeService } from '../../core/services/data/employee.service';
+import { AssessmentService, Criterion } from '../../core/services/data/assessment.service';
+import { AuthService } from '../../core/auth/auth.service';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import {
   AuditLog, AuditLogListResponse,
   Talent, TalentListResponse,
@@ -25,7 +30,7 @@ import {
   CalibrationSession, CalibrationListResponse,
 } from '../../core/models/models';
 
-type TabKey = 'overview' | 'data' | 'users' | 'settings' | 'audit';
+type TabKey = 'overview' | 'data' | 'users' | 'settings' | 'audit' | 'assessment';
 
 interface AdminUser {
   id: string;
@@ -58,7 +63,7 @@ interface EntityDef {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
+  imports: [CommonModule, FormsModule, DragDropModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
     NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
@@ -392,6 +397,12 @@ export class AdminComponent implements OnInit {
   // ── VnR Sync ──────────────────────────────────────────────────────────────
   syncing    = signal(false);
   lastSyncAt = signal<string | null>(null);
+  syncEndpoints = signal<Record<string, any> | null>(null);
+  syncProfilesN = signal<number | null>(null);
+  endpointEntries(obj: Record<string, any> | null): { key: string; value: any }[] {
+    if (!obj) return [];
+    return Object.entries(obj).map(([key, value]) => ({ key, value }));
+  }
 
   syncVnR(): void {
     this.syncing.set(true);
@@ -408,15 +419,109 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  constructor(private api: ApiService, private msg: NzMessageService) {}
+  // ── Assessment display config (drag-drop max 4) ──────────────────────────
+  allCriteria          = signal<Criterion[]>([]);
+  availableCriteria    = signal<Criterion[]>([]);
+  selectedCriteria     = signal<Criterion[]>([]);
+  savingDisplayConfig  = signal(false);
 
-  ngOnInit(): void {
-    // TODO Overview tab: stats tổng hợp sẽ do DashboardService.getAdminStats() cung cấp
-    // TODO Data tab: mỗi entity có service riêng (EmployeeService, PositionService,
-    //   IdpService, AssessmentService, SuccessionService, MentoringService, CalibrationService)
-    // TODO Users tab: UserService.getList() (hiện dùng static list local)
-    // TODO Settings tab: ModuleConfigService.getConfigs() + updateToggle()
-    // TODO Audit tab: AuditService.getLogs({ limit, since })
+  isAdmin = computed(() => this.auth.isAdmin());
+
+  constructor(
+    private api: ApiService,
+    private msg: NzMessageService,
+    private sbSvc: SupabaseService,
+    private employeeSvc: EmployeeService,
+    private assessmentSvc: AssessmentService,
+    private auth: AuthService,
+  ) {}
+
+  async loadAssessmentConfig(): Promise<void> {
+    const [all, selectedIds] = await Promise.all([
+      this.assessmentSvc.getAllCriteria(),
+      this.assessmentSvc.getDisplayConfig(),
+    ]);
+    this.allCriteria.set(all);
+    const selectedIdSet = new Set(selectedIds);
+    const selected = selectedIds.map(id => all.find(c => c.id === id)).filter((c): c is Criterion => !!c);
+    const available = all.filter(c => !selectedIdSet.has(c.id));
+    this.selectedCriteria.set(selected);
+    this.availableCriteria.set(available);
+  }
+
+  onDropCriterion(event: CdkDragDrop<Criterion[]>): void {
+    const isSelected = event.container.id === 'selected-criteria';
+    const toSelected = isSelected && event.previousContainer.id !== event.container.id;
+    // Enforce max 4
+    if (toSelected && this.selectedCriteria().length >= 4) {
+      this.msg.warning('Chỉ được chọn tối đa 4 tiêu chí');
+      return;
+    }
+    if (event.previousContainer === event.container) {
+      const list = [...event.container.data];
+      moveItemInArray(list, event.previousIndex, event.currentIndex);
+      if (event.container.id === 'available-criteria') this.availableCriteria.set(list);
+      else this.selectedCriteria.set(list);
+    } else {
+      const prev = [...event.previousContainer.data];
+      const curr = [...event.container.data];
+      transferArrayItem(prev, curr, event.previousIndex, event.currentIndex);
+      if (event.previousContainer.id === 'available-criteria') {
+        this.availableCriteria.set(prev);
+        this.selectedCriteria.set(curr);
+      } else {
+        this.selectedCriteria.set(prev);
+        this.availableCriteria.set(curr);
+      }
+    }
+  }
+
+  addCriterion(c: Criterion): void {
+    if (this.selectedCriteria().length >= 4) {
+      this.msg.warning('Chỉ được chọn tối đa 4 tiêu chí');
+      return;
+    }
+    this.availableCriteria.update(list => list.filter(x => x.id !== c.id));
+    this.selectedCriteria.update(list => [...list, c]);
+  }
+
+  removeCriterion(c: Criterion): void {
+    this.selectedCriteria.update(list => list.filter(x => x.id !== c.id));
+    this.availableCriteria.update(list => [...list, c]);
+  }
+
+  async saveAssessmentConfig(): Promise<void> {
+    if (!this.isAdmin()) {
+      this.msg.error('Chỉ Admin được phép cấu hình tiêu chí đánh giá');
+      return;
+    }
+    this.savingDisplayConfig.set(true);
+    const ok = await this.assessmentSvc.updateDisplayConfig(
+      this.selectedCriteria().map(c => c.id)
+    );
+    this.savingDisplayConfig.set(false);
+    if (ok) this.msg.success('Đã lưu cấu hình hiển thị đánh giá');
+    else    this.msg.error('Lưu thất bại — xem console');
+  }
+
+  async ngOnInit(): Promise<void> {
+    this.loading.set(true);
+    // Overview: fetch talents (cho stats.talents count + avgRisk) + audit logs
+    try {
+      const [empRes, auditRes] = await Promise.all([
+        this.employeeSvc.getAll(),
+        this.sbSvc.client.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
+      ]);
+      this.talents.set(empRes.data);
+      if (!auditRes.error && auditRes.data) this.logs.set(auditRes.data as any);
+      // Load assessment config cho tab "Đánh giá"
+      await this.loadAssessmentConfig();
+    } catch (e) {
+      console.warn('[admin] load error', e);
+    }
+    // TODO Data tab: positions/idps/assessments/successions/mentorings/calibrations — chờ fix RLS
+    // TODO Users tab: giữ static local (6 hardcoded users)
+    // TODO Settings tab: module config hardcode trong component
     this.loading.set(false);
   }
 
