@@ -1,0 +1,16 @@
+{
+  "data": {
+    "successor": "Trần Văn Phúc",
+    "successorRole": "Deputy Operations Manager",
+    "startDate": "2025-01-01",
+    "targetDate": "2026-06-30",
+    "overallProgress": 40,
+    "items": [
+      { "title": "Quy trình quản lý vận hành EPC",      "category": "Process",       "status": "In Progress", "progress": 65 },
+      { "title": "Quản lý rủi ro & an toàn công trình", "category": "HSE",           "status": "In Progress", "progress": 50 },
+      { "title": "Mạng lưới đối tác & khách hàng",     "category": "Relationship",  "status": "Not Started", "progress": 5  },
+      { "title": "Hệ thống báo cáo & KPI vận hành",    "category": "Technical",     "status": "In Progress", "progress": 45 },
+      { "title": "Điều phối đa dự án song song",        "category": "Leadership",    "status": "Not Started", "progress": 10 }
+    ]
+  }
+}

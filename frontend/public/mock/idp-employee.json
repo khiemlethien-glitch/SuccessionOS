@@ -1,0 +1,53 @@
+{
+  "data": {
+    "id": "IDP007",
+    "talentId": "T007",
+    "talentName": "Đỗ Thanh Giang",
+    "year": 2026,
+    "status": "Active",
+    "overallProgress": 35,
+    "targetPosition": "Giám đốc Vận hành",
+    "approvedBy": "Nguyễn Minh Khôi",
+    "approvedDate": "2025-12-15",
+    "goals12m": [
+      "Hoàn thành chuyển giao tri thức cho Trần Văn Phúc (KTP 40% → 80%)",
+      "Dẫn dắt đàm phán hợp đồng Block B Phase 2"
+    ],
+    "goals2to3y": [
+      "Đảm nhận vị trí Giám đốc Vận hành",
+      "Xây dựng center of excellence cho Operations department"
+    ],
+    "goals": [
+      {
+        "id": "G701",
+        "title": "Hoàn thành KTP với Trần Văn Phúc",
+        "category": "Knowledge Transfer",
+        "type": "On-the-job",
+        "deadline": "2026-06-30",
+        "status": "In Progress",
+        "progress": 40,
+        "mentor": null
+      },
+      {
+        "id": "G702",
+        "title": "Khóa học Executive Leadership",
+        "category": "Leadership",
+        "type": "Training",
+        "deadline": "2026-03-31",
+        "status": "In Progress",
+        "progress": 60,
+        "mentor": null
+      },
+      {
+        "id": "G703",
+        "title": "Dẫn đàm phán Block B Phase 2",
+        "category": "Strategic",
+        "type": "Stretch",
+        "deadline": "2026-09-30",
+        "status": "Not Started",
+        "progress": 0,
+        "mentor": null
+      }
+    ]
+  }
+}

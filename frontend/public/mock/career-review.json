@@ -1,0 +1,22 @@
+{
+  "data": {
+    "period": "Chu kỳ 2025",
+    "categories": [
+      { "label": "Chuyên môn kỹ thuật",  "weight": 35, "score": 88 },
+      { "label": "Kết quả & Hiệu suất",  "weight": 35, "score": 93 },
+      { "label": "Hành vi & Thái độ",    "weight": 20, "score": 88 },
+      { "label": "Tiềm năng phát triển", "weight": 10, "score": 91 }
+    ],
+    "overall": 91,
+    "strengths": [
+      "Khả năng lãnh đạo và dẫn dắt team xuất sắc",
+      "Quản lý vận hành dự án EPC phức tạp hiệu quả",
+      "Xây dựng và phát triển năng lực đội nhóm tốt"
+    ],
+    "needsDev": [
+      "Cần tăng cường kỹ năng đàm phán chiến lược",
+      "KTP tiến độ thấp 40% — cần hoàn thành Q2/2026"
+    ],
+    "managerNote": "Nhân sự quan trọng bậc nhất tại phòng Vận hành. Cần phương án giữ chân khẩn cấp — điều chỉnh lương và lộ trình Giám đốc rõ ràng."
+  }
+}

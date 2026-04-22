@@ -1,0 +1,37 @@
+{
+  "data": {
+    "overall": 4.55,
+    "benchmark": 4.5,
+    "period": "2025-Annual",
+    "sources": [
+      { "label": "Quản lý", "pct": 50 },
+      { "label": "Đồng nghiệp", "pct": 30 },
+      { "label": "Cấp dưới", "pct": 20 }
+    ],
+    "criteria": [
+      { "label": "Tầm nhìn chiến lược & định hướng",  "score": 4.7 },
+      { "label": "Ra quyết định & giải quyết vấn đề", "score": 4.6 },
+      { "label": "Giao tiếp & ảnh hưởng",             "score": 4.5 },
+      { "label": "Làm việc nhóm & hợp tác",           "score": 4.6 },
+      { "label": "Tính chuyên nghiệp kỹ thuật",       "score": 4.4 },
+      { "label": "Chất lượng & an toàn công việc",    "score": 4.6 },
+      { "label": "Tuân thủ quy trình & tiêu chuẩn",   "score": 4.5 },
+      { "label": "Hiệu suất & kết quả đầu ra",        "score": 4.7 },
+      { "label": "Quản lý thời gian & ưu tiên",       "score": 4.5 },
+      { "label": "Đổi mới & cải tiến",                "score": 4.3 },
+      { "label": "Phát triển & coaching nhân sự",     "score": 4.8 },
+      { "label": "Tuân thủ văn hóa & hành vi",        "score": 4.6 },
+      { "label": "Tiềm năng phát triển",              "score": 4.7 }
+    ],
+    "strengths": [
+      "Khả năng lãnh đạo và dẫn dắt team xuất sắc",
+      "Quản lý vận hành dự án EPC phức tạp hiệu quả",
+      "Xây dựng và phát triển năng lực đội nhóm tốt"
+    ],
+    "needsDev": [
+      "Cần tăng cường kỹ năng đàm phán chiến lược",
+      "Đổi mới quy trình vận hành cần được ưu tiên hơn"
+    ],
+    "managerNote": "Đỗ Thanh Giang là nhân tố cốt lõi trong phòng Vận hành. Cần có lộ trình thăng tiến rõ ràng và điều chỉnh lương tương xứng để giữ chân dài hạn."
+  }
+}

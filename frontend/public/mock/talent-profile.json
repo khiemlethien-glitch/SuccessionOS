@@ -1,0 +1,61 @@
+{
+  "data": {
+    "id": "T007",
+    "fullName": "Đỗ Thanh Giang",
+    "position": "Operations Manager",
+    "department": "Vận hành",
+    "talentTier": "Nòng cốt",
+    "potentialLevel": "Very High",
+    "performanceScore": 93,
+    "potentialScore": 91,
+    "riskScore": 80,
+    "yearsOfExperience": 14,
+    "readinessLevel": "Ready Now",
+    "email": "giang.dt@ptscmc.vn",
+    "hireDate": "2010-03-15",
+    "tenureYears": 14,
+    "ktpProgress": 40,
+    "overallScore": 92,
+    "targetPosition": "Giám đốc Vận hành",
+    "mentor": null,
+    "competencies": {
+      "technical": 88,
+      "leadership": 94,
+      "communication": 88,
+      "problemSolving": 92,
+      "adaptability": 91
+    },
+    "competencyTargets": {
+      "technical": 85,
+      "performance": 90,
+      "behavior": 85,
+      "potential": 88,
+      "leadership": 92
+    },
+    "riskReasons": ["Sắp thuyên chuyển", "Lương thị trường cao hơn"],
+    "riskFactors": [
+      {
+        "title": "Nguy cơ thuyên chuyển",
+        "detail": "Có dấu hiệu tìm kiếm cơ hội bên ngoài",
+        "severity": "high",
+        "source": "HR",
+        "date": "Q1/2026"
+      },
+      {
+        "title": "Chênh lệch lương thị trường",
+        "detail": "Mức lương hiện tại thấp hơn 18% so với benchmark thị trường",
+        "severity": "high",
+        "source": "Salary Survey",
+        "date": "Q4/2025"
+      },
+      {
+        "title": "KTP tiến độ thấp 40%",
+        "detail": "Cần tăng tốc chuyển giao tri thức trước Q2/2026",
+        "severity": "medium",
+        "source": "Tự động",
+        "date": "Q1/2026"
+      }
+    ],
+    "departureReasons": ["Sắp thuyên chuyển", "Lương thị trường cao hơn"]
+  }
+}

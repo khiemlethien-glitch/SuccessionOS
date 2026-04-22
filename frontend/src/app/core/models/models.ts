@@ -37,7 +37,50 @@ export interface RiskFactor {
   source: string;
   date: string;
 }
-export interface TalentListResponse { data: Talent[]; total: number; }
+export interface TalentListResponse   { data: Talent[];    total: number; }
+export interface TalentDetailResponse { data: Talent; }
+
+// ── Career Review ─────────────────────────────────────────────────────────────
+export interface CareerReviewCategory { label: string; weight: number; score: number; }
+export interface CareerReview {
+  period: string;
+  categories: CareerReviewCategory[];
+  overall: number;
+  strengths: string[];
+  needsDev: string[];
+  managerNote: string;
+}
+export interface CareerReviewResponse { data: CareerReview; }
+
+// ── Current Project ───────────────────────────────────────────────────────────
+export interface CurrentProject {
+  name: string; type: string; role: string;
+  client: string; value: string; status: string;
+}
+export interface CurrentProjectResponse { data: CurrentProject; }
+
+// ── Knowledge Transfer ────────────────────────────────────────────────────────
+export interface KnowledgeTransferItem { title: string; category: string; status: string; progress: number; }
+export interface KnowledgeTransfer {
+  successor: string; successorRole: string;
+  startDate: string; targetDate: string;
+  overallProgress: number;
+  items: KnowledgeTransferItem[];
+}
+export interface KnowledgeTransferResponse { data: KnowledgeTransfer; }
+
+// ── Assessment 360° ───────────────────────────────────────────────────────────
+export interface Assessment360Source   { label: string; pct: number; }
+export interface Assessment360Criteria { label: string; score: number; }
+export interface Assessment360 {
+  overall: number; benchmark: number; period: string;
+  sources: Assessment360Source[];
+  criteria: Assessment360Criteria[];
+  strengths: string[];
+  needsDev: string[];
+  managerNote: string;
+}
+export interface Assessment360Response { data: Assessment360; }
 
 export interface KeyPosition {
   id: string; title: string; department: string; currentHolder: string;
@@ -67,8 +110,15 @@ export interface IdpGoal {
 export interface IdpPlan {
   id: string; talentId: string; talentName: string;
   year: number; status: string; overallProgress: number; goals: IdpGoal[];
+  // Narrative fields — trả về từ GET /idp/{id}/employee
+  targetPosition?: string;
+  approvedBy?: string;
+  approvedDate?: string;
+  goals12m?: string[];
+  goals2to3y?: string[];
 }
-export interface IdpListResponse { data: IdpPlan[]; total: number; }
+export interface IdpListResponse   { data: IdpPlan[]; total: number; }
+export interface IdpDetailResponse { data: IdpPlan; }
 
 export interface AssessmentScores {
   technical: number; leadership: number; communication: number; strategicThinking: number;
@@ -78,7 +128,8 @@ export interface Assessment {
   period: string; assessorCount: number; scores: AssessmentScores;
   overallScore: number; status: string;
 }
-export interface AssessmentListResponse { data: Assessment[]; total: number; }
+export interface AssessmentListResponse   { data: Assessment[]; total: number; }
+export interface AssessmentDetailResponse { data: Assessment; }
 
 export interface MentoringPair {
   id: string; mentorId: string; mentorName: string; menteeId: string; menteeName: string;
