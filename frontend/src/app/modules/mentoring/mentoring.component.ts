@@ -10,7 +10,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
-import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
 import { MentoringPair, MentoringListResponse } from '../../core/models/models';
@@ -23,7 +23,7 @@ interface MentoringSession { date: string; summary: string; nextAction: string; 
   standalone: true,
   imports: [CommonModule, FormsModule, NzTagModule, NzButtonModule, NzIconModule,
     NzProgressModule, NzDrawerModule, NzInputModule, NzInputNumberModule,
-    NzDividerModule, NzSpinModule, NzToolTipModule, AvatarComponent],
+    NzDividerModule, NzSpinModule, NzTooltipModule, AvatarComponent],
   templateUrl: './mentoring.component.html',
   styleUrl: './mentoring.component.scss',
 })

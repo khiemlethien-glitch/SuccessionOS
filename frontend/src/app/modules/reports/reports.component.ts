@@ -44,11 +44,11 @@ export class ReportsComponent implements OnInit {
 
   // ── Assessment stats ──────────────────────────────────────────────────────
   get completedAssessments()     { return this.assessments().filter(a => a.status === 'Completed'); }
-  get assessmentCompletedCount() { return this.completedAssessments().length; }
+  get assessmentCompletedCount() { return this.completedAssessments.length; }
   get assessmentPendingCount()   { return this.assessments().filter(a => a.status === 'Pending').length; }
 
   private avg(key: keyof Assessment['scores']): number {
-    const list = this.completedAssessments();
+    const list = this.completedAssessments;
     return list.length ? Math.round(list.reduce((s, a) => s + a.scores[key], 0) / list.length) : 0;
   }
   get avgTechnical()     { return this.avg('technical'); }
@@ -56,11 +56,11 @@ export class ReportsComponent implements OnInit {
   get avgCommunication() { return this.avg('communication'); }
   get avgStrategic()     { return this.avg('strategicThinking'); }
   get avgOverall() {
-    const list = this.completedAssessments();
+    const list = this.completedAssessments;
     return list.length ? Math.round(list.reduce((s, a) => s + a.overallScore, 0) / list.length) : 0;
   }
   get topPerformers() {
-    return [...this.completedAssessments()].sort((a, b) => b.overallScore - a.overallScore).slice(0, 5);
+    return [...this.completedAssessments].sort((a, b) => b.overallScore - a.overallScore).slice(0, 5);
   }
 
   idpStatusColor(s: string): string { return ({ Active: 'blue', Completed: 'green', Pending: 'orange' } as any)[s] ?? 'default'; }
