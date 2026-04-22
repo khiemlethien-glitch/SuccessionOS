@@ -80,10 +80,10 @@ export class TalentListComponent implements OnInit {
   ngOnInit(): void {
     let pending = 2;
     const done = () => { if (--pending === 0) this.loading.set(false); };
-    this.api.get<TalentListResponse>('talents', 'talents').subscribe({
+    this.api.get<TalentListResponse>('employees', 'talents').subscribe({
       next: r => { this.all.set(r.data); done(); }, error: done,
     });
-    this.api.get<PositionListResponse>('positions', 'positions').subscribe({
+    this.api.get<PositionListResponse>('key-positions', 'positions').subscribe({
       next: r => { this.positions.set(r.data); done(); }, error: done,
     });
   }

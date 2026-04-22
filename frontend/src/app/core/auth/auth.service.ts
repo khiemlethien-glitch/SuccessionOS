@@ -2,6 +2,10 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { ApiService } from '../services/api.service';
 import { OidcService, OidcTokenResponse, VnrUserInfo } from './oidc.service';
+import {
+  safeLocalStorage,
+  safeNavigateTo,
+} from '../utils/browser.utils';
 
 export interface LoginRequest {
   email: string;
@@ -31,19 +35,23 @@ export class AuthService {
   private readonly TOKEN_EXPIRY_KEY  = 'token_expiry';
   private silentRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private isLoggedIn$ = new BehaviorSubject<boolean>(this.hasToken());
+  // SSR-safe: khởi tạo với false (server không có token),
+  // giá trị thực được set trong constructor sau khi kiểm tra môi trường.
+  private isLoggedIn$ = new BehaviorSubject<boolean>(false);
 
   constructor(
     private api: ApiService,
     private oidcService: OidcService,
-  ) {}
+  ) {
+    // Đọc token sau khi Angular DI hoàn tất — an toàn cả SSR lẫn browser.
+    this.isLoggedIn$.next(this.hasToken());
+  }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.api.post<LoginResponse>('auth/login', credentials).pipe(
       tap((res) => {
-        const ls = this.getLocalStorage();
-        ls?.setItem(this.TOKEN_KEY, res.access_token);
-        ls?.setItem(this.USER_KEY, JSON.stringify(res.user));
+        safeLocalStorage.setItem(this.TOKEN_KEY, res.access_token);
+        safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
         this.isLoggedIn$.next(true);
       })
     );
@@ -52,17 +60,16 @@ export class AuthService {
   logout(redirectToSso = false): void {
     if (this.silentRefreshTimer) clearTimeout(this.silentRefreshTimer);
 
-    const idToken = this.getLocalStorage()?.getItem(this.ID_TOKEN_KEY) ?? '';
-    const ls = this.getLocalStorage();
-    ls?.removeItem(this.TOKEN_KEY);
-    ls?.removeItem(this.REFRESH_TOKEN_KEY);
-    ls?.removeItem(this.ID_TOKEN_KEY);
-    ls?.removeItem(this.TOKEN_EXPIRY_KEY);
-    ls?.removeItem(this.USER_KEY);
+    const idToken = safeLocalStorage.getItem(this.ID_TOKEN_KEY) ?? '';
+    safeLocalStorage.removeItem(this.TOKEN_KEY);
+    safeLocalStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    safeLocalStorage.removeItem(this.ID_TOKEN_KEY);
+    safeLocalStorage.removeItem(this.TOKEN_EXPIRY_KEY);
+    safeLocalStorage.removeItem(this.USER_KEY);
     this.isLoggedIn$.next(false);
 
-    if (redirectToSso && idToken && typeof window !== 'undefined') {
-      window.location.href = this.oidcService.buildLogoutUrl(idToken);
+    if (redirectToSso && idToken) {
+      safeNavigateTo(this.oidcService.buildLogoutUrl(idToken));
     }
   }
 
@@ -70,9 +77,8 @@ export class AuthService {
    * Set token + user vào localStorage (reuse cho fake login & real API sau này)
    */
   setSession(token: string, user: unknown): void {
-    const ls = this.getLocalStorage();
-    ls?.setItem(this.TOKEN_KEY, token);
-    ls?.setItem(this.USER_KEY, JSON.stringify(user));
+    safeLocalStorage.setItem(this.TOKEN_KEY, token);
+    safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(user));
     this.isLoggedIn$.next(true);
   }
 
@@ -81,13 +87,12 @@ export class AuthService {
    * Được gọi từ OidcCallbackComponent.
    */
   setOidcSession(tokens: OidcTokenResponse, user: VnrUserInfo): void {
-    const ls = this.getLocalStorage();
-    ls?.setItem(this.TOKEN_KEY,         tokens.access_token);
-    ls?.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? '');
-    ls?.setItem(this.ID_TOKEN_KEY,      tokens.id_token ?? '');
+    safeLocalStorage.setItem(this.TOKEN_KEY,         tokens.access_token);
+    safeLocalStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? '');
+    safeLocalStorage.setItem(this.ID_TOKEN_KEY,      tokens.id_token ?? '');
 
     const expiryMs = Date.now() + tokens.expires_in * 1000;
-    ls?.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
+    safeLocalStorage.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
 
     const appUser = {
       id:       user.sub,
@@ -95,7 +100,7 @@ export class AuthService {
       fullName: user.name,
       role:     Array.isArray(user.role) ? user.role[0] : user.role,
     };
-    ls?.setItem(this.USER_KEY, JSON.stringify(appUser));
+    safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(appUser));
     this.isLoggedIn$.next(true);
 
     this.scheduleSilentRefresh(tokens.expires_in);
@@ -110,15 +115,14 @@ export class AuthService {
   }
 
   private doSilentRefresh(): void {
-    const refreshToken = this.getLocalStorage()?.getItem(this.REFRESH_TOKEN_KEY);
+    const refreshToken = safeLocalStorage.getItem(this.REFRESH_TOKEN_KEY);
     if (!refreshToken) return;
 
     this.oidcService.refreshToken(refreshToken).then(tokens => {
-      const ls = this.getLocalStorage();
-      ls?.setItem(this.TOKEN_KEY,         tokens.access_token);
-      ls?.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? refreshToken);
+      safeLocalStorage.setItem(this.TOKEN_KEY,         tokens.access_token);
+      safeLocalStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? refreshToken);
       const expiryMs = Date.now() + tokens.expires_in * 1000;
-      ls?.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
+      safeLocalStorage.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
       this.scheduleSilentRefresh(tokens.expires_in);
     }).catch(() => {
       this.logout();
@@ -126,11 +130,11 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return this.getLocalStorage()?.getItem(this.TOKEN_KEY) ?? null;
+    return safeLocalStorage.getItem(this.TOKEN_KEY);
   }
 
   getCurrentUser() {
-    const raw = this.getLocalStorage()?.getItem(this.USER_KEY);
+    const raw = safeLocalStorage.getItem(this.USER_KEY);
     return raw ? JSON.parse(raw) : null;
   }
 
@@ -146,12 +150,7 @@ export class AuthService {
     return this.hasToken();
   }
 
-  private getLocalStorage(): Storage | null {
-    if (typeof window === 'undefined') return null;
-    return window.localStorage ?? null;
-  }
-
   private hasToken(): boolean {
-    return !!this.getLocalStorage()?.getItem(this.TOKEN_KEY);
+    return !!safeLocalStorage.getItem(this.TOKEN_KEY);
   }
 }

@@ -66,9 +66,9 @@ export class DashboardComponent implements OnInit {
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
-    this.api.get<TalentListResponse>('talents', 'talents').subscribe(r => this.talents.set(r.data));
-    this.api.get<IdpListResponse>('idp-plans', 'idp-plans').subscribe(r => this.idps.set(r.data));
-    this.api.get<PositionListResponse>('positions', 'positions').subscribe(r => this.positions.set(r.data));
+    this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
+    this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
+    this.api.get<PositionListResponse>('key-positions', 'positions').subscribe(r => this.positions.set(r.data));
   }
 
   positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {

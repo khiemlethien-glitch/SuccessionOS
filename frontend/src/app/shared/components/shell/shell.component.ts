@@ -9,6 +9,7 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { safeLocalStorage } from '../../../core/utils/browser.utils';
 
 interface NavItem { label: string; icon: string; route: string; disabled?: boolean; }
 interface NavGroup { label: string; items: NavItem[]; }
@@ -85,7 +86,7 @@ export class ShellComponent {
     this.authService.logout(true);
     // logout(true) tự redirect sang VnR endsession nếu có id_token,
     // nếu không có (mock login) thì fallback về /login
-    if (typeof window !== 'undefined' && !localStorage.getItem('id_token')) {
+    if (typeof window !== 'undefined' && !safeLocalStorage.getItem('id_token')) {
       this.router.navigate(['/login']);
     }
   }

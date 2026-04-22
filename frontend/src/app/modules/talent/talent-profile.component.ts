@@ -348,14 +348,14 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   private loadTalentData(id: string): void {
     this.loading.set(true);
     if (!id) { this.loading.set(false); return; }
-    this.api.get<TalentListResponse>('talents', 'talents').subscribe(r => {
+    this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => {
       this.allTalents.set(r.data);
       this.talent.set(r.data.find(t => t.id === id) ?? null);
       this.loading.set(false);
     });
     this.api.get<AssessmentListResponse>('assessments', 'assessments').subscribe(r =>
       this.assessment.set(r.data.find(a => a.talentId === id) ?? null));
-    this.api.get<IdpListResponse>('idp-plans', 'idp-plans').subscribe(r =>
+    this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r =>
       this.idp.set(r.data.find(i => i.talentId === id) ?? null));
   }
 
@@ -531,7 +531,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       this.talent.set(this.allTalents().find(t => t.id === id) ?? null);
       this.api.get<AssessmentListResponse>('assessments', 'assessments').subscribe(r =>
         this.assessment.set(r.data.find(a => a.talentId === id) ?? null));
-      this.api.get<IdpListResponse>('idp-plans', 'idp-plans').subscribe(r =>
+      this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r =>
         this.idp.set(r.data.find(i => i.talentId === id) ?? null));
     });
   }

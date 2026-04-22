@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { AuthService } from '../auth.service';
 import { OidcService } from '../oidc.service';
+import { safeSessionStorage, safeLocationSearch, isBrowser } from '../../utils/browser.utils';
 
 @Component({
   selector: 'app-oidc-callback',
@@ -33,23 +34,16 @@ export class OidcCallbackComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('[callback] ngOnInit fired', {
-      time:      typeof window !== 'undefined' ? new Date().toISOString() : 'SSR',
-      isBrowser: typeof window !== 'undefined',
-      handled:   OidcCallbackComponent.handled,
-      url:       typeof window !== 'undefined' ? window.location.href : 'SSR',
-      storageKeys: typeof window !== 'undefined' ? Object.keys(sessionStorage) : [],
-    });
-    if (typeof window === 'undefined') return;   // SSR — skip entirely
+    if (!isBrowser()) return;              // SSR — skip entirely
     if (OidcCallbackComponent.handled) return;   // already ran this page load
     OidcCallbackComponent.handled = true;
     Promise.resolve().then(() => this.handleCallback());
   }
 
   private async handleCallback(): Promise<void> {
-    if (typeof window === 'undefined') return;
+    if (!isBrowser()) return;
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(safeLocationSearch());
     const code   = params.get('code');
     const state  = params.get('state');
     const error  = params.get('error');
@@ -90,8 +84,8 @@ export class OidcCallbackComponent implements OnInit {
       this.authService.setOidcSession(tokens, userInfo);
 
       // Redirect về trang người dùng đang vào, hoặc dashboard
-      const redirectTo = sessionStorage.getItem('oidc_redirect') ?? '/dashboard';
-      sessionStorage.removeItem('oidc_redirect');
+      const redirectTo = safeSessionStorage.getItem('oidc_redirect') ?? '/dashboard';
+      safeSessionStorage.removeItem('oidc_redirect');
       this.router.navigate([redirectTo]);
 
     } catch (err: any) {

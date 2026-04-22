@@ -90,8 +90,8 @@ export class PositionsComponent implements OnInit {
   constructor(private api: ApiService, private msg: NzMessageService) {}
 
   ngOnInit(): void {
-    this.api.get<PositionListResponse>('positions','positions').subscribe(r => { this.positions.set(r.data); this.loading.set(false); });
-    this.api.get<SuccessionPlanListResponse>('succession-plans','succession-plans').subscribe(r => this.plans.set(r.data));
+    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => { this.positions.set(r.data); this.loading.set(false); });
+    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
   }
 
   getPlan(posId: string): SuccessionPlan | undefined {

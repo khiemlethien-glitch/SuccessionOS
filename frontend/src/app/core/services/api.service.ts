@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, from } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { safeLocalStorage } from '../utils/browser.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -13,11 +14,7 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   private getHeaders(): HttpHeaders {
-    // SSR-safe: localStorage only exists in the browser. During prerender
-    // or server render we just send a token-less request.
-    const token = typeof window !== 'undefined'
-      ? window.localStorage?.getItem('access_token') ?? null
-      : null;
+    const token = safeLocalStorage.getItem('access_token');
     let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     if (token) {
       headers = headers.set('Authorization', `Bearer ${token}`);

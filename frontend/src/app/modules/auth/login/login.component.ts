@@ -106,16 +106,6 @@ export class LoginComponent implements OnInit {
     try {
       const url = await this.oidcService.buildAuthorizeUrl();
       if (typeof window !== 'undefined') {
-        console.log('[login] Redirecting to VnR authorize', {
-          time:        new Date().toISOString(),
-          origin:      window.location.origin,
-          authorizeUrl: url,
-          storageBeforeRedirect: {
-            keys: Object.keys(sessionStorage),
-            oidc_state:    sessionStorage.getItem('oidc_state')?.slice(0, 12) + '...',
-            oidc_verifier: sessionStorage.getItem('oidc_verifier')?.slice(0, 12) + '...',
-          },
-        });
         window.location.href = url;
       }
     } catch (err) {

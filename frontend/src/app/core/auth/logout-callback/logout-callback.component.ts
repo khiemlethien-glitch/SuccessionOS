@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth.service';
+import { safeSessionStorage } from '../../utils/browser.utils';
 
 @Component({
   selector: 'app-logout-callback',
@@ -29,9 +30,7 @@ export class LogoutCallbackComponent implements OnInit {
   ngOnInit(): void {
     // Clear còn sót (phòng trường hợp logout() chưa chạy)
     this.authService.logout(false);
-    if (typeof window !== 'undefined') {
-      sessionStorage.clear();
-    }
+    safeSessionStorage.clear();
     setTimeout(() => this.router.navigate(['/login']), 2000);
   }
 }

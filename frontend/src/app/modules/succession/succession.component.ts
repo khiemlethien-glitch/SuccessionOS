@@ -308,9 +308,9 @@ export class SuccessionComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser.set(this.auth.getCurrentUser());
-    this.api.get<TalentListResponse>('talents','talents').subscribe(r => this.talents.set(r.data));
-    this.api.get<SuccessionPlanListResponse>('succession-plans','succession-plans').subscribe(r => this.plans.set(r.data));
-    this.api.get<PositionListResponse>('positions','positions').subscribe(r => this.positions.set(r.data));
+    this.api.get<TalentListResponse>('employees','talents').subscribe(r => this.talents.set(r.data));
+    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
+    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => this.positions.set(r.data));
   }
 
   // ─── Scoring ───────────────────────────────────────

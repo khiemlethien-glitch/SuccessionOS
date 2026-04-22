@@ -2,6 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../environments/environment';
+import { safeLocalStorage } from '../utils/browser.utils';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const platformId = inject(PLATFORM_ID);
@@ -16,7 +17,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const token = localStorage.getItem('access_token');
+  const token = safeLocalStorage.getItem('access_token');
   if (token) {
     const cloned = req.clone({
       headers: req.headers.set('Authorization', `Bearer ${token}`),
