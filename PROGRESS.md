@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-21 15:56
+> Cập nhật lần cuối: 2026-04-22 10:16
 
 ---
 
@@ -16,7 +16,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 Staging:  https://succession-os-y6mt.vercel.app
 ```
 
-### Tiến độ tổng thể: ~72% ██████████████░░░░░░
+### Tiến độ tổng thể: ~76% ███████████████░░░░░
 
 | Nhóm | Trạng thái | % |
 |---|---|---|
@@ -40,6 +40,13 @@ Staging:  https://succession-os-y6mt.vercel.app
 
 ## ✅ Đã hoàn thành
 
+### Bug Fixes
+- [x] **SSR Hydration Fix (2026-04-22)** — Fix triệt để `TypeError: Cannot read properties of null (reading 'hasAttribute')`:
+  - Tạo `core/utils/browser.utils.ts` với `isBrowser`, `safeLocalStorage`, `safeSessionStorage`, `safeNavigateTo`, `safeLocationSearch`
+  - Fix **field initializer** nguy hiểm: `isLoggedIn$ = new BehaviorSubject(this.hasToken())` → khởi tạo `false`, set thực trong constructor
+  - Thay toàn bộ `localStorage.*` / `sessionStorage.*` / `window.localStorage` thành safe utils trong 8 file
+  - 0 lỗi TypeScript, build thành công, prerender 18 static routes OK
+
 ### Setup & Foundation
 - [x] Angular 18 monorepo tạo tại `successionos/frontend/`
 - [x] ng-zorro-antd cài đặt + locale vi_VN
@@ -53,6 +60,7 @@ Staging:  https://succession-os-y6mt.vercel.app
 - [x] `core/auth/auth.service.ts` — Login/logout, JWT localStorage, BehaviorSubject isLoggedIn + `setSession()`
 - [x] `core/guards/auth.guard.ts` — Redirect /login nếu chưa auth (chuẩn CanActivateFn trả UrlTree)
 - [x] `core/interceptors/jwt.interceptor.ts` — Auto attach Authorization header, skip OIDC issuer endpoints
+- [x] `core/utils/browser.utils.ts` — SSR-safe utils: `isBrowser`, `safeLocalStorage`, `safeSessionStorage`, `safeNavigateTo`, `safeLocationSearch`
 
 ### Layout Shell
 - [x] `app.component.html` — nz-layout + nz-sider sidebar
@@ -141,6 +149,38 @@ Staging:  https://succession-os-y6mt.vercel.app
 - [x] `.gitignore` — untrack environment files, tạo `.example` placeholders
 - [x] **Test Suite**: OidcService 16/16 ✅ / AuthService 14/14 ✅ / OidcCallback 5/5 ✅ / `SSO_TEST_REPORT.md` ✅
 - [x] **Chờ VnR whitelist** — 4 URLs cần đăng ký (dev + prod callback + logout)
+- [x] **Cleanup** — Xóa toàn bộ console.log debug khỏi oidc.service.ts / oidc-callback / login.component (SSO đã chạy ổn định)
+
+### API Documentation & Integration Map
+- [x] **`API_INTEGRATION_MAP.csv`** — 61 dòng, mỗi API trong hợp đồng được phân loại: KHONG_CAN / DUNG_MOCK / HARDCODE / CHUA_BUILD, kèm file component, hàm cần sửa, mock file, params, fields response, priority P0–P3
+- [x] **`API_FIELD_SPEC.csv`** — ~200 dòng per-field breakdown: 23 API endpoint, từng field JSON với kiểu dữ liệu, bắt buộc/tuỳ chọn, giá trị mẫu, range cho phép, mô tả công dụng, vị trí UI, component file, hàm sử dụng, logic xử lý
+- [x] **Phân tích endpoint mismatch** — Ghi nhận 5 chuỗi cần đổi khi backend lên (talents→employees, positions→key-positions, idp-plans→idp, mentoring-pairs→mentoring/pairs, succession-plans→succession/plans)
+- [x] **Phân tích fetch pattern** — talent-profile cần refactor từ full-list-then-filter sang GET /employees/{id}, /assessments/{id}/latest, /idp/{id}/employee
+
+### VnR HRE Swagger Analysis (2026-04-22)
+- [x] **Phân tích Swagger VnR HRE** — 291 endpoints, 49 tag groups tại `172.21.30.87:7067` (self-signed SSL, dùng Chrome MCP)
+- [x] **Xác định endpoints liên quan** — 6 tag groups cần thiết: `[HR][Profile]` (11 eps), `Cat_OrgStructure` (9), `Cat_JobTitle` (8), `HR_ContractEvaResult` (1), `Hre_Promotion` (7), `HR_Contract` (8)
+- [x] **Xác định endpoints bỏ qua** — EmergencyContact, FamilyMember, Health, IdDocument, MemberShip, HreFile, ContractAnnex, TerminationContract, Address, Religion, Ethnic — KHÔNG fetch
+- [x] **Strategy tích hợp** — EmployeeExtension table rỗng khởi đầu, SyncService populate từ 3 VnR endpoints, HR override với `isManualOverride` flag
+
+### BACKEND_PROMPTS.md — Lean VnR Integration (2026-04-22)
+- [x] **Rewrite hoàn toàn `BACKEND_PROMPTS.md`** (26KB) — 4 Cursor prompts theo nguyên tắc "chỉ lấy đúng cần thiết"
+- [x] **Prompt 1 — EmployeeExtension + SyncService**: entity với nullable scores, công thức nội suy performanceScore/potentialScore/riskScore/talentTier, chỉ 3 VnR endpoints (ContractEvaResult, Hre_Promotion, HR_Contract), `isManualOverride` bảo vệ HR override
+- [x] **Prompt 2 — Employee List + Detail**: 4 VnR endpoints, cache org/jobTitle 10 phút (IMemoryCache), merge với SuccessionOS DB, nullable scores khi chưa sync
+- [x] **Prompt 3 — Key Positions + Succession Plans**: pure SuccessionOS DB, không call VnR
+- [x] **Prompt 4 — Dashboard KPI**: pure SuccessionOS DB aggregation, VnR chỉ là fallback count tổng nhân viên
+
+### Frontend Endpoint Strings — Fixed (2026-04-22)
+- [x] **`dashboard.component.ts`**: `'talents'→'employees'`, `'idp-plans'→'idp'`, `'positions'→'key-positions'`
+- [x] **`talent-list.component.ts`**: `'talents'→'employees'`, `'positions'→'key-positions'`
+- [x] **`talent-profile.component.ts`**: `'talents'→'employees'`, `'idp-plans'→'idp'` (×2)
+- [x] **`positions.component.ts`**: `'positions'→'key-positions'`, `'succession-plans'→'succession/plans'`
+- [x] **`succession.component.ts`**: `'talents'→'employees'`, `'succession-plans'→'succession/plans'`, `'positions'→'key-positions'`
+
+### Excel Documentation — v3 (2026-04-22)
+- [x] **`SuccessionOS_API_Docs.xlsx`** — 3 sheets: Hướng dẫn + API List (31 in-scope / 30 skip, màu sắc) + Field Spec (4 modules: Dashboard, Nhân tài, Vị trí then chốt, Bản đồ kế thừa)
+- [x] Color coding: VnR HRE ✅ xanh lá / SuccessionOS DB 🔨 đỏ / in-scope trắng / skip xám
+- [x] Merged từ 2 file riêng (CSV + Excel) thành 1 file duy nhất gửi backend dev
 
 ### Routing & Config
 - [x] Lazy loaded: `/dashboard`, `/talent`, `/succession`, `/positions`, `/idp`, `/assessment`, `/admin`
@@ -177,6 +217,10 @@ Staging:  https://succession-os-y6mt.vercel.app
 
 ### Backend Integration
 - [ ] Wire real API khi .NET 8 backend sẵn sàng (useMock: false)
+- [x] ~~**P0**: Đổi endpoint strings~~ ✅ **DONE** — đã sửa 5 component files (dashboard, talent-list, talent-profile, positions, succession)
+- [ ] **P0**: Kết nối `GET /api/v1/me` thay vì đọc localStorage trong getCurrentUser()
+- [ ] **P1**: Refactor talent-profile — thay full-list-then-filter bằng `GET /employees/{id}`, `GET /assessments/{id}/latest`, `GET /idp/{id}/employee`
+- [ ] **P1**: Refactor dashboard — thay 3 full-list fetches bằng `GET /dashboard/kpi`
 - [ ] Test import HRM360 CSV end-to-end với dữ liệu thật PTSC M&C
 - [ ] Verify field visibility RLS policies trên Supabase / .NET
 
