@@ -7,8 +7,8 @@
  * inject real values via its Environment Variables dashboard.
  *
  * Supported env vars (all optional — only override what you set):
- *   OIDC_CLIENT_ID        → replaces `clientId` value
- *   OIDC_CLIENT_SECRET    → replaces `clientSecret` value
+ *   SUPABASE_URL       → replaces `url` trong supabase block
+ *   SUPABASE_ANON_KEY  → replaces `anonKey` trong supabase block
  *
  * Local dev: real env.ts exists → script is a no-op, nothing changes.
  */
@@ -25,8 +25,8 @@ const pairs = [
 ];
 
 const replacements = {
-  OIDC_CLIENT_ID:     { key: 'clientId',     value: process.env['OIDC_CLIENT_ID'] },
-  OIDC_CLIENT_SECRET: { key: 'clientSecret', value: process.env['OIDC_CLIENT_SECRET'] },
+  SUPABASE_URL:      { key: 'url',     value: process.env['SUPABASE_URL'] },
+  SUPABASE_ANON_KEY: { key: 'anonKey', value: process.env['SUPABASE_ANON_KEY'] },
 };
 
 for (const [template, target] of pairs) {
