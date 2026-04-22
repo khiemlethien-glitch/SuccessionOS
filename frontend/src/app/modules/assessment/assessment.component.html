@@ -1,98 +1,140 @@
 <div class="assess-page">
-  <h1 class="page-title">Đánh giá Năng lực</h1>
+  <div class="page-header">
+    <h1 class="page-title">Đánh giá Năng lực</h1>
+    <span class="title-badge">{{ assessments().length }}</span>
+    <span class="pending-badge" *ngIf="pendingAssessments().length > 0">
+      {{ pendingAssessments().length }} chờ nhập
+    </span>
+  </div>
 
-  <nz-tabs nzType="line" class="assess-tabs">
+  @if (loading()) {
+    <div style="text-align:center;padding:60px"><nz-spin nzSimple nzSize="large"></nz-spin></div>
+  } @else {
+    <nz-tabs nzType="line" class="assess-tabs">
 
-    <!-- Tổng quan -->
-    <nz-tab nzTitle="Tổng quan">
-      <nz-table [nzData]="assessments()" [nzLoading]="loading()" [nzPageSize]="10" class="assess-tbl">
-        <thead><tr>
-          <th nzWidth="200px">Nhân viên</th>
-          <th nzWidth="100px">Kỳ</th>
-          <th nzAlign="center">Kỹ thuật</th>
-          <th nzAlign="center">Lãnh đạo</th>
-          <th nzAlign="center">Giao tiếp</th>
-          <th nzAlign="center">Tư duy CL</th>
-          <th nzWidth="100px" nzAlign="center">Overall</th>
-          <th nzWidth="100px" nzAlign="center">Trạng thái</th>
-        </tr></thead>
-        <tbody>
-          @for (a of assessments(); track a.id) {
-            <tr>
-              <td>
-                <div class="emp-row">
-                  <app-avatar [name]="a.talentName" [size]="28"></app-avatar>
-                  <span class="emp-name">{{ a.talentName }}</span>
-                </div>
-              </td>
-              <td><span class="period-txt">{{ a.period }}</span></td>
-              @for (dim of ['technical','leadership','communication','strategicThinking']; track dim) {
+      <!-- ── Tổng quan ─────────────────────────────────────────────────── -->
+      <nz-tab nzTitle="Tổng quan">
+        <nz-table [nzData]="assessments()" [nzPageSize]="10" class="assess-tbl">
+          <thead><tr>
+            <th nzWidth="200px">Nhân viên</th>
+            <th nzWidth="90px">Kỳ</th>
+            <th nzAlign="center">Kỹ thuật</th>
+            <th nzAlign="center">Lãnh đạo</th>
+            <th nzAlign="center">Giao tiếp</th>
+            <th nzAlign="center">Tư duy CL</th>
+            <th nzWidth="90px" nzAlign="center">Overall</th>
+            <th nzWidth="110px" nzAlign="center">Trạng thái</th>
+          </tr></thead>
+          <tbody>
+            @for (a of assessments(); track a.id) {
+              <tr>
+                <td>
+                  <div class="emp-row">
+                    <app-avatar [name]="a.talentName" [size]="28"></app-avatar>
+                    <span class="emp-name">{{ a.talentName }}</span>
+                  </div>
+                </td>
+                <td><span class="period-txt">{{ a.period }}</span></td>
+                @for (dim of ['technical','leadership','communication','strategicThinking']; track dim) {
+                  <td nzAlign="center">
+                    @if (a.status === 'Completed') {
+                      <span class="score-pill" [style.color]="scoreColor(getScore(a, dim))">{{ getScore(a, dim) }}</span>
+                    } @else { <span class="na-txt">—</span> }
+                  </td>
+                }
                 <td nzAlign="center">
                   @if (a.status === 'Completed') {
-                    <span class="score-pill" [style.color]="scoreColor(getScore(a, dim))">
-                      {{ getScore(a, dim) }}
-                    </span>
+                    <span class="overall-score" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
                   } @else { <span class="na-txt">—</span> }
                 </td>
-              }
-              <td nzAlign="center">
-                @if (a.status === 'Completed') {
-                  <span class="overall-score" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
-                } @else { <span class="na-txt">—</span> }
-              </td>
-              <td nzAlign="center"><nz-tag [nzColor]="statusColor(a.status)">{{ a.status }}</nz-tag></td>
-            </tr>
-          }
-        </tbody>
-      </nz-table>
-    </nz-tab>
+                <td nzAlign="center"><nz-tag [nzColor]="statusColor(a.status)">{{ a.status }}</nz-tag></td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </nz-tab>
 
-    <!-- Nhập điểm -->
-    <nz-tab nzTitle="Nhập điểm">
-      <div class="form-wrap">
-        <p class="form-hint">Chọn nhân viên và nhập điểm đánh giá 4 chiều cho kỳ hiện tại.</p>
-        <div class="form-grid">
-          <div class="form-field">
-            <label>Nhân viên</label>
-            <nz-select nzPlaceHolder="Chọn nhân viên" nzShowSearch style="width:100%">
-              @for (a of assessments(); track a.id) {
-                <nz-option [nzValue]="a.talentId" [nzLabel]="a.talentName"></nz-option>
-              }
-            </nz-select>
-          </div>
-          @for (dim of [['technical','Kỹ thuật'],['leadership','Lãnh đạo'],['communication','Giao tiếp'],['strategicThinking','Tư duy chiến lược']]; track dim[0]) {
-            <div class="form-field">
-              <label>{{ dim[1] }} (0-100)</label>
-              <nz-input-number [nzMin]="0" [nzMax]="100" style="width:100%"></nz-input-number>
+      <!-- ── Nhập điểm ─────────────────────────────────────────────────── -->
+      <nz-tab nzTitle="Nhập điểm">
+        <div class="form-wrap">
+          <p class="form-hint">Chọn nhân viên và nhập điểm đánh giá 4 chiều cho kỳ hiện tại.</p>
+          <div class="form-grid">
+
+            <div class="form-field" style="grid-column:1/-1">
+              <label>Nhân viên <span style="color:#ef4444">*</span></label>
+              <nz-select nzPlaceHolder="Chọn nhân viên" nzShowSearch style="width:100%"
+                         [ngModel]="selectedTalentId()" (ngModelChange)="selectedTalentId.set($event)">
+                @for (a of pendingAssessments(); track a.id) {
+                  <nz-option [nzValue]="a.talentId" [nzLabel]="a.talentName + ' (' + a.period + ')'"></nz-option>
+                }
+                @if (pendingAssessments().length === 0) {
+                  <nz-option nzDisabled nzValue="" nzLabel="Tất cả đã hoàn thành"></nz-option>
+                }
+              </nz-select>
             </div>
-          }
-        </div>
-        <button nz-button nzType="primary" class="btn-navy">Lưu đánh giá</button>
-      </div>
-    </nz-tab>
 
-    <!-- Lịch sử -->
-    <nz-tab nzTitle="Lịch sử">
-      <div class="history-list">
-        @for (a of assessments(); track a.id) {
-          @if (a.status === 'Completed') {
-            <div class="history-item">
-              <div class="history-left">
-                <app-avatar [name]="a.talentName" [size]="30"></app-avatar>
-                <div>
-                  <div class="hist-name">{{ a.talentName }}</div>
-                  <div class="hist-period">{{ a.period }} · {{ a.assessorCount }} người đánh giá</div>
+            @for (dim of dimensions; track dim.key) {
+              <div class="form-field">
+                <label>{{ dim.label }} (0–100)</label>
+                <nz-input-number [nzMin]="0" [nzMax]="100" style="width:100%"
+                                 [ngModel]="scores()[dim.key]"
+                                 (ngModelChange)="updateScore(dim.key, $event)"></nz-input-number>
+                <div class="score-preview-bar">
+                  <nz-progress [nzPercent]="scores()[dim.key]" [nzStrokeColor]="scoreColor(scores()[dim.key])"
+                               nzSize="small" [nzShowInfo]="false"></nz-progress>
                 </div>
               </div>
-              <div class="history-score">
-                <span class="ov-label">Overall</span>
-                <span class="ov-val" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
-              </div>
-            </div>
-          }
-        }
-      </div>
-    </nz-tab>
+            }
 
-  </nz-tabs>
+          </div>
+
+          <div class="form-summary" *ngIf="selectedTalentId()">
+            <span class="summary-lbl">Overall dự kiến:</span>
+            <span class="summary-val" [style.color]="scoreColor((scores().technical + scores().leadership + scores().communication + scores().strategicThinking) / 4)">
+              {{ ((scores().technical + scores().leadership + scores().communication + scores().strategicThinking) / 4).toFixed(0) }}
+            </span>
+          </div>
+
+          <button nz-button nzType="primary" class="btn-navy" style="margin-top:4px" (click)="saveAssessment()">
+            <span nz-icon nzType="save"></span> Lưu đánh giá
+          </button>
+        </div>
+      </nz-tab>
+
+      <!-- ── Lịch sử ────────────────────────────────────────────────────── -->
+      <nz-tab nzTitle="Lịch sử">
+        <div class="history-list">
+          @for (a of assessments(); track a.id) {
+            @if (a.status === 'Completed') {
+              <div class="history-item">
+                <div class="history-left">
+                  <app-avatar [name]="a.talentName" [size]="30"></app-avatar>
+                  <div>
+                    <div class="hist-name">{{ a.talentName }}</div>
+                    <div class="hist-period">{{ a.period }} · {{ a.assessorCount }} người đánh giá</div>
+                  </div>
+                </div>
+                <div class="hist-scores">
+                  @for (dim of dimensions; track dim.key) {
+                    <div class="hist-dim">
+                      <span class="hist-dim-lbl">{{ dim.label.substring(0,3) }}.</span>
+                      <span class="hist-dim-val" [style.color]="scoreColor(getScore(a, dim.key))">{{ getScore(a, dim.key) }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="history-score">
+                  <span class="ov-label">Overall</span>
+                  <span class="ov-val" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
+                </div>
+              </div>
+            }
+          }
+          @empty {
+            <div style="text-align:center;color:#9ca3af;padding:40px;font-style:italic">Chưa có đánh giá nào hoàn thành.</div>
+          }
+        </div>
+      </nz-tab>
+
+    </nz-tabs>
+  }
 </div>

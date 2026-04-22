@@ -4,8 +4,9 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, IdpPlan, IdpListResponse, KeyPosition, PositionListResponse } from '../../core/models/models';
+import { Talent, TalentListResponse, IdpPlan, IdpListResponse, KeyPosition, PositionListResponse, DashboardKpi } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -66,9 +67,29 @@ export class DashboardComponent implements OnInit {
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
-    this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
-    this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
-    this.api.get<PositionListResponse>('key-positions', 'positions').subscribe(r => this.positions.set(r.data));
+    // Khi useMock=false → dùng /dashboard/kpi aggregated endpoint (1 call thay 3).
+    // Khi useMock=true  → giữ 3 calls riêng để dùng mock data phong phú hơn.
+    if (!environment.useMock) {
+      this.api.get<DashboardKpi>('dashboard/kpi').subscribe(kpi => {
+        // Reconstruct minimal signal shapes từ KPI response
+        const fakeTalents: Talent[] = kpi.topRisk.map(r => ({
+          id: r.id, fullName: '', position: '', department: '',
+          talentTier: 'Kế thừa' as const, potentialLevel: 'Medium' as const,
+          performanceScore: 0, potentialScore: 0,
+          riskScore: r.riskScore ?? 0,
+          yearsOfExperience: 0, readinessLevel: 'Ready in 2 Years' as const,
+          email: '', riskReasons: r.riskReasons,
+        }));
+        // Note: full talents list vẫn cần riêng cho detail views
+        this.api.get<TalentListResponse>('employees').subscribe(r => this.talents.set(r.data));
+        this.api.get<PositionListResponse>('key-positions').subscribe(r => this.positions.set(r.data));
+      });
+      this.api.get<IdpListResponse>('idp').subscribe(r => this.idps.set(r.data));
+    } else {
+      this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
+      this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
+      this.api.get<PositionListResponse>('key-positions', 'positions').subscribe(r => this.positions.set(r.data));
+    }
   }
 
   positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {

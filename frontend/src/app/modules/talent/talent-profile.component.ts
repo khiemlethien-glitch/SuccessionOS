@@ -112,6 +112,13 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   currentProjectData   = signal<CurrentProject>(DEFAULT_PROJECT);
   knowledgeTransferData = signal<KnowledgeTransfer>(DEFAULT_KT);
 
+  // Trạng thái load từng section: null=loading, true=có data, false=không có data (404/error)
+  assessment360Loaded    = signal<boolean | null>(null);
+  careerReviewLoaded     = signal<boolean | null>(null);
+  currentProjectLoaded   = signal<boolean | null>(null);
+  knowledgeTransferLoaded = signal<boolean | null>(null);
+  idpLoaded              = signal<boolean | null>(null);
+
   // ─── Mentor picker ────────────────────────────────────────────────────────
   allTalents      = signal<Talent[]>([]);
   showMentorModal = signal(false);
@@ -467,11 +474,17 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
     // 3. Assessment 360° card
     this.api.get<Assessment360Response>(`assessments/${id}/latest`, 'assessment-latest')
-      .subscribe({ next: r => this.assessment360Data.set(r.data), error: () => {} });
+      .subscribe({
+        next:  r => { this.assessment360Data.set(r.data); this.assessment360Loaded.set(true); },
+        error: () => this.assessment360Loaded.set(false),
+      });
 
     // 4. IDP (dùng cho cả review card lẫn tab IDP)
     this.api.get<IdpDetailResponse>(`idp/${id}/employee`, 'idp-employee')
-      .subscribe({ next: r => this.idp.set(r.data), error: () => {} });
+      .subscribe({
+        next:  r => { this.idp.set(r.data); this.idpLoaded.set(true); },
+        error: () => this.idpLoaded.set(false),
+      });
 
     // 5. Tab "Đánh giá 360°" — score-based assessment từ Assessment list
     this.api.get<AssessmentListResponse>('assessments', 'assessments')
@@ -479,15 +492,24 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
     // 6. Career Review card
     this.api.get<CareerReviewResponse>(`employees/${id}/review`, 'career-review')
-      .subscribe({ next: r => this.careerReviewData.set(r.data), error: () => {} });
+      .subscribe({
+        next:  r => { this.careerReviewData.set(r.data); this.careerReviewLoaded.set(true); },
+        error: () => this.careerReviewLoaded.set(false),
+      });
 
     // 7. Current Project card
     this.api.get<CurrentProjectResponse>(`employees/${id}/current-project`, 'current-project')
-      .subscribe({ next: r => this.currentProjectData.set(r.data), error: () => {} });
+      .subscribe({
+        next:  r => { this.currentProjectData.set(r.data); this.currentProjectLoaded.set(true); },
+        error: () => this.currentProjectLoaded.set(false),
+      });
 
     // 8. Knowledge Transfer card
     this.api.get<KnowledgeTransferResponse>(`employees/${id}/knowledge-transfer`, 'knowledge-transfer')
-      .subscribe({ next: r => this.knowledgeTransferData.set(r.data), error: () => {} });
+      .subscribe({
+        next:  r => { this.knowledgeTransferData.set(r.data); this.knowledgeTransferLoaded.set(true); },
+        error: () => this.knowledgeTransferLoaded.set(false),
+      });
   }
 
   goBack(): void {

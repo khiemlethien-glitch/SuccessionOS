@@ -1,5 +1,8 @@
 .assess-page{ display:flex; flex-direction:column; gap:20px; }
-.page-title { margin:0; font-size:20px; font-weight:700; color:#1e1b4b; }
+.page-header { display:flex; align-items:center; gap:10px; }
+.page-title  { margin:0; font-size:20px; font-weight:700; color:#1e1b4b; }
+.title-badge { background:#eef2ff; color:#4f46e5; border:1.5px solid #c7d2fe; font-size:11px; font-weight:700; padding:3px 8px; border-radius:12px; }
+.pending-badge { background:#fff7ed; color:#c2410c; border:1.5px solid #fed7aa; font-size:11px; font-weight:700; padding:3px 8px; border-radius:12px; }
 .assess-tabs {
   background:#fff; border-radius:10px; border:1px solid #f3f4f6;
   ::ng-deep .ant-tabs-nav { padding:0 20px; border-bottom:1px solid #f3f4f6; margin-bottom:0; }
@@ -32,3 +35,13 @@
 .history-score { display:flex; flex-direction:column; align-items:flex-end; }
 .ov-label   { font-size:10px; color:#9ca3af; text-transform:uppercase; }
 .ov-val     { font-size:20px; font-weight:800; }
+
+.score-preview-bar { margin-top:4px; }
+.form-summary { display:flex; align-items:center; gap:8px; margin:12px 0 8px; }
+.summary-lbl  { font-size:13px; color:#6b7280; }
+.summary-val  { font-size:22px; font-weight:800; }
+
+.hist-scores { display:flex; gap:12px; flex:1; justify-content:center; }
+.hist-dim    { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.hist-dim-lbl{ font-size:10px; color:#9ca3af; text-transform:uppercase; }
+.hist-dim-val{ font-size:13px; font-weight:700; }

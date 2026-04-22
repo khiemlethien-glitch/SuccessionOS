@@ -11,6 +11,8 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
 import {
   AuditLog, AuditLogListResponse,
@@ -57,7 +59,7 @@ interface EntityDef {
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
-    NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule],
+    NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // nz-drawer / nz-modal portal content to the body's cdk-overlay-container
@@ -387,7 +389,26 @@ export class AdminComponent implements OnInit {
 
   recentLogs = computed(() => this.logs().slice(0, 5));
 
-  constructor(private api: ApiService) {}
+  // ── VnR Sync ──────────────────────────────────────────────────────────────
+  syncing    = signal(false);
+  lastSyncAt = signal<string | null>(null);
+
+  syncVnR(): void {
+    this.syncing.set(true);
+    this.api.post<{ message: string; syncedAt: string }>('employees/sync', {}).subscribe({
+      next:  r => {
+        this.syncing.set(false);
+        this.lastSyncAt.set(r.syncedAt ?? new Date().toISOString());
+        this.msg.success('Đồng bộ dữ liệu VnR thành công!');
+      },
+      error: () => {
+        this.syncing.set(false);
+        this.msg.warning('Không thể kết nối backend — đang dùng mock data');
+      },
+    });
+  }
+
+  constructor(private api: ApiService, private msg: NzMessageService) {}
 
   ngOnInit(): void {
     let pending = 8;
@@ -397,7 +418,7 @@ export class AdminComponent implements OnInit {
     this.api.get<PositionListResponse>('positions','positions').subscribe({ next: r => { this.positions.set(r.data); done(); }, error: done });
     this.api.get<IdpListResponse>('idp-plans','idp-plans').subscribe({ next: r => { this.idpPlans.set(r.data); done(); }, error: done });
     this.api.get<AssessmentListResponse>('assessments','assessments').subscribe({ next: r => { this.assessments.set(r.data); done(); }, error: done });
-    this.api.get<SuccessionPlanListResponse>('succession-plans','succession-plans').subscribe({ next: r => { this.successions.set(r.data); done(); }, error: done });
+    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe({ next: r => { this.successions.set(r.data); done(); }, error: done });
     this.api.get<MentoringListResponse>('mentoring-pairs','mentoring-pairs').subscribe({ next: r => { this.mentorings.set(r.data); done(); }, error: done });
     this.api.get<CalibrationListResponse>('calibration-sessions','calibration-sessions').subscribe({ next: r => { this.calibrations.set(r.data); done(); }, error: done });
   }

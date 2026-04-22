@@ -198,8 +198,20 @@ export class PositionsComponent implements OnInit {
       successors: [],
       requiredCompetencies: this.selectedCompetencies().map(c => c.key),
     };
+    // Optimistic update — add locally immediately
     this.positions.update(list => [newPos, ...list]);
     this.msg.success(`Đã thêm vị trí "${newPos.title}"`);
     this.closeAddModal();
+
+    // Persist to backend (graceful degrade on mock)
+    this.api.post<{ data: KeyPosition }>('key-positions', newPos).subscribe({
+      next:  r => {
+        // Replace temp ID with server-assigned ID if backend returns one
+        if (r?.data?.id && r.data.id !== newPos.id) {
+          this.positions.update(list => list.map(p => p.id === newPos.id ? { ...p, id: r.data.id } : p));
+        }
+      },
+      error: () => { /* mock mode — local state is source of truth */ },
+    });
   }
 }

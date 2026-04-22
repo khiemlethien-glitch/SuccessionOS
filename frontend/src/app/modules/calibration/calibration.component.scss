@@ -18,3 +18,12 @@
 .notes-txt { font-size:12px; color:#6b7280; }
 .empty-session { padding:20px; text-align:center; color:#9ca3af; font-size:13px; }
 .session-actions { display:flex; gap:8px; padding:12px 20px; border-top:1px solid #f9fafb; }
+
+.title-badge { background:#eef2ff; color:#4f46e5; border:1.5px solid #c7d2fe; font-size:11px; font-weight:700; padding:3px 8px; border-radius:12px; }
+.empty-state { text-align:center; color:#9ca3af; padding:60px; font-style:italic; background:#fff; border-radius:10px; border:1px dashed #e5e7eb; }
+
+.modal-form  { display:flex; flex-direction:column; gap:14px; }
+.mf-field    { display:flex; flex-direction:column; gap:4px; }
+.mf-label    { font-size:12.5px; font-weight:600; color:#374151; }
+.required    { color:#ef4444; }
+.mf-actions  { display:flex; justify-content:flex-end; gap:8px; padding-top:4px; }

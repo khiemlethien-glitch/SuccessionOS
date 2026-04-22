@@ -26,9 +26,9 @@
           </div>
         </div>
         @if (m.status === 'active') {
-          <button nz-button nzType="link" nzDanger class="mod-action">Tắt</button>
+          <button nz-button nzType="link" nzDanger class="mod-action" (click)="toggleModule(m)">Tắt</button>
         } @else if (m.status === 'available') {
-          <button nz-button nzType="primary" class="mod-action btn-navy">Thêm</button>
+          <button nz-button nzType="primary" class="mod-action btn-navy" (click)="toggleModule(m)">Thêm</button>
         } @else {
           <button nz-button disabled class="mod-action">Sắp ra</button>
         }

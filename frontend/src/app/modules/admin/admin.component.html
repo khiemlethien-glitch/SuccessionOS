@@ -66,6 +66,26 @@
       </div>
 
       <div class="panel">
+        <h3 class="panel-title">Đồng bộ dữ liệu VnResource HRE</h3>
+        <div class="sync-card">
+          <div class="sync-info">
+            <span nz-icon nzType="sync" class="sync-icon"></span>
+            <div>
+              <div class="sync-desc">Kéo dữ liệu nhân viên từ VnR HRE và tính toán lại scores</div>
+              @if (lastSyncAt()) {
+                <div class="sync-last">Lần cuối: {{ lastSyncAt() | date:'dd/MM/yyyy HH:mm' }}</div>
+              } @else {
+                <div class="sync-last">Chưa sync lần nào trong phiên này</div>
+              }
+            </div>
+          </div>
+          <button nz-button nzType="primary" class="btn-navy" [nzLoading]="syncing()" (click)="syncVnR()">
+            <span nz-icon nzType="sync"></span> Đồng bộ VnR
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
         <h3 class="panel-title">Tóm tắt dữ liệu</h3>
         <div class="data-summary">
           @for (e of entities(); track e.key) {
