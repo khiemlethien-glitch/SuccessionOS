@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-22 10:16
+> Cập nhật lần cuối: 2026-04-22 15:30
 
 ---
 
@@ -16,7 +16,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 Staging:  https://succession-os-y6mt.vercel.app
 ```
 
-### Tiến độ tổng thể: ~76% ███████████████░░░░░
+### Tiến độ tổng thể: ~78% ███████████████░░░░░
 
 | Nhóm | Trạng thái | % |
 |---|---|---|
@@ -39,6 +39,26 @@ Staging:  https://succession-os-y6mt.vercel.app
 ---
 
 ## ✅ Đã hoàn thành
+
+### Backend API (.NET 8)
+- [x] **Prompt 1 — EmployeeExtension + SyncService (2026-04-22)**
+  - `backend/` — .NET 8 Web API project tạo mới, SQLite, EF Core 8.0.11
+  - `Domain/Entities/EmployeeExtension.cs` — Entity với JSON columns (Competencies, RiskReasons)
+  - `Infrastructure/Data/SuccessionDbContext.cs` — DbContext + OnModelCreating JSON config
+  - `Infrastructure/VnrHre/VnrHreClient.cs` — HttpClient SSL bypass, 7 methods (3 sync + 4 employee)
+  - `Application/Services/EmployeeSyncService.cs` — Công thức nội suy performance/potential/risk từ VnR data
+  - `API/Controllers/EmployeesController.cs` — `POST /sync` + `PATCH /{id}/scores`
+  - `Program.cs` — CORS, DI, EnsureCreated, camelCase JSON
+  - Build: ✅ 0 lỗi 0 warning
+
+- [x] **Prompt 2 — Employee List + Detail (2026-04-22)**
+  - `GET /api/v1/employees` — merge VnR profiles + EmployeeExtension, filter ?department= ?tier=
+  - `GET /api/v1/employees/{id}` — single employee với scores
+  - `GET /api/v1/departments` — lookup từ VnR cache (10 phút)
+  - `DepartmentsController.cs` — tạo mới
+  - Mapping: `"Core"→"Nòng cốt"`, `"1-2 Years"→"Ready in 1 Year"`, v.v. — đúng format frontend
+  - **5/5 frontend call đã CONNECTED** (dashboard, talent-list, succession, talent-profile ×2)
+  - Build: ✅ 0 lỗi 0 warning
 
 ### Bug Fixes
 - [x] **SSR Hydration Fix (2026-04-22)** — Fix triệt để `TypeError: Cannot read properties of null (reading 'hasAttribute')`:
@@ -218,6 +238,7 @@ Staging:  https://succession-os-y6mt.vercel.app
 ### Backend Integration
 - [ ] Wire real API khi .NET 8 backend sẵn sàng (useMock: false)
 - [x] ~~**P0**: Đổi endpoint strings~~ ✅ **DONE** — đã sửa 5 component files (dashboard, talent-list, talent-profile, positions, succession)
+- [x] ~~**P1**: Refactor talent-profile~~ ✅ **DONE** — fetch by ID, 8 endpoints riêng, signal() pattern, mock files
 - [ ] **P0**: Kết nối `GET /api/v1/me` thay vì đọc localStorage trong getCurrentUser()
 - [ ] **P1**: Refactor talent-profile — thay full-list-then-filter bằng `GET /employees/{id}`, `GET /assessments/{id}/latest`, `GET /idp/{id}/employee`
 - [ ] **P1**: Refactor dashboard — thay 3 full-list fetches bằng `GET /dashboard/kpi`
