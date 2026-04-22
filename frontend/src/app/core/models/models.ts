@@ -40,6 +40,18 @@ export interface RiskFactor {
 export interface TalentListResponse   { data: Talent[];    total: number; }
 export interface TalentDetailResponse { data: Talent; }
 
+// ── Dashboard KPI ─────────────────────────────────────────────────────────────
+export interface DashboardKpi {
+  totalTalents: number;
+  tierCounts: { 'Nòng cốt': number; 'Tiềm năng': number; 'Kế thừa': number; 'Chưa phân bổ': number };
+  positionsWithSuccessors: number;
+  positionsNoSuccessor: number;
+  highRiskTalents: number;
+  activeIdps: number;
+  avgIdpProgress: number;
+  topRisk: Array<{ id: string; riskScore: number; riskReasons: string[] }>;
+}
+
 // ── Career Review ─────────────────────────────────────────────────────────────
 export interface CareerReviewCategory { label: string; weight: number; score: number; }
 export interface CareerReview {

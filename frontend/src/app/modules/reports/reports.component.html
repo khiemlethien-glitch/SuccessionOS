@@ -9,12 +9,12 @@
 
   <nz-tabs nzType="line" class="rep-tabs">
 
-    <!-- Tổng quan -->
+    <!-- ── Tổng quan ─────────────────────────────────────────────────────── -->
     <nz-tab nzTitle="Tổng quan">
       <div class="kpi-row">
-        <div class="kpi-card"><nz-statistic [nzValue]="total"   nzTitle="Tổng nhân tài"></nz-statistic></div>
-        <div class="kpi-card"><nz-statistic [nzValue]="avgPerf" nzTitle="Hiệu suất TB" [nzSuffix]="'/100'"></nz-statistic></div>
-        <div class="kpi-card"><nz-statistic [nzValue]="avgRisk" nzTitle="Risk TB"      [nzSuffix]="'/100'"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="total"         nzTitle="Tổng nhân tài"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="avgPerf"       nzTitle="Hiệu suất TB"  [nzSuffix]="'/100'"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="avgRisk"       nzTitle="Risk TB"       [nzSuffix]="'/100'"></nz-statistic></div>
         <div class="kpi-card"><nz-statistic [nzValue]="idps().length" nzTitle="IDPs đang chạy"></nz-statistic></div>
       </div>
 
@@ -24,17 +24,20 @@
           <div class="tier-bars">
             <div class="tier-bar-row">
               <span class="tier-lbl">Nòng cốt</span>
-              <nz-progress [nzPercent]="total ? +(nongCot/total*100).toFixed(0) : 0" [nzStrokeColor]="'#4f46e5'" nzSize="small" style="flex:1"></nz-progress>
+              <nz-progress [nzPercent]="total ? +(nongCot/total*100).toFixed(0) : 0"
+                           [nzStrokeColor]="'#4f46e5'" nzSize="small" style="flex:1"></nz-progress>
               <span class="tier-count">{{ nongCot }} người</span>
             </div>
             <div class="tier-bar-row">
               <span class="tier-lbl">Tiềm năng</span>
-              <nz-progress [nzPercent]="total ? +(tiemNang/total*100).toFixed(0) : 0" [nzStrokeColor]="'#c2410c'" nzSize="small" style="flex:1"></nz-progress>
+              <nz-progress [nzPercent]="total ? +(tiemNang/total*100).toFixed(0) : 0"
+                           [nzStrokeColor]="'#c2410c'" nzSize="small" style="flex:1"></nz-progress>
               <span class="tier-count">{{ tiemNang }} người</span>
             </div>
             <div class="tier-bar-row">
               <span class="tier-lbl">Kế thừa</span>
-              <nz-progress [nzPercent]="total ? +(keaThua/total*100).toFixed(0) : 0" [nzStrokeColor]="'#15803d'" nzSize="small" style="flex:1"></nz-progress>
+              <nz-progress [nzPercent]="total ? +(keaThua/total*100).toFixed(0) : 0"
+                           [nzStrokeColor]="'#15803d'" nzSize="small" style="flex:1"></nz-progress>
               <span class="tier-count">{{ keaThua }} người</span>
             </div>
           </div>
@@ -46,7 +49,8 @@
             @for (idp of idps(); track idp.id) {
               <div class="idp-rep-row">
                 <span class="idp-rep-name">{{ idp.talentName }}</span>
-                <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'" nzSize="small" style="flex:1"></nz-progress>
+                <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'"
+                             nzSize="small" style="flex:1"></nz-progress>
                 <span class="idp-rep-pct">{{ idp.overallProgress }}%</span>
               </div>
             }
@@ -55,12 +59,160 @@
       </div>
     </nz-tab>
 
+    <!-- ── IDP Progress ──────────────────────────────────────────────────── -->
     <nz-tab nzTitle="IDP Progress">
-      <p class="coming-soon">Biểu đồ line chart tiến độ IDP theo tháng — coming soon</p>
+
+      <div class="kpi-row kpi-row-5">
+        <div class="kpi-card"><nz-statistic [nzValue]="idpTotal"       nzTitle="Tổng kế hoạch IDP"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="idpActive"      nzTitle="Đang thực hiện"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="idpCompleted"   nzTitle="Hoàn thành"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="idpPending"     nzTitle="Chờ phê duyệt"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="avgIdpProgress" nzTitle="Tiến độ TB" [nzSuffix]="'%'"></nz-statistic></div>
+      </div>
+
+      <!-- Status distribution bars -->
+      <div class="chart-card" style="margin-bottom:16px">
+        <div class="chart-title">Phân bổ trạng thái IDP</div>
+        <div class="tier-bars">
+          <div class="tier-bar-row">
+            <span class="tier-lbl">Đang thực hiện</span>
+            <nz-progress [nzPercent]="idpTotal ? +(idpActive/idpTotal*100).toFixed(0) : 0"
+                         [nzStrokeColor]="'#3b82f6'" nzSize="small" style="flex:1"></nz-progress>
+            <span class="tier-count">{{ idpActive }} kế hoạch</span>
+          </div>
+          <div class="tier-bar-row">
+            <span class="tier-lbl">Hoàn thành</span>
+            <nz-progress [nzPercent]="idpTotal ? +(idpCompleted/idpTotal*100).toFixed(0) : 0"
+                         [nzStrokeColor]="'#16a34a'" nzSize="small" style="flex:1"></nz-progress>
+            <span class="tier-count">{{ idpCompleted }} kế hoạch</span>
+          </div>
+          <div class="tier-bar-row">
+            <span class="tier-lbl">Chờ duyệt</span>
+            <nz-progress [nzPercent]="idpTotal ? +(idpPending/idpTotal*100).toFixed(0) : 0"
+                         [nzStrokeColor]="'#f59e0b'" nzSize="small" style="flex:1"></nz-progress>
+            <span class="tier-count">{{ idpPending }} kế hoạch</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Full IDP table -->
+      <nz-table #idpTable [nzData]="idps()" [nzShowPagination]="false" nzSize="small" class="rep-table">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th nzWidth="60px">Năm</th>
+            <th nzWidth="130px">Trạng thái</th>
+            <th nzWidth="90px" nzAlign="center">Số mục tiêu</th>
+            <th>Tiến độ</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (idp of idpTable.data; track idp.id) {
+            <tr>
+              <td>{{ idp.talentName }}</td>
+              <td>{{ idp.year }}</td>
+              <td><nz-tag [nzColor]="idpStatusColor(idp.status)">{{ idp.status }}</nz-tag></td>
+              <td nzAlign="center">{{ idp.goals.length }}</td>
+              <td>
+                <div class="prog-cell">
+                  <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'"
+                               nzSize="small" [nzShowInfo]="false" style="flex:1;min-width:80px"></nz-progress>
+                  <span class="prog-pct">{{ idp.overallProgress }}%</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
     </nz-tab>
+
+    <!-- ── Assessment ────────────────────────────────────────────────────── -->
     <nz-tab nzTitle="Assessment">
-      <p class="coming-soon">Radar chart năng lực toàn tổ chức — coming soon</p>
+
+      <div class="kpi-row">
+        <div class="kpi-card"><nz-statistic [nzValue]="assessmentCompletedCount" nzTitle="Đã hoàn thành"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="assessmentPendingCount"   nzTitle="Chờ đánh giá"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="avgOverall"               nzTitle="Điểm TB tổng thể" [nzSuffix]="'/100'"></nz-statistic></div>
+        <div class="kpi-card"><nz-statistic [nzValue]="assessments().length"     nzTitle="Tổng đợt đánh giá"></nz-statistic></div>
+      </div>
+
+      <div class="chart-section" style="margin-bottom:16px">
+        <div class="chart-card">
+          <div class="chart-title">Điểm năng lực trung bình (Completed)</div>
+          <div class="tier-bars" style="gap:16px">
+            <div class="tier-bar-row">
+              <span class="tier-lbl">Technical</span>
+              <nz-progress [nzPercent]="avgTechnical" [nzStrokeColor]="'#4f46e5'"
+                           nzSize="small" style="flex:1"></nz-progress>
+              <span class="tier-count score-val">{{ avgTechnical }}</span>
+            </div>
+            <div class="tier-bar-row">
+              <span class="tier-lbl">Leadership</span>
+              <nz-progress [nzPercent]="avgLeadership" [nzStrokeColor]="'#7c3aed'"
+                           nzSize="small" style="flex:1"></nz-progress>
+              <span class="tier-count score-val">{{ avgLeadership }}</span>
+            </div>
+            <div class="tier-bar-row">
+              <span class="tier-lbl">Communication</span>
+              <nz-progress [nzPercent]="avgCommunication" [nzStrokeColor]="'#0891b2'"
+                           nzSize="small" style="flex:1"></nz-progress>
+              <span class="tier-count score-val">{{ avgCommunication }}</span>
+            </div>
+            <div class="tier-bar-row">
+              <span class="tier-lbl">Strategic</span>
+              <nz-progress [nzPercent]="avgStrategic" [nzStrokeColor]="'#15803d'"
+                           nzSize="small" style="flex:1"></nz-progress>
+              <span class="tier-count score-val">{{ avgStrategic }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Top 5 nhân viên xuất sắc</div>
+          <div class="top-perf-list">
+            @for (a of topPerformers; track a.id; let i = $index) {
+              <div class="top-perf-row">
+                <span class="top-perf-rank">#{{ i + 1 }}</span>
+                <app-avatar [name]="a.talentName" [size]="28"></app-avatar>
+                <span class="top-perf-name">{{ a.talentName }}</span>
+                <span class="top-perf-score">{{ a.overallScore }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed assessment table -->
+      <nz-table #assTable [nzData]="completedAssessments" [nzShowPagination]="false"
+                nzSize="small" class="rep-table">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th nzWidth="80px">Kỳ</th>
+            <th nzWidth="90px" nzAlign="center">Technical</th>
+            <th nzWidth="90px" nzAlign="center">Leadership</th>
+            <th nzWidth="100px" nzAlign="center">Comm.</th>
+            <th nzWidth="90px" nzAlign="center">Strategic</th>
+            <th nzWidth="80px" nzAlign="center">Tổng</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of assTable.data; track a.id) {
+            <tr>
+              <td>{{ a.talentName }}</td>
+              <td>{{ a.period }}</td>
+              <td nzAlign="center">{{ a.scores.technical }}</td>
+              <td nzAlign="center">{{ a.scores.leadership }}</td>
+              <td nzAlign="center">{{ a.scores.communication }}</td>
+              <td nzAlign="center">{{ a.scores.strategicThinking }}</td>
+              <td nzAlign="center"><strong class="overall-score">{{ a.overallScore }}</strong></td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
     </nz-tab>
+
+    <!-- ── ROI ──────────────────────────────────────────────────────────── -->
     <nz-tab nzTitle="ROI">
       <p class="coming-soon">ROI phân tích chi phí phát triển — coming soon</p>
     </nz-tab>

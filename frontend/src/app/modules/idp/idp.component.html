@@ -3,58 +3,207 @@
     <h1 class="page-title">Kế hoạch IDP</h1>
     <span class="title-badge">{{ idps().length }}</span>
     <div class="filter-group">
-      <button nz-button [class.active-filter]="filter()==='all'"      (click)="filter.set('all')">Tất cả</button>
-      <button nz-button [class.active-filter]="filter()==='Active'"   (click)="filter.set('Active')">Đang thực hiện</button>
-      <button nz-button [class.active-filter]="filter()==='Completed'"(click)="filter.set('Completed')">Hoàn thành</button>
-      <button nz-button [class.active-filter]="filter()==='Pending'"  (click)="filter.set('Pending')">Chờ duyệt</button>
+      <button nz-button [class.active-filter]="filter()==='all'"       (click)="filter.set('all')">Tất cả</button>
+      <button nz-button [class.active-filter]="filter()==='Active'"    (click)="filter.set('Active')">Đang thực hiện</button>
+      <button nz-button [class.active-filter]="filter()==='Completed'" (click)="filter.set('Completed')">Hoàn thành</button>
+      <button nz-button [class.active-filter]="filter()==='Pending'"   (click)="filter.set('Pending')">Chờ duyệt</button>
     </div>
-    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto">
+    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto" (click)="openCreate()">
       <span nz-icon nzType="plus"></span> Tạo IDP
     </button>
   </div>
 
-  <nz-collapse [nzBordered]="false" class="idp-collapse">
-    @for (idp of filtered(); track idp.id) {
-      <nz-collapse-panel [nzHeader]="planHdr" [nzExtra]="extra">
+  @if (loading()) {
+    <div style="text-align:center;padding:60px"><nz-spin nzSimple nzSize="large"></nz-spin></div>
+  } @else {
+    <nz-collapse [nzBordered]="false" class="idp-collapse">
+      @for (idp of filtered(); track idp.id) {
+        <nz-collapse-panel [nzHeader]="planHdr" [nzExtra]="extra">
 
-        <ng-template #planHdr>
-          <div class="idp-hdr">
-            <app-avatar [name]="idp.talentName" [size]="32"></app-avatar>
-            <div class="idp-hdr-info">
-              <span class="idp-name">{{ idp.talentName }}</span>
-              <span class="idp-year">IDP {{ idp.year }}</span>
+          <ng-template #planHdr>
+            <div class="idp-hdr">
+              <app-avatar [name]="idp.talentName" [size]="32"></app-avatar>
+              <div class="idp-hdr-info">
+                <span class="idp-name">{{ idp.talentName }}</span>
+                <span class="idp-year">IDP {{ idp.year }}</span>
+                @if (idp.targetPosition) {
+                  <span class="idp-target">→ {{ idp.targetPosition }}</span>
+                }
+              </div>
+              <nz-tag [nzColor]="statusColor(idp.status)" class="status-tag">{{ idp.status }}</nz-tag>
+              <!-- Action buttons -->
+              <div class="idp-actions" (click)="$event.stopPropagation()">
+                <button nz-button nzSize="small" nzType="text" (click)="openEdit(idp)" nz-tooltip nzTooltipTitle="Chỉnh sửa">
+                  <span nz-icon nzType="edit"></span>
+                </button>
+                @if (idp.status === 'Pending') {
+                  <button nz-button nzSize="small" nzType="primary" class="btn-navy-sm" (click)="openApproval(idp)">
+                    <span nz-icon nzType="check-circle"></span> Duyệt
+                  </button>
+                }
+              </div>
             </div>
-            <nz-tag [nzColor]="statusColor(idp.status)" class="status-tag">{{ idp.status }}</nz-tag>
-          </div>
-        </ng-template>
+          </ng-template>
 
-        <ng-template #extra>
-          <div class="idp-progress-mini">
-            <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'" nzSize="small" [nzShowInfo]="false" style="width:80px"></nz-progress>
-            <span class="pct-mini">{{ idp.overallProgress }}%</span>
-          </div>
-        </ng-template>
+          <ng-template #extra>
+            <div class="idp-progress-mini">
+              <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'" nzSize="small" [nzShowInfo]="false" style="width:80px"></nz-progress>
+              <span class="pct-mini">{{ idp.overallProgress }}%</span>
+            </div>
+          </ng-template>
 
-        <div class="goal-list">
-          @for (g of idp.goals; track g.id) {
-            <div class="goal-item">
-              <div class="goal-row1">
-                <span class="goal-title">{{ g.title }}</span>
-                <div class="goal-tags">
-                  <nz-tag [nzColor]="typeColor(g.type)">{{ g.type }}</nz-tag>
-                  <nz-tag [nzColor]="goalStatusColor(g.status)">{{ g.status }}</nz-tag>
+          <div class="goal-list">
+            @for (g of idp.goals; track g.id) {
+              <div class="goal-item">
+                <div class="goal-row1">
+                  <span class="goal-title">{{ g.title }}</span>
+                  <div class="goal-tags">
+                    <nz-tag [nzColor]="typeColor(g.type)">{{ g.type }}</nz-tag>
+                    <nz-tag [nzColor]="goalStatusColor(g.status)">{{ g.status }}</nz-tag>
+                  </div>
                 </div>
+                <div class="goal-row2">
+                  <span class="goal-deadline">Deadline: {{ g.deadline }}</span>
+                  @if (g.mentor) { <span class="goal-mentor">Mentor: {{ g.mentor }}</span> }
+                </div>
+                <nz-progress [nzPercent]="g.progress" nzSize="small" [nzStrokeColor]="'#4f46e5'"></nz-progress>
               </div>
-              <div class="goal-row2">
-                <span class="goal-deadline">Deadline: {{ g.deadline }}</span>
-                @if (g.mentor) { <span class="goal-mentor">Mentor: {{ g.mentor }}</span> }
-              </div>
-              <nz-progress [nzPercent]="g.progress" nzSize="small" [nzStrokeColor]="'#4f46e5'"></nz-progress>
-            </div>
-          }
+            }
+          </div>
+
+        </nz-collapse-panel>
+      }
+      @empty {
+        <div class="empty-state">Không có kế hoạch IDP nào phù hợp.</div>
+      }
+    </nz-collapse>
+  }
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     CREATE / EDIT DRAWER
+     ══════════════════════════════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="showCreateDrawer()"
+  [nzTitle]="drawerTitle"
+  [nzWidth]="560"
+  nzPlacement="right"
+  (nzOnClose)="showCreateDrawer.set(false)"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-form">
+
+      <div class="df-section">
+        <label class="df-label">Nhân viên <span class="required">*</span></label>
+        <input nz-input placeholder="Họ và tên nhân viên"
+               [ngModel]="draftName()" (ngModelChange)="draftName.set($event)" />
+      </div>
+
+      <div class="df-row">
+        <div class="df-section df-half">
+          <label class="df-label">Năm</label>
+          <nz-input-number style="width:100%" [ngModel]="draftYear()" (ngModelChange)="draftYear.set($event)"
+                           [nzMin]="2024" [nzMax]="2030" [nzStep]="1"></nz-input-number>
+        </div>
+        <div class="df-section df-half">
+          <label class="df-label">Vị trí mục tiêu</label>
+          <input nz-input placeholder="VD: Trưởng phòng Kỹ thuật"
+                 [ngModel]="draftTargetPos()" (ngModelChange)="draftTargetPos.set($event)" />
+        </div>
+      </div>
+
+      <nz-divider nzText="Mục tiêu phát triển" nzOrientation="left"></nz-divider>
+
+      @for (g of draftGoals(); track $index) {
+        <div class="goal-draft">
+          <div class="gd-header">
+            <span class="gd-num">Mục tiêu {{ $index + 1 }}</span>
+            @if (draftGoals().length > 1) {
+              <button nz-button nzType="text" nzDanger nzSize="small" (click)="removeGoal($index)">
+                <span nz-icon nzType="delete"></span>
+              </button>
+            }
+          </div>
+          <input nz-input placeholder="Tiêu đề mục tiêu" class="gd-input"
+                 [ngModel]="g.title" (ngModelChange)="updateGoalField($index, 'title', $event)" />
+          <div class="gd-row">
+            <nz-select style="flex:1" [ngModel]="g.type" (ngModelChange)="updateGoalField($index, 'type', $event)">
+              @for (t of goalTypes; track t) {
+                <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
+              }
+            </nz-select>
+            <input nz-input type="date" style="flex:1"
+                   [ngModel]="g.deadline" (ngModelChange)="updateGoalField($index, 'deadline', $event)" />
+          </div>
+        </div>
+      }
+
+      <button nz-button nzType="dashed" style="width:100%; margin-top:8px" (click)="addGoal()">
+        <span nz-icon nzType="plus"></span> Thêm mục tiêu
+      </button>
+
+      <nz-divider></nz-divider>
+
+      <div class="df-actions">
+        <button nz-button (click)="showCreateDrawer.set(false)">Hủy</button>
+        <button nz-button nzType="primary" class="btn-navy" (click)="submitIdp()">
+          {{ editingIdp() ? 'Lưu thay đổi' : 'Tạo IDP' }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<!-- ══════════════════════════════════════════════════════════════
+     APPROVAL MODAL
+     ══════════════════════════════════════════════════════════════ -->
+<nz-modal
+  [nzVisible]="showApprovalModal()"
+  nzTitle="Quy trình phê duyệt IDP"
+  [nzFooter]="null"
+  [nzWidth]="600"
+  nzCentered
+  (nzOnCancel)="showApprovalModal.set(false)"
+>
+  <ng-container *nzModalContent>
+    @if (approvalIdp(); as idp) {
+      <div class="approval-hero">
+        <app-avatar [name]="idp.talentName" [size]="40"></app-avatar>
+        <div>
+          <div class="ah-name">{{ idp.talentName }}</div>
+          <div class="ah-meta">IDP {{ idp.year }} — {{ idp.goals.length }} mục tiêu</div>
+        </div>
+      </div>
+
+      <nz-steps [nzCurrent]="approvalStep()" nzSize="small" style="margin: 20px 0">
+        @for (s of approvalSteps(); track s.role; let i = $index) {
+          <nz-step [nzTitle]="s.role" [nzStatus]="approvalStepStatus(i)"
+                   [nzDescription]="s.approver"></nz-step>
+        }
+      </nz-steps>
+
+      <div class="approval-step-card">
+        <div class="asc-role">{{ approvalSteps()[approvalStep()].role }}</div>
+        <div class="asc-approver">
+          <span nz-icon nzType="user" nzTheme="outline"></span>
+          {{ approvalSteps()[approvalStep()].approver }}
         </div>
 
-      </nz-collapse-panel>
+        <textarea nz-input rows="3" placeholder="Nhận xét (tùy chọn)..."
+                  [ngModel]="approvalSteps()[approvalStep()].note"
+                  (ngModelChange)="approvalSteps.update(ss => ss.map((s,i)=> i===approvalStep() ? {...s,note:$event} : s))"
+                  style="margin: 12px 0; width: 100%"></textarea>
+
+        <div class="asc-actions">
+          <button nz-button nzDanger (click)="rejectStep(approvalSteps()[approvalStep()].note)">
+            <span nz-icon nzType="close-circle"></span> Từ chối
+          </button>
+          <button nz-button nzType="primary" class="btn-navy" (click)="approveStep()">
+            <span nz-icon nzType="check-circle"></span>
+            {{ approvalStep() < 2 ? 'Phê duyệt & chuyển tiếp' : 'Xác nhận hoàn tất' }}
+          </button>
+        </div>
+      </div>
     }
-  </nz-collapse>
-</div>
+  </ng-container>
+</nz-modal>

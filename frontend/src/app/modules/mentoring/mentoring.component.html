@@ -2,51 +2,209 @@
   <div class="page-header">
     <h1 class="page-title">Kèm cặp &amp; Cố vấn</h1>
     <span class="title-badge">{{ pairs().length }}</span>
-    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto">
+    <button nz-button nzType="primary" class="btn-navy" style="margin-left:auto" (click)="openCreate()">
       <span nz-icon nzType="plus"></span> Tạo cặp kèm cặp
     </button>
   </div>
 
-  <div class="pair-grid">
-    @for (p of pairs(); track p.id) {
-      <div class="pair-card">
-        <div class="pair-status-row">
-          <nz-tag [nzColor]="statusColor(p.status)">{{ p.status }}</nz-tag>
-          <span class="pair-dates">{{ p.startDate }} → {{ p.endDate }}</span>
-        </div>
+  @if (loading()) {
+    <div style="text-align:center;padding:60px"><nz-spin nzSimple nzSize="large"></nz-spin></div>
+  } @else {
+    <div class="pair-grid">
+      @for (p of pairs(); track p.id) {
+        <div class="pair-card">
+          <div class="pair-status-row">
+            <nz-tag [nzColor]="statusColor(p.status)">{{ p.status }}</nz-tag>
+            <span class="pair-dates">{{ p.startDate }} → {{ p.endDate }}</span>
+          </div>
 
-        <div class="pair-people">
-          <div class="person">
-            <app-avatar [name]="p.mentorName" [size]="40"></app-avatar>
-            <div class="person-info">
-              <span class="person-name">{{ p.mentorName }}</span>
-              <span class="person-role">Mentor</span>
+          <div class="pair-people">
+            <div class="person">
+              <app-avatar [name]="p.mentorName" [size]="40"></app-avatar>
+              <div class="person-info">
+                <span class="person-name">{{ p.mentorName }}</span>
+                <span class="person-role">Mentor</span>
+              </div>
+            </div>
+            <span nz-icon nzType="arrow-right" class="arrow-icon"></span>
+            <div class="person">
+              <app-avatar [name]="p.menteeName" [size]="40"></app-avatar>
+              <div class="person-info">
+                <span class="person-name">{{ p.menteeName }}</span>
+                <span class="person-role">Mentee</span>
+              </div>
             </div>
           </div>
-          <span nz-icon nzType="arrow-right" class="arrow-icon"></span>
-          <div class="person">
-            <app-avatar [name]="p.menteeName" [size]="40"></app-avatar>
-            <div class="person-info">
-              <span class="person-name">{{ p.menteeName }}</span>
-              <span class="person-role">Mentee</span>
-            </div>
+
+          <div class="focus-row">
+            <span nz-icon nzType="bulb" class="focus-icon"></span>
+            <span class="focus-txt">{{ p.focus }}</span>
+          </div>
+
+          <div class="session-row">
+            <span class="session-label">Buổi gặp: {{ p.sessionsCompleted }}/{{ p.sessionsTotal }}</span>
+            <nz-progress [nzPercent]="progress(p)" [nzStrokeColor]="'#4f46e5'" [nzShowInfo]="false" nzSize="small" style="flex:1"></nz-progress>
+          </div>
+
+          @if (p.nextSession) {
+            <div class="next-session">Buổi tiếp theo: <strong>{{ p.nextSession }}</strong></div>
+          }
+
+          <div class="card-footer-actions">
+            <button nz-button nzSize="small" nzType="text" (click)="openLogbook(p)"
+                    nz-tooltip nzTooltipTitle="Xem lịch sử buổi gặp">
+              <span nz-icon nzType="book"></span>
+              Lịch sử buổi gặp
+              @if (sessionCount(p.id) > 0) {
+                <span class="session-badge">{{ sessionCount(p.id) }}</span>
+              }
+            </button>
           </div>
         </div>
+      }
 
-        <div class="focus-row">
-          <span nz-icon nzType="bulb" class="focus-icon"></span>
-          <span class="focus-txt">{{ p.focus }}</span>
-        </div>
-
-        <div class="session-row">
-          <span class="session-label">Buổi gặp: {{ p.sessionsCompleted }}/{{ p.sessionsTotal }}</span>
-          <nz-progress [nzPercent]="progress(p)" [nzStrokeColor]="'#4f46e5'" [nzShowInfo]="false" nzSize="small" style="flex:1"></nz-progress>
-        </div>
-
-        @if (p.nextSession) {
-          <div class="next-session">Buổi tiếp theo: <strong>{{ p.nextSession }}</strong></div>
-        }
-      </div>
-    }
-  </div>
+      @empty {
+        <div class="empty-state">Chưa có cặp kèm cặp nào.</div>
+      }
+    </div>
+  }
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     CREATE PAIR DRAWER
+     ══════════════════════════════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="showCreateDrawer()"
+  nzTitle="Tạo cặp kèm cặp mới"
+  [nzWidth]="500"
+  nzPlacement="right"
+  (nzOnClose)="showCreateDrawer.set(false)"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-form">
+
+      <div class="df-section">
+        <label class="df-label">Mentor <span class="required">*</span></label>
+        <input nz-input placeholder="Họ và tên Mentor"
+               [ngModel]="draftMentorName()" (ngModelChange)="draftMentorName.set($event)" />
+      </div>
+
+      <div class="df-section">
+        <label class="df-label">Mentee <span class="required">*</span></label>
+        <input nz-input placeholder="Họ và tên Mentee"
+               [ngModel]="draftMenteeName()" (ngModelChange)="draftMenteeName.set($event)" />
+      </div>
+
+      <div class="df-section">
+        <label class="df-label">Lĩnh vực phát triển <span class="required">*</span></label>
+        <textarea nz-input rows="2" placeholder="VD: Phát triển kỹ năng lãnh đạo chiến lược"
+                  [ngModel]="draftFocus()" (ngModelChange)="draftFocus.set($event)"></textarea>
+      </div>
+
+      <div class="df-row">
+        <div class="df-section df-half">
+          <label class="df-label">Ngày bắt đầu</label>
+          <input nz-input type="date"
+                 [ngModel]="draftStartDate()" (ngModelChange)="draftStartDate.set($event)" />
+        </div>
+        <div class="df-section df-half">
+          <label class="df-label">Ngày kết thúc</label>
+          <input nz-input type="date"
+                 [ngModel]="draftEndDate()" (ngModelChange)="draftEndDate.set($event)" />
+        </div>
+      </div>
+
+      <div class="df-section">
+        <label class="df-label">Tổng số buổi gặp dự kiến</label>
+        <nz-input-number style="width:100%"
+                         [ngModel]="draftSessions()" (ngModelChange)="draftSessions.set($event)"
+                         [nzMin]="1" [nzMax]="52" [nzStep]="1"></nz-input-number>
+      </div>
+
+      <nz-divider></nz-divider>
+
+      <div class="df-actions">
+        <button nz-button (click)="showCreateDrawer.set(false)">Hủy</button>
+        <button nz-button nzType="primary" class="btn-navy" (click)="submitPair()">
+          Tạo cặp kèm cặp
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LOGBOOK DRAWER
+     ══════════════════════════════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="showLogbook()"
+  nzTitle="Lịch sử buổi gặp"
+  [nzWidth]="540"
+  nzPlacement="right"
+  (nzOnClose)="showLogbook.set(false)"
+>
+  <ng-container *nzDrawerContent>
+    @if (logbookPair(); as pair) {
+      <div class="logbook-pair-hdr">
+        <app-avatar [name]="pair.mentorName" [size]="36"></app-avatar>
+        <div class="lb-meta">
+          <span class="lb-names">{{ pair.mentorName }} → {{ pair.menteeName }}</span>
+          <span class="lb-focus">{{ pair.focus }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-bottom:12px">
+        <button nz-button nzType="primary" class="btn-navy" nzSize="small"
+                (click)="showLogForm.set(!showLogForm())">
+          <span nz-icon nzType="plus"></span> Ghi log buổi mới
+        </button>
+      </div>
+
+      @if (showLogForm()) {
+        <div class="log-form">
+          <div class="log-form-row">
+            <div>
+              <label class="df-label">Ngày gặp <span class="required">*</span></label>
+              <input nz-input type="date" [ngModel]="logDate()" (ngModelChange)="logDate.set($event)" />
+            </div>
+            <div>
+              <label class="df-label">Hành động tiếp theo</label>
+              <input nz-input placeholder="Next action..."
+                     [ngModel]="logNextAction()" (ngModelChange)="logNextAction.set($event)" />
+            </div>
+          </div>
+          <div>
+            <label class="df-label">Nội dung buổi gặp <span class="required">*</span></label>
+            <textarea nz-input rows="3" placeholder="Tóm tắt những gì đã thảo luận..."
+                      [ngModel]="logSummary()" (ngModelChange)="logSummary.set($event)"></textarea>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end">
+            <button nz-button nzSize="small" (click)="showLogForm.set(false)">Hủy</button>
+            <button nz-button nzType="primary" class="btn-navy" nzSize="small" (click)="addSessionLog()">
+              Lưu log
+            </button>
+          </div>
+        </div>
+        <nz-divider></nz-divider>
+      }
+
+      @if (logbookSessions().length === 0) {
+        <div class="no-sessions">Chưa có buổi gặp nào được ghi nhận.</div>
+      } @else {
+        <div class="session-list">
+          @for (s of logbookSessions(); track s.date + $index) {
+            <div class="session-item">
+              <span class="si-date">{{ s.date }}</span>
+              <span class="si-summary">{{ s.summary }}</span>
+              @if (s.nextAction) {
+                <span class="si-next">
+                  <span nz-icon nzType="arrow-right"></span> {{ s.nextAction }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </ng-container>
+</nz-drawer>
