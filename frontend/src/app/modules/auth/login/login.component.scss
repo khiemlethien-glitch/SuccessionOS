@@ -454,6 +454,28 @@
   font-size: 12px;
 }
 
+// ── Spinner khi đang redirect sang VnR SSO ──────────────────────────────────
+.sso-redirecting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0 32px;
+  gap: 16px;
+}
+.sso-redirecting-msg {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+.sso-redirecting-sub {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+// ── SSO Button (primary — full size) ────────────────────────────────────────
 .btn-sso {
   width: 100%;
   display: flex;
@@ -478,7 +500,57 @@
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
   }
 
-  &:active {
-    transform: scale(0.98);
+  &:active { transform: scale(0.98); }
+
+  // Variant: larger, more prominent for SSO-first flow
+  &.btn-sso-primary {
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-color: #4CAF50;
+    background: #f0fdf4;
+    color: #166534;
+    box-shadow: 0 2px 12px rgba(76,175,80,.12);
+    margin-top: 8px;
+
+    &:hover {
+      background: #dcfce7;
+      box-shadow: 0 4px 20px rgba(76,175,80,.2);
+      transform: translateY(-1px);
+    }
   }
+}
+
+// ── Dev fallback (details/summary, ẩn trong production) ─────────────────────
+.dev-fallback {
+  margin-top: 16px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dev-fallback-toggle {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+
+  &::-webkit-details-marker { display: none; }
+  &::before { content: '▶ '; font-size: 10px; margin-right: 4px; }
+
+  details[open] & {
+    background: #f9fafb;
+    &::before { content: '▼ '; }
+  }
+}
+.dev-fallback-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fafafa;
 }

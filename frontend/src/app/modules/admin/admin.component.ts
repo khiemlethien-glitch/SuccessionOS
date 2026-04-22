@@ -14,6 +14,9 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
+import { EmployeeService } from '../../core/services/data/employee.service';
+import { KeyPositionService } from '../../core/services/data/key-position.service';
+import { IdpService } from '../../core/services/data/idp.service';
 import {
   AuditLog, AuditLogListResponse,
   Talent, TalentListResponse,
@@ -122,7 +125,7 @@ export class AdminComponent implements OnInit {
       formulas: [
         { name: 'Overall Score',   expression: 'round((performance + potential + max(competencies)) / 3)', note: 'Dùng cho điểm tổng hợp trên profile' },
         { name: 'Risk vs Dept Avg', expression: 'round(((talent.risk - avg(dept.risk)) / avg(dept.risk)) × 100)', note: 'Hiện trong alert strip' },
-        { name: 'Readiness Gap',   expression: 'target.requiredScore − current.overallScore', note: 'Càng thấp càng sẵn sàng' },
+        { name: 'Readiness Gap',   expression: 'target.requiredScore − current.overall_score', note: 'Càng thấp càng sẵn sàng' },
       ],
       sort: [
         { field: 'overallScore', order: 'desc', note: 'Mặc định danh sách nhân tài' },
@@ -390,37 +393,78 @@ export class AdminComponent implements OnInit {
   recentLogs = computed(() => this.logs().slice(0, 5));
 
   // ── VnR Sync ──────────────────────────────────────────────────────────────
-  syncing    = signal(false);
-  lastSyncAt = signal<string | null>(null);
+  syncing        = signal(false);
+  lastSyncAt     = signal<string | null>(null);
+  syncProfilesN  = signal<number | null>(null);
+  syncEndpoints  = signal<Record<string, string> | null>(null);
 
   syncVnR(): void {
     this.syncing.set(true);
-    this.api.post<{ message: string; syncedAt: string }>('employees/sync', {}).subscribe({
+    this.syncEndpoints.set(null);
+    this.api.post<{
+      message: string;
+      syncedAt: string;
+      profiles?: number;
+      endpoints?: Record<string, string>;
+      error?: string;
+    }>('employees/sync', {}).subscribe({
       next:  r => {
         this.syncing.set(false);
         this.lastSyncAt.set(r.syncedAt ?? new Date().toISOString());
-        this.msg.success('Đồng bộ dữ liệu VnR thành công!');
+        this.syncProfilesN.set(r.profiles ?? null);
+        this.syncEndpoints.set(r.endpoints ?? null);
+        this.msg.success(`Đồng bộ xong — ${r.profiles ?? 0} nhân viên`);
       },
-      error: () => {
+      error: (err) => {
         this.syncing.set(false);
-        this.msg.warning('Không thể kết nối backend — đang dùng mock data');
+        const body = err?.error;
+        if (body?.error === 'vnr_auth_failed') {
+          this.msg.error('Chưa đăng nhập VnR — vui lòng đăng nhập qua SSO trước rồi thử lại');
+        } else if (body?.message) {
+          this.msg.error(body.message);
+        } else {
+          this.msg.warning('Không thể kết nối backend — vui lòng kiểm tra backend đang chạy');
+        }
       },
     });
   }
 
-  constructor(private api: ApiService, private msg: NzMessageService) {}
+  endpointEntries(endpoints: Record<string, string> | null): { key: string; value: string }[] {
+    if (!endpoints) return [];
+    return Object.entries(endpoints).map(([key, value]) => ({ key, value }));
+  }
 
-  ngOnInit(): void {
-    let pending = 8;
+  constructor(
+    private api: ApiService,
+    private empSvc: EmployeeService,
+    private posSvc: KeyPositionService,
+    private idpSvc: IdpService,
+    private msg: NzMessageService,
+  ) {}
+
+  async ngOnInit(): Promise<void> {
+    // 3 calls dùng Supabase; 5 calls còn lại dùng ApiService mock
+    try {
+      const [employees, positions, idps] = await Promise.all([
+        this.empSvc.getAll(),
+        this.posSvc.getAll(),
+        this.idpSvc.getAll(),
+      ]);
+      this.talents.set(employees as unknown as Talent[]);
+      this.positions.set(positions as unknown as KeyPosition[]);
+      this.idpPlans.set(idps as unknown as IdpPlan[]);
+    } catch (e) {
+      console.error('Admin Supabase load error:', e);
+    }
+
+    // Mock-only calls (audit-logs, assessments, mentoring, calibration, succession)
+    let pending = 5;
     const done = () => { if (--pending === 0) this.loading.set(false); };
-    this.api.get<AuditLogListResponse>('audit-logs','audit-logs').subscribe({ next: r => { this.logs.set(r.data); done(); }, error: done });
-    this.api.get<TalentListResponse>('talents','talents').subscribe({ next: r => { this.talents.set(r.data); done(); }, error: done });
-    this.api.get<PositionListResponse>('positions','positions').subscribe({ next: r => { this.positions.set(r.data); done(); }, error: done });
-    this.api.get<IdpListResponse>('idp-plans','idp-plans').subscribe({ next: r => { this.idpPlans.set(r.data); done(); }, error: done });
-    this.api.get<AssessmentListResponse>('assessments','assessments').subscribe({ next: r => { this.assessments.set(r.data); done(); }, error: done });
-    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe({ next: r => { this.successions.set(r.data); done(); }, error: done });
-    this.api.get<MentoringListResponse>('mentoring-pairs','mentoring-pairs').subscribe({ next: r => { this.mentorings.set(r.data); done(); }, error: done });
-    this.api.get<CalibrationListResponse>('calibration-sessions','calibration-sessions').subscribe({ next: r => { this.calibrations.set(r.data); done(); }, error: done });
+    this.api.get<AuditLogListResponse>('audit-logs', 'audit-logs').subscribe({ next: r => { this.logs.set(r.data); done(); }, error: done });
+    this.api.get<AssessmentListResponse>('assessments', 'assessments').subscribe({ next: r => { this.assessments.set(r.data); done(); }, error: done });
+    this.api.get<SuccessionPlanListResponse>('succession/plans', 'succession-plans').subscribe({ next: r => { this.successions.set(r.data); done(); }, error: done });
+    this.api.get<MentoringListResponse>('mentoring-pairs', 'mentoring-pairs').subscribe({ next: r => { this.mentorings.set(r.data); done(); }, error: done });
+    this.api.get<CalibrationListResponse>('calibration-sessions', 'calibration-sessions').subscribe({ next: r => { this.calibrations.set(r.data); done(); }, error: done });
   }
 
   // ── Tab control

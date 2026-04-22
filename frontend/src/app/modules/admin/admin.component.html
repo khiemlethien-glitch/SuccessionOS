@@ -66,14 +66,19 @@
       </div>
 
       <div class="panel">
-        <h3 class="panel-title">Đồng bộ dữ liệu VnResource HRE</h3>
+        <h3 class="panel-title">Đồng bộ dữ liệu VnResource HRE + SCC</h3>
         <div class="sync-card">
           <div class="sync-info">
             <span nz-icon nzType="sync" class="sync-icon"></span>
             <div>
-              <div class="sync-desc">Kéo dữ liệu nhân viên từ VnR HRE và tính toán lại scores</div>
+              <div class="sync-desc">
+                Kéo dữ liệu nhân viên từ VnR HRE (điểm, hợp đồng) và SCC (Tier, NineBox, Readiness)
+              </div>
               @if (lastSyncAt()) {
-                <div class="sync-last">Lần cuối: {{ lastSyncAt() | date:'dd/MM/yyyy HH:mm' }}</div>
+                <div class="sync-last">
+                  Lần cuối: {{ lastSyncAt() | date:'dd/MM/yyyy HH:mm' }}
+                  @if (syncProfilesN() !== null) { · {{ syncProfilesN() }} nhân viên }
+                </div>
               } @else {
                 <div class="sync-last">Chưa sync lần nào trong phiên này</div>
               }
@@ -83,6 +88,15 @@
             <span nz-icon nzType="sync"></span> Đồng bộ VnR
           </button>
         </div>
+        @if (syncEndpoints()) {
+          <div class="sync-endpoints">
+            @for (ep of endpointEntries(syncEndpoints()); track ep.key) {
+              <span class="sync-ep" [class.ep-ok]="ep.value.startsWith('✅')" [class.ep-wait]="ep.value.startsWith('⏳')">
+                <b>{{ ep.key }}</b>: {{ ep.value }}
+              </span>
+            }
+          </div>
+        }
       </div>
 
       <div class="panel">
@@ -135,7 +149,7 @@
           </div>
         </div>
 
-        <nz-table [nzData]="filteredRows()" [nzPageSize]="10" [nzLoading]="loading()" class="data-table">
+        <nz-table ngSkipHydration [nzData]="filteredRows()" [nzPageSize]="10" [nzLoading]="loading()" class="data-table">
           <thead><tr>
             @for (c of currentEntity().columns; track c.key) {
               <th [style.width]="c.width">{{ c.label }}</th>
@@ -191,7 +205,7 @@
         </button>
       </div>
 
-      <nz-table [nzData]="users()" [nzPageSize]="10" class="data-table">
+      <nz-table ngSkipHydration [nzData]="users()" [nzPageSize]="10" class="data-table">
         <thead><tr>
           <th nzWidth="140px">Username</th>
           <th>Họ tên</th>
@@ -261,7 +275,7 @@
         </div>
       </div>
 
-      <nz-table [nzData]="logs()" [nzLoading]="loading()" [nzPageSize]="10" class="data-table audit-tbl">
+      <nz-table ngSkipHydration [nzData]="logs()" [nzLoading]="loading()" [nzPageSize]="10" class="data-table audit-tbl">
         <thead><tr>
           <th nzWidth="170px">Thời gian</th>
           <th nzWidth="140px">Actor</th>

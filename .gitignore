@@ -15,3 +15,10 @@
 # Angular environments (chứa OIDC clientSecret — KHÔNG commit)
 frontend/src/environments/environment.ts
 frontend/src/environments/environment.prod.ts
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# .NET build artifacts
+backend/bin/
+backend/obj/

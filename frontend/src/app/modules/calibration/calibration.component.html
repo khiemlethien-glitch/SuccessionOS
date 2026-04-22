@@ -25,7 +25,7 @@
         </div>
 
         @if (s.calibrations.length) {
-          <nz-table [nzData]="s.calibrations" [nzShowPagination]="false" nzSize="small" class="calib-tbl">
+          <nz-table ngSkipHydration [nzData]="s.calibrations" [nzShowPagination]="false" nzSize="small" class="calib-tbl">
             <thead><tr>
               <th nzWidth="180px">Nhân viên ID</th>
               <th nzAlign="center">Hiệu suất trước</th>
@@ -36,13 +36,13 @@
               <th>Ghi chú</th>
             </tr></thead>
             <tbody>
-              @for (c of s.calibrations; track c.talentId) {
+              @for (c of s.calibrations; track c.talent_id) {
                 <tr>
-                  <td class="talent-id">{{ c.talentId }}</td>
-                  <td nzAlign="center">{{ c.performanceBefore }}</td>
-                  <td nzAlign="center" [class.changed]="c.performanceBefore !== c.performanceAfter">{{ c.performanceAfter }}</td>
-                  <td nzAlign="center">{{ c.potentialBefore }}</td>
-                  <td nzAlign="center" [class.changed]="c.potentialBefore !== c.potentialAfter">{{ c.potentialAfter }}</td>
+                  <td class="talent-id">{{ c.talent_id }}</td>
+                  <td nzAlign="center">{{ c.performance_before }}</td>
+                  <td nzAlign="center" [class.changed]="c.performance_before !== c.performance_after">{{ c.performance_after }}</td>
+                  <td nzAlign="center">{{ c.potential_before }}</td>
+                  <td nzAlign="center" [class.changed]="c.potential_before !== c.potential_after">{{ c.potential_after }}</td>
                   <td nzAlign="center"><span class="box-badge">{{ c.box }}</span></td>
                   <td class="notes-txt">{{ c.notes || '—' }}</td>
                 </tr>

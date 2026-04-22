@@ -61,13 +61,13 @@
 
       <!-- Username -->
       <div class="field">
-        <label class="field-label">Tên đăng nhập</label>
+        <label class="field-label">Email</label>
         <nz-input-group [nzPrefix]="userIco" class="field-input">
           <input
             nz-input
-            placeholder="Email / Mã nhân viên / CCCD"
-            [ngModel]="username()"
-            (ngModelChange)="username.set($event)"
+            placeholder="Email đăng nhập"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
           />
         </nz-input-group>
         <ng-template #userIco><span nz-icon nzType="user" class="pfx-ico"></span></ng-template>
@@ -113,7 +113,7 @@
       }
 
       <!-- Submit -->
-      <button class="btn-submit" (click)="loginFake()">
+      <button class="btn-submit" (click)="login()">
         <span>Đăng nhập</span>
         <span nz-icon nzType="arrow-right" class="btn-submit-ico"></span>
       </button>
@@ -122,7 +122,7 @@
       <nz-divider nzText="hoặc" class="sso-divider"></nz-divider>
 
       <!-- SSO Button -->
-      <button class="btn-sso" (click)="loginWithVnR()">
+      <button class="btn-sso" (click)="loginWithGoogle()">
         <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
           <circle cx="20" cy="13" r="6" fill="#4CAF50"/>
           <ellipse cx="12" cy="28" rx="6" ry="6" fill="#2E7D32"/>

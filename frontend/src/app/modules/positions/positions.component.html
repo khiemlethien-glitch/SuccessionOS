@@ -49,7 +49,7 @@
   <!-- ── Position cards grid ─────────────────────────── -->
   <div class="pos-grid">
     @for (p of positions(); track p.id) {
-      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.criticalLevel)">
+      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.critical_level)">
         <div class="card-accent"></div>
 
         <!-- Header -->
@@ -62,16 +62,16 @@
             </div>
           </div>
           <span class="crit-pill">
-            @if (p.criticalLevel === 'Critical') { <span nz-icon nzType="alert"></span> }
-            {{ p.criticalLevel }}
+            @if (p.critical_level === 'Critical') { <span nz-icon nzType="alert"></span> }
+            {{ p.critical_level }}
           </span>
         </div>
 
         <!-- Current holder -->
         <div class="card-holder">
-          <app-avatar [name]="p.currentHolder" [size]="38"></app-avatar>
+          <app-avatar [name]="p.current_holder" [size]="38"></app-avatar>
           <div class="holder-meta">
-            <div class="holder-name">{{ p.currentHolder }}</div>
+            <div class="holder-name">{{ p.current_holder }}</div>
             <div class="holder-sub">Đương nhiệm · {{ p.department }}</div>
           </div>
         </div>
@@ -79,18 +79,18 @@
         <!-- Stats strip -->
         <div class="card-stats">
           <div class="cs-cell">
-            <div class="cs-val">{{ p.successorCount }}</div>
+            <div class="cs-val">{{ p.successor_count }}</div>
             <div class="cs-lbl">Kế thừa</div>
           </div>
           <div class="cs-div"></div>
           <div class="cs-cell">
-            <div class="cs-val cs-green">{{ p.readyNowCount }}</div>
+            <div class="cs-val cs-green">{{ p.ready_now_count }}</div>
             <div class="cs-lbl">Sẵn sàng</div>
           </div>
           <div class="cs-div"></div>
           <div class="cs-cell">
             <div class="cs-val">
-              <span class="risk-mini" [ngClass]="'risk-' + riskToneOf(p.riskLevel)">{{ p.riskLevel }}</span>
+              <span class="risk-mini" [ngClass]="'risk-' + riskToneOf(p.risk_level)">{{ p.risk_level }}</span>
             </div>
             <div class="cs-lbl">Rủi ro</div>
           </div>
@@ -99,10 +99,10 @@
         <!-- Successors -->
         @if (getPlan(p.id)?.successors?.length) {
           <div class="succ-list">
-            @for (s of getPlan(p.id)!.successors; track s.talentId) {
+            @for (s of getPlan(p.id)!.successors; track s.talent_id) {
               <div class="succ-row">
-                <app-avatar [name]="s.talentName" [size]="24"></app-avatar>
-                <span class="succ-name">{{ s.talentName }}</span>
+                <app-avatar [name]="s.talent_name" [size]="24"></app-avatar>
+                <span class="succ-name">{{ s.talent_name }}</span>
                 <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">
                   {{ readinessLabel(s.readiness) }}
                 </span>
@@ -195,8 +195,8 @@
             nz-input
             class="m-input"
             placeholder="Họ tên người đang giữ vị trí"
-            [ngModel]="draft().currentHolder"
-            (ngModelChange)="updateDraft('currentHolder', $event)"
+            [ngModel]="draft().current_holder"
+            (ngModelChange)="updateDraft('current_holder', $event)"
           />
         </div>
       </div>
@@ -211,8 +211,8 @@
             <button
               type="button"
               class="crit-seg-btn"
-              [ngClass]="['cs-' + opt.tone, draft().criticalLevel === opt.value ? 'is-active' : '']"
-              (click)="updateDraft('criticalLevel', opt.value)"
+              [ngClass]="['cs-' + opt.tone, draft().critical_level === opt.value ? 'is-active' : '']"
+              (click)="updateDraft('critical_level', opt.value)"
             >
               {{ opt.label }}
             </button>

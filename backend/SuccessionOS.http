@@ -1,0 +1,6 @@
+@SuccessionOS_HostAddress = http://localhost:5157
+
+GET {{SuccessionOS_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

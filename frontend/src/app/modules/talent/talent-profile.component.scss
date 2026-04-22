@@ -696,3 +696,82 @@
 .empty-msg  { color:#9ca3af; padding:20px 0; }
 .timeline   { padding-top:8px; }
 .tl-date    { font-weight:600; color:#374151; }
+
+/* ───────────── AI Insight card ───────────── */
+.ai-card {
+  background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 60%, #f0f9ff 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 14px;
+  padding: 24px 28px;
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(139,92,246,.06) 0%, rgba(99,102,241,.04) 100%);
+    pointer-events: none;
+  }
+}
+
+.ai-card-head { margin-bottom: 16px; }
+
+.ai-card-title-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+
+.ai-robot { font-size: 22px; line-height: 1; }
+
+.ai-card-title {
+  font-size: 16px; font-weight: 700; color: #4c1d95; margin: 0;
+}
+
+.ai-badge {
+  margin-left: auto;
+  background: linear-gradient(90deg, #7c3aed, #4f46e5);
+  color: #fff;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 999px;
+  letter-spacing: .3px;
+}
+
+.ai-card-sub {
+  font-size: 12px; color: #7c3aed; margin: 0; opacity: .8;
+}
+
+.ai-loading {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 0; color: #6d28d9; font-size: 13px;
+}
+.ai-loading-text { font-style: italic; color: #7c3aed; }
+
+.ai-content {
+  font-size: 14px; color: #1e1b4b; line-height: 1.7;
+
+  ::ng-deep .ai-heading {
+    font-size: 13px; font-weight: 700; color: #5b21b6;
+    text-transform: uppercase; letter-spacing: .5px;
+    margin: 16px 0 6px;
+    padding-left: 10px;
+    border-left: 3px solid #7c3aed;
+    &:first-child { margin-top: 0; }
+  }
+
+  ::ng-deep .ai-list {
+    margin: 6px 0 10px 16px; padding: 0;
+    li { margin-bottom: 4px; color: #374151; }
+  }
+
+  ::ng-deep .ai-p {
+    margin: 6px 0; color: #374151;
+  }
+
+  ::ng-deep strong { color: #4c1d95; }
+}
+
+.ai-empty {
+  display: flex; align-items: center; gap: 10px;
+  color: #9ca3af; font-size: 13px; padding: 16px 0;
+}
+.ai-empty-icon { font-size: 20px; }

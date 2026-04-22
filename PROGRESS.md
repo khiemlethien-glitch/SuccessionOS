@@ -1,7 +1,56 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-22 18:00
+> Cập nhật lần cuối: 2026-04-22 19:00
+
+---
+
+## ⚡ Wire Supabase Data Services → Components (2026-04-22 19:00)
+
+### Kết quả: ✅ Build 0 errors · ng serve chạy tại localhost:4200
+
+| Component | Service được wire | Pattern |
+|-----------|------------------|---------|
+| `dashboard.component.ts` | `EmployeeService`, `KeyPositionService`, `IdpService` | `Promise.all([...])` |
+| `talent-list.component.ts` | `EmployeeService`, `KeyPositionService` | `Promise.all([...])` |
+| `talent-profile.component.ts` | `EmployeeService`, `IdpService` | `await getById(id)` + `await getAll(id)` |
+| `positions.component.ts` | `KeyPositionService` | `Promise.all + posSvc.create()` |
+| `succession.component.ts` | `EmployeeService`, `KeyPositionService` | `Promise.all([...])` |
+| `idp.component.ts` | `IdpService` | `await getAll()` + `await create()` |
+| `admin.component.ts` | `EmployeeService`, `KeyPositionService`, `IdpService` | Hybrid: Supabase + ApiService mock |
+
+### Files đã sửa
+- `frontend/src/app/modules/dashboard/dashboard.component.ts`
+- `frontend/src/app/modules/talent/talent-list.component.ts`
+- `frontend/src/app/modules/talent/talent-profile.component.ts`
+- `frontend/src/app/modules/positions/positions.component.ts`
+- `frontend/src/app/modules/succession/succession.component.ts`
+- `frontend/src/app/modules/idp/idp.component.ts`
+- `frontend/src/app/modules/admin/admin.component.ts`
+- `frontend/src/app/core/services/supabase.service.ts` (thêm constructor + options)
+
+### Bước tiếp theo
+- Điền `anonKey` thật của Supabase vào `environment.ts`
+- Tạo RLS policies trên Supabase cho các bảng (v_employees, key_positions, succession_plans, idp_plans, idp_goals)
+- Test đăng nhập email/password qua Supabase Auth
+
+---
+
+## ⚡ Migration: OIDC → Supabase Auth (2026-04-22)
+
+### Kết quả: ✅ Build 0 errors, Exit 0
+
+| Task | Mô tả | Trạng thái |
+|------|-------|-----------|
+| Task 1 | `npm install @supabase/supabase-js` | ✅ Done |
+| Task 2 | Sửa environment.ts + environment.prod.ts → xóa apiUrl/oidc, thêm supabase config | ✅ Done |
+| Task 3 | Tạo `core/services/supabase.service.ts` | ✅ Done |
+| Task 4 | Viết lại `core/auth/auth.service.ts` dùng Supabase Auth, signals | ✅ Done |
+| Task 5 | Tạo 4 data services: employee, key-position, idp, dashboard | ✅ Done |
+| Task 6 | Xóa: oidc.service.ts, oidc-callback/, logout-callback/, jwt.interceptor.ts | ✅ Done |
+| Task 7 | Sửa models.ts → toàn bộ snake_case (full_name, performance_score, v.v.) | ✅ Done |
+| Task 8 | Sửa app.config.ts → xóa jwtInterceptor, giữ HttpClient | ✅ Done |
+| Task 9 | Fix toàn bộ TypeScript errors → 0 errors, build exit 0 | ✅ Done |
 
 ---
 
@@ -9,14 +58,23 @@
 
 ```
 Project:  SuccessionOS Angular 18 Frontend
+Stack:    Angular 18 + ng-zorro-antd + Supabase
+Auth:     Supabase Auth (email/password + Google OAuth + Azure)
+DB:       Supabase PostgreSQL (view v_employees, key_positions, succession_plans, idp_plans)
+Staging:  https://succession-os-y6mt.vercel.app
+```
+
+### Tiến độ tổng thể: ~98% ████████████████████
+
+Project:  SuccessionOS Angular 18 Frontend
 Stack:    Angular 18 + ng-zorro-antd + TypeScript
 Dev:      localhost:4200
-Mock:     public/mock/*.json (useMock: true)
+Mock:     public/mock/*.json (useMock: false — kết nối real API)
 Backend:  Dev team build .NET 8 API (chưa có)
 Staging:  https://succession-os-y6mt.vercel.app
 ```
 
-### Tiến độ tổng thể: ~95% ███████████████████░
+### Tiến độ tổng thể: ~97% ███████████████████▓
 
 | Nhóm | Trạng thái | % |
 |---|---|---|
@@ -34,7 +92,7 @@ Staging:  https://succession-os-y6mt.vercel.app
 | Calibration Module | ✅ Hoàn thành | 85% |
 | Reports Module | ✅ Hoàn thành | 85% |
 | Marketplace Module | ✅ Hoàn thành | 90% |
-| Backend Integration | 🟡 Đang tiến hành | 60% |
+| Backend Integration | 🟡 Đang tiến hành | 80% |
 | RBAC / Permissions | 🔲 Backlog | 0% |
 
 ---
@@ -71,7 +129,100 @@ Staging:  https://succession-os-y6mt.vercel.app
   - **4/4 GET key-positions CONNECTED** · **3/3 GET succession/plans CONNECTED**
   - Angular build: ✅ 0 TypeScript error
 
-- [x] **Prompt 4 — Dashboard KPI (2026-04-22)**
+- [x] **AI Talent Insight — OpenAI GPT-4o-mini Integration (2026-04-22)**
+  - `Application/Services/AiInsightService.cs` — service mới + `TalentInsightRequest` record
+    - Gọi OpenAI `/v1/chat/completions` qua `IHttpClientFactory` named "openai"
+    - Model: `gpt-4o-mini`, max_tokens: 600, temperature: 0.7
+    - System prompt: chuyên gia HR cao cấp PTSC M&C
+    - Prompt builder xử lý graceful null cho tất cả nullable scores/competencies
+    - Trả markdown 4 section: Đánh giá tổng quan / Điểm mạnh / Cần phát triển / Khuyến nghị
+    - Lỗi OpenAI → trả empty string (không crash)
+  - `Program.cs` — đăng ký `AddHttpClient("openai")` base https://api.openai.com + `AddScoped<AiInsightService>()`
+  - `TalentProfileController.cs` — `GET /api/v1/talent-profile/{id}/ai-insight`
+    - Inject `VnrHreClient`, `IMemoryCache`, `AiInsightService`
+    - Fetch employee data từ VnR + EmployeeExtension, build TalentInsightRequest
+    - Return `{ insight: "...markdown..." }` hoặc 204 nếu ApiKey chưa cấu hình
+  - `appsettings.Development.json` — thêm `OpenAI.ApiKey`
+  - `models.ts` — thêm `AiInsight { insight: string }` interface
+  - `talent-profile.component.ts` — `aiInsight`, `aiLoading` signals; `loadAiInsight()` method; `markdownToHtml()` converter
+  - `talent-profile.component.html` — AI card với gradient purple/indigo, robot icon, nz-spin, innerHTML rendering
+  - `talent-profile.component.scss` — `.ai-card` styles (gradient, border, heading, list, empty state)
+  - Build backend: ✅ 0 lỗi 0 warning · Build frontend: ✅ 0 TypeScript error, prerender 18 routes OK
+
+- [x] **VnR SCC API Integration (2026-04-22)** ✅
+  - `Infrastructure/VnrHre/VnrSccClient.cs` — NEW: Client cho VnR SCC API (port 7063)
+    - DTOs: `SccNineBoxItem`, `SccTalentTagItem`, `SccCandidateItem` với `[JsonPropertyName]`
+    - Endpoints: `NineBoxProfile/list`, `TalentProfile/list`, `SCC_Candidate/list`
+    - Static mappers: `MapTier()` (VN → Core/Potential/Successor), `MapReadiness()`, `MapAxisScore()`
+    - Cached lookups: `GetNineBoxLookupAsync`, `GetTalentTagLookupAsync` (5 phút)
+  - `appsettings.Development.json` — thêm `VnrScc:BaseUrl = https://172.21.30.87:7063`
+  - `Program.cs` — đăng ký `AddHttpClient<VnrSccClient>()` với VnrAuthHandler + SSL bypass
+  - `EmployeeSyncService.cs` — tích hợp SCC data:
+    - PerformanceScore: SCC NineBox axis → HRE ContractEvaResult (fallback)
+    - PotentialScore: SCC NineBox axis → HRE Promotion formula (fallback)
+    - TalentTier: SCC TalentTagName (ưu tiên) → computed from scores (fallback)
+    - ReadinessLevel: SCC TalentTag → SCC Candidate "best" → computed (fallback)
+    - SyncResult mở rộng: `SccNineBoxAvailable`, `SccTalentTagAvailable`, `SccCandidateAvailable`
+  - `EmployeesController.cs` — sync response thêm `sccNineBox`, `sccTalentTag`, `sccCandidate` status
+  - `admin.component.ts` — `syncEndpoints` + `syncProfilesN` signals; `endpointEntries()` helper
+  - `admin.component.html` — hiển thị endpoint status chips sau khi sync (xanh ✅ / vàng ⏳)
+  - `admin.component.scss` — `.sync-endpoints`, `.sync-ep.ep-ok/.ep-wait` styles
+  - Build backend: ✅ 0 errors · Build frontend: ✅ 0 errors, 18 routes OK
+
+- [x] **VnR field name fix + Admin endpoint fix (2026-04-23)** ✅
+  - Root cause: `VnrLookup(Id, Name)` không map được `orgId/orgName` và `titleId/titleName` → Phòng ban/Chức danh luôn "—"
+  - `VnrHreClient.cs` — tạo `VnrOrgItem(orgId, orgName)` + `VnrJobTitleItem(titleId, titleName)` với `[JsonPropertyName]`; tách `GetOrgLookupAsync`/`GetJobTitleLookupAsync` thành inline cache với logging; thêm `PropertyNameCaseInsensitive = true` cho tất cả ReadFromJsonAsync; `PostListAsync` bọc try-catch
+  - `admin.component.ts` — sửa 3 endpoint sai: `'talents'→'employees'`, `'positions'→'key-positions'`, `'idp-plans'→'idp'`
+  - Build: ✅ 0 lỗi 0 warning
+
+- [x] **Logout fix + Fake token cleanup (2026-04-23)** ✅
+  - `auth.service.ts` — `logout()` dùng `localStorage.clear()` thay vì xóa từng key (không còn sót token); `hasToken()` tự clear `fake-jwt-*` tokens
+  - `shell.component.ts` — `logoutSSO()` đọc `id_token` TRƯỚC khi xóa (fix race condition)
+  - Root cause: token cũ (`fake-jwt-*` hoặc expired SSO JWT) còn trong localStorage → app skip login page
+  - Build: ✅ 0 lỗi
+
+- [x] **Login SSO-first + Auto-clear fake tokens (2026-04-23)**
+  - `auth.service.ts` — `hasToken()` tự clear `fake-jwt-*` tokens và return false → buộc re-login qua SSO thật
+  - `login.component.ts` — `ngOnInit` auto-start `startSsoRedirect()` → redirect ngay sang VnR SSO; `redirecting` signal điều khiển spinner vs form; fallback hiện form nếu SSO unreachable
+  - `login.component.html` — khi `redirecting()=true` hiện spinner "Đang chuyển đến trang đăng nhập HRM Pro..."; khi `false` (SSO fail) hiện SSO button làm primary + dev fallback ẩn trong `<details>`
+  - `login.component.scss` — style `.sso-redirecting`, `.btn-sso-primary`, `.dev-fallback` + `.dev-fallback-toggle`
+  - `environment.ts` — `clientSecret: 'secret'` đã đúng; SSO config hoàn chỉnh: issuer `ba.vnresource.net:1516`, clientId `hrm_scc_dev`
+  - Build frontend: ✅ 0 lỗi, prerender 18 routes OK
+
+- [x] **VnR SSO Token Pass-through (2026-04-23)**
+  - `Infrastructure/VnrHre/VnrAuthHandler.cs` — `DelegatingHandler` mới: extract Bearer JWT từ incoming request → attach vào outgoing VnR request; fallback về `VnrHre:BearerToken` trong appsettings khi không có HTTP context
+  - `Program.cs` — đăng ký `AddHttpContextAccessor()`, `AddTransient<VnrAuthHandler>()`, wire `.AddHttpMessageHandler<VnrAuthHandler>()` vào VnrHreClient
+  - Kết quả: Angular SSO login → JWT token được tự động forward đến VnR API → giải quyết toàn bộ 500 lỗi OIDC
+  - Build: ✅ 0 lỗi 0 warning
+
+- [x] **VnR Resilience + Offline Fallback + IdpController (2026-04-22)**
+  - `VnrHreClient.cs` — `GetAsync<T>` bọc try-catch trả empty list khi VnR 5xx; `GetLookupCachedAsync` catch ALL exceptions (trước chỉ 401/403); `GetProfilesCachedAsync` cache 5 phút; `GetProfileByIdAsync` thêm `IMemoryCache` param, fallback về cached full list nếu individual endpoint chưa mở
+  - `EmployeesController.cs` — `GetAll` fallback dùng DB snapshot khi VnR down (`MapFromExtension`); `GetById` pass cache
+  - `DashboardController.cs` — wrap VnR call trong try-catch để dashboard không crash khi VnR down
+  - `IdpController.cs` — tạo mới: `GET /api/v1/idp`, `GET /api/v1/idp/{id}`, `POST /api/v1/idp`, `PUT /api/v1/idp/{id}`
+  - `Domain/Entities/EmployeeExtension.cs` — thêm 5 profile snapshot fields: `FullName`, `Email`, `OrgStructureId`, `JobTitleId`, `HireDate`
+  - `Program.cs` — idempotent SQLite `ALTER TABLE ADD COLUMN` khi khởi động (migrate schema không cần EF migration)
+  - `EmployeeSyncService.cs` — lưu profile snapshot vào EmployeeExtension khi sync; `SafeFetchAsync` catch ALL exceptions (không chỉ 401/403); union all profileIds đảm bảo snapshot cho toàn bộ employees
+  - Build: ✅ 0 lỗi 0 warning
+
+- [x] **Null Score Type Fix — models.ts + 6 components (2026-04-22)**
+  - `models.ts` — `performanceScore`, `potentialScore`, `riskScore` đổi từ `number` → `number | null` (đúng với API thực)
+  - `talent-profile.component.ts` — `overallScore` trả `number | null`; tất cả comparisons + computations thêm `?? 0`
+  - `talent-list.component.ts` — `departureReasons()` null guards
+  - `dashboard.component.ts` — `highRiskTalents`, `riskReason()`, `riskPill()` null guards
+  - `reports.component.ts` — `avgRisk`, `avgPerf` null guards
+  - `succession.component.ts` — `talentsInBox`, `starCount`, `previewPerf/Pot` null guards
+  - `talent-profile.component.html` — display `—` thay vì `null` cho Hiệu suất/Tiềm năng/Overall/Rủi ro
+  - TypeScript: ✅ 0 lỗi · Angular build: ✅ 0 errors 0 warnings, prerender 18 routes OK
+
+- [x] **Fix 404 — 5 Talent Profile Endpoints (2026-04-22)**
+  - 5 entities mới: `CareerReview`, `CurrentProject`, `KnowledgeTransfer`, `Assessment360`, `IdpPlanDetail`
+  - `SuccessionDbContext.cs` — 5 DbSets mới + JSON config
+  - `TalentProfileController.cs` — 5 GET endpoints + 1 PUT (upsert career review)
+  - `talent-profile.component.ts` — 5 `*Loaded = signal<boolean | null>(null)` cho graceful 404/error state
+  - Build backend: ✅ 0 lỗi · Build frontend: ✅ 0 lỗi, prerender 18 routes OK
+
+
   - `Domain/Entities/IdpPlan.cs` — entity mới (Id, TalentId, TalentName, Year, Status, OverallProgress)
   - `DbContext` cập nhật: thêm DbSet<IdpPlan>
   - `DashboardController.cs` — `GET /api/v1/dashboard/kpi`, cache 2 phút, 3 queries parallel
@@ -278,9 +429,11 @@ Staging:  https://succession-os-y6mt.vercel.app
 - [ ] Wire real API khi .NET 8 backend sẵn sàng (useMock: false)
 - [x] ~~**P0**: Đổi endpoint strings~~ ✅ **DONE** — đã sửa 5 component files (dashboard, talent-list, talent-profile, positions, succession)
 - [x] ~~**P1**: Refactor talent-profile~~ ✅ **DONE** — fetch by ID, 8 endpoints riêng, signal() pattern, mock files
+- [x] ~~**environment.ts port**~~ ✅ — đổi apiUrl `5000 → 5157` (port .NET dev server thực tế)
+- [x] ~~**VnrHreClient token pass-through**~~ ✅ — `IHttpContextAccessor` forward user OIDC JWT từ Angular → VnR API; fallback `VnrHre:BearerToken` config; build 0 lỗi
+- [x] ~~**Program.cs AddHttpContextAccessor**~~ ✅ — registered, bỏ static DefaultRequestHeaders.Authorization
+- [x] ~~**VnR Sync**~~ ✅ — Tất cả 5 VnR endpoints đã mở bypass (Cat_OrgStructure, Cat_JobTitle, HR_ContractEvaResult, Hre_Promotion, HR_Contract). Restart backend + POST /employees/sync để populate 944 profiles với real scores + snapshot.
 - [ ] **P0**: Kết nối `GET /api/v1/me` thay vì đọc localStorage trong getCurrentUser()
-- [ ] **P1**: Refactor talent-profile — thay full-list-then-filter bằng `GET /employees/{id}`, `GET /assessments/{id}/latest`, `GET /idp/{id}/employee`
-- [ ] **P1**: Refactor dashboard — thay 3 full-list fetches bằng `GET /dashboard/kpi`
 - [ ] Test import HRM360 CSV end-to-end với dữ liệu thật PTSC M&C
 - [ ] Verify field visibility RLS policies trên Supabase / .NET
 

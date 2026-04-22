@@ -1,33 +1,42 @@
-export type TalentTier = 'Nòng cốt' | 'Tiềm năng' | 'Kế thừa';
+// ── Enums / Literal types ─────────────────────────────────────────────────────
+export type TalentTier    = 'Nòng cốt' | 'Tiềm năng' | 'Kế thừa';
 export type ReadinessLevel = 'Ready Now' | 'Ready in 1 Year' | 'Ready in 2 Years';
 export type PotentialLevel = 'Very High' | 'High' | 'Medium' | 'Low';
-export type RiskLevel = 'High' | 'Medium' | 'Low';
+export type RiskLevel     = 'High' | 'Medium' | 'Low';
 export type CriticalLevel = 'Critical' | 'High' | 'Medium' | 'Low';
 
+// ── Talent / Employee ─────────────────────────────────────────────────────────
 export interface Talent {
   id: string;
-  fullName: string;
+  full_name: string;
   position: string;
   department: string;
-  talentTier: TalentTier;
-  potentialLevel: PotentialLevel;
-  performanceScore: number;
-  potentialScore: number;
-  riskScore: number;
-  yearsOfExperience: number;
-  readinessLevel: ReadinessLevel;
+  department_id?: string;
+  talent_tier: TalentTier;
+  potential_level: PotentialLevel;
+  performance_score: number | null;
+  potential_score: number | null;
+  risk_score: number | null;
+  years_of_experience: number;
+  readiness_level: ReadinessLevel;
   email: string;
-  competencies?: { technical: number; leadership: number; communication: number; problemSolving: number; adaptability: number };
-  competencyTargets?: { technical: number; performance: number; behavior: number; potential: number; leadership: number };
-  hireDate?: string;
-  tenureYears?: number;
-  ktpProgress?: number;
-  overallScore?: number;
+  competencies?: {
+    technical: number; leadership: number; communication: number;
+    problem_solving: number; adaptability: number;
+  };
+  competency_targets?: {
+    technical: number; performance: number; behavior: number;
+    potential: number; leadership: number;
+  };
+  hire_date?: string;
+  tenure_years?: number;
+  ktp_progress?: number;
+  overall_score?: number;
   mentor?: string | null;
-  targetPosition?: string;
-  riskReasons?: string[];
-  riskFactors?: RiskFactor[];
-  departureReasons?: string[];
+  target_position?: string;
+  risk_reasons?: string[];
+  risk_factors?: RiskFactor[];
+  departure_reasons?: string[];
 }
 
 export interface RiskFactor {
@@ -37,19 +46,23 @@ export interface RiskFactor {
   source: string;
   date: string;
 }
-export interface TalentListResponse   { data: Talent[];    total: number; }
+
+export interface TalentListResponse   { data: Talent[];  total: number; }
 export interface TalentDetailResponse { data: Talent; }
 
 // ── Dashboard KPI ─────────────────────────────────────────────────────────────
 export interface DashboardKpi {
-  totalTalents: number;
-  tierCounts: { 'Nòng cốt': number; 'Tiềm năng': number; 'Kế thừa': number; 'Chưa phân bổ': number };
-  positionsWithSuccessors: number;
-  positionsNoSuccessor: number;
-  highRiskTalents: number;
-  activeIdps: number;
-  avgIdpProgress: number;
-  topRisk: Array<{ id: string; riskScore: number; riskReasons: string[] }>;
+  total_talents: number;
+  tier_counts: {
+    'Nòng cốt': number; 'Tiềm năng': number;
+    'Kế thừa': number; 'Chưa phân bổ': number;
+  };
+  positions_with_successors: number;
+  positions_no_successor: number;
+  high_risk_talents: number;
+  active_idps: number;
+  avg_idp_progress: number;
+  top_risk: Array<{ id: string; risk_score: number; risk_reasons: string[] }>;
 }
 
 // ── Career Review ─────────────────────────────────────────────────────────────
@@ -59,8 +72,8 @@ export interface CareerReview {
   categories: CareerReviewCategory[];
   overall: number;
   strengths: string[];
-  needsDev: string[];
-  managerNote: string;
+  needs_dev: string[];
+  manager_note: string;
 }
 export interface CareerReviewResponse { data: CareerReview; }
 
@@ -74,9 +87,9 @@ export interface CurrentProjectResponse { data: CurrentProject; }
 // ── Knowledge Transfer ────────────────────────────────────────────────────────
 export interface KnowledgeTransferItem { title: string; category: string; status: string; progress: number; }
 export interface KnowledgeTransfer {
-  successor: string; successorRole: string;
-  startDate: string; targetDate: string;
-  overallProgress: number;
+  successor: string; successor_role: string;
+  start_date: string; target_date: string;
+  overall_progress: number;
   items: KnowledgeTransferItem[];
 }
 export interface KnowledgeTransferResponse { data: KnowledgeTransfer; }
@@ -89,70 +102,74 @@ export interface Assessment360 {
   sources: Assessment360Source[];
   criteria: Assessment360Criteria[];
   strengths: string[];
-  needsDev: string[];
-  managerNote: string;
+  needs_dev: string[];
+  manager_note: string;
 }
 export interface Assessment360Response { data: Assessment360; }
 
+// ── Key Position ──────────────────────────────────────────────────────────────
 export interface KeyPosition {
-  id: string; title: string; department: string; currentHolder: string;
-  successorCount: number; readyNowCount: number;
-  riskLevel: RiskLevel; criticalLevel: CriticalLevel;
+  id: string; title: string; department: string; current_holder: string;
+  successor_count: number; ready_now_count: number;
+  risk_level: RiskLevel; critical_level: CriticalLevel;
   successors: string[];
-  requiredCompetencies: string[];
-  /** Nearest key-position parent in the org tree. Null for root. */
-  parentId?: string | null;
+  required_competencies: string[];
+  parent_id?: string | null;
 }
 export interface PositionListResponse { data: KeyPosition[]; total: number; }
 
+// ── Succession ────────────────────────────────────────────────────────────────
 export interface Successor {
-  talentId: string; talentName: string;
-  readiness: ReadinessLevel; priority: number; gapScore: number;
+  talent_id: string; talent_name: string;
+  readiness: ReadinessLevel; priority: number; gap_score: number;
 }
 export interface SuccessionPlan {
-  id: string; positionId: string; positionTitle: string; department: string;
+  id: string; position_id: string; position_title: string; department: string;
   successors: Successor[];
 }
 export interface SuccessionPlanListResponse { data: SuccessionPlan[]; total: number; }
 
+// ── IDP ───────────────────────────────────────────────────────────────────────
 export interface IdpGoal {
   id: string; title: string; category: string; type: string;
   deadline: string; status: string; progress: number; mentor: string | null;
 }
 export interface IdpPlan {
-  id: string; talentId: string; talentName: string;
-  year: number; status: string; overallProgress: number; goals: IdpGoal[];
-  // Narrative fields — trả về từ GET /idp/{id}/employee
-  targetPosition?: string;
-  approvedBy?: string;
-  approvedDate?: string;
-  goals12m?: string[];
-  goals2to3y?: string[];
+  id: string; talent_id: string; talent_name: string;
+  year: number; status: string; overall_progress: number; goals: IdpGoal[];
+  target_position?: string;
+  approved_by?: string;
+  approved_date?: string;
+  goals_12m?: string[];
+  goals_2to3y?: string[];
 }
 export interface IdpListResponse   { data: IdpPlan[]; total: number; }
 export interface IdpDetailResponse { data: IdpPlan; }
 
+// ── Assessment ────────────────────────────────────────────────────────────────
 export interface AssessmentScores {
-  technical: number; leadership: number; communication: number; strategicThinking: number;
+  technical: number; leadership: number; communication: number; strategic_thinking: number;
 }
 export interface Assessment {
-  id: string; talentId: string; talentName: string;
-  period: string; assessorCount: number; scores: AssessmentScores;
-  overallScore: number; status: string;
+  id: string; talent_id: string; talent_name: string;
+  period: string; assessor_count: number; scores: AssessmentScores;
+  overall_score: number; status: string;
 }
 export interface AssessmentListResponse   { data: Assessment[]; total: number; }
 export interface AssessmentDetailResponse { data: Assessment; }
 
+// ── Mentoring ─────────────────────────────────────────────────────────────────
 export interface MentoringPair {
-  id: string; mentorId: string; mentorName: string; menteeId: string; menteeName: string;
-  focus: string; startDate: string; endDate: string; status: string;
-  sessionsCompleted: number; sessionsTotal: number; nextSession: string | null;
+  id: string; mentor_id: string; mentor_name: string; mentee_id: string; mentee_name: string;
+  focus: string; start_date: string; end_date: string; status: string;
+  sessions_completed: number; sessions_total: number; next_session: string | null;
 }
 export interface MentoringListResponse { data: MentoringPair[]; total: number; }
 
+// ── Calibration ───────────────────────────────────────────────────────────────
 export interface CalibrationEntry {
-  talentId: string; performanceBefore: number; performanceAfter: number;
-  potentialBefore: number; potentialAfter: number; box: number; notes: string;
+  talent_id: string; performance_before: number; performance_after: number;
+  potential_before: number; potential_after: number; box: number; notes: string;
 }
 export interface CalibrationSession {
   id: string; title: string; facilitator: string; date: string;
@@ -160,14 +177,19 @@ export interface CalibrationSession {
 }
 export interface CalibrationListResponse { data: CalibrationSession[]; total: number; }
 
+// ── Audit Log ─────────────────────────────────────────────────────────────────
 export interface AuditLog {
   id: string; timestamp: string; actor: string; action: string;
-  entity: string; entityId: string | null; description: string; module: string;
+  entity: string; entity_id: string | null; description: string; module: string;
 }
 export interface AuditLogListResponse { data: AuditLog[]; total: number; }
 
+// ── Marketplace Module ────────────────────────────────────────────────────────
 export interface AppModule {
   id: string; name: string; description: string; category: string;
   icon: string; status: 'active' | 'available' | 'coming'; version: string; price: string;
 }
 export interface ModuleListResponse { data: AppModule[]; total: number; }
+
+// ── AI Insight ────────────────────────────────────────────────────────────────
+export interface AiInsight { insight: string; }

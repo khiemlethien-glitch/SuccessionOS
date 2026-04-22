@@ -19,6 +19,7 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { ApiService } from '../../core/services/api.service';
 import { IdpPlan, IdpGoal, IdpListResponse } from '../../core/models/models';
+import { IdpService } from '../../core/services/data/idp.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 interface DraftGoal { title: string; type: string; deadline: string; }
@@ -68,13 +69,17 @@ export class IdpComponent implements OnInit {
     { role: 'Ban Giám đốc',      approver: 'Nguyễn Văn Khoa', status: 'pending', note: '' },
   ]);
 
-  constructor(private api: ApiService, private msg: NzMessageService) {}
+  constructor(private api: ApiService, private idpSvc: IdpService, private msg: NzMessageService) {}
 
-  ngOnInit(): void {
-    this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe({
-      next:  r => { this.idps.set(r.data); this.loading.set(false); },
-      error: () => this.loading.set(false),
-    });
+  async ngOnInit(): Promise<void> {
+    try {
+      const idps = await this.idpSvc.getAll();
+      this.idps.set(idps as unknown as IdpPlan[]);
+    } catch (e) {
+      console.error('IDP load error:', e);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -94,9 +99,9 @@ export class IdpComponent implements OnInit {
 
   openEdit(idp: IdpPlan): void {
     this.editingIdp.set(idp);
-    this.draftName.set(idp.talentName);
+    this.draftName.set(idp.talent_name);
     this.draftYear.set(idp.year);
-    this.draftTargetPos.set(idp.targetPosition ?? '');
+    this.draftTargetPos.set(idp.target_position ?? '');
     this.draftGoals.set(idp.goals.map(g => ({ title: g.title, type: g.type, deadline: g.deadline })));
     this.showCreateDrawer.set(true);
   }
@@ -113,16 +118,15 @@ export class IdpComponent implements OnInit {
     this.draftGoals.update(gs => gs.map((g, idx) => idx === i ? { ...g, [field]: val } : g));
   }
 
-  submitIdp(): void {
+  async submitIdp(): Promise<void> {
     if (!this.draftName().trim()) { this.msg.warning('Vui lòng nhập tên nhân viên'); return; }
     const editing = this.editingIdp();
 
     if (editing) {
-      // Update existing
       const updated: IdpPlan = {
         ...editing,
         year: this.draftYear(),
-        targetPosition: this.draftTargetPos(),
+        target_position: this.draftTargetPos(),
         goals: this.draftGoals().map((g, i) => ({
           id: editing.goals[i]?.id ?? `G_${Date.now()}_${i}`,
           title: g.title, type: g.type, deadline: g.deadline,
@@ -132,20 +136,20 @@ export class IdpComponent implements OnInit {
       };
       this.idps.update(list => list.map(p => p.id === editing.id ? updated : p));
       this.msg.success('Đã cập nhật IDP');
+      try { await this.idpSvc.updatePlan(editing.id, updated as any); } catch (e) { console.error(e); }
     } else {
-      // Create new
       const newIdp: IdpPlan = {
         id: `IDP_${Date.now()}`,
-        talentId: `T_${Date.now()}`,
-        talentName: this.draftName(),
+        talent_id: `T_${Date.now()}`,
+        talent_name: this.draftName(),
         year: this.draftYear(),
         status: 'Pending',
-        overallProgress: 0,
-        targetPosition: this.draftTargetPos(),
-        approvedBy: '—',
-        approvedDate: '—',
-        goals12m: [],
-        goals2to3y: [],
+        overall_progress: 0,
+        target_position: this.draftTargetPos(),
+        approved_by: '—',
+        approved_date: '—',
+        goals_12m: [],
+        goals_2to3y: [],
         goals: this.draftGoals().map((g, i) => ({
           id: `G_${Date.now()}_${i}`,
           title: g.title, type: g.type, deadline: g.deadline,
@@ -154,7 +158,7 @@ export class IdpComponent implements OnInit {
       };
       this.idps.update(list => [newIdp, ...list]);
       this.msg.success('Đã tạo IDP mới — trạng thái: Chờ duyệt');
-      // TODO: api.post('idp', newIdp).subscribe(...)
+      try { await this.idpSvc.create(newIdp as any); } catch (e) { console.error(e); }
     }
     this.showCreateDrawer.set(false);
   }

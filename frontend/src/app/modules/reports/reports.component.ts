@@ -25,12 +25,12 @@ export class ReportsComponent implements OnInit {
   assessments = signal<Assessment[]>([]);
 
   // ── Talent stats ──────────────────────────────────────────────────────────
-  get nongCot()  { return this.talents().filter(t => t.talentTier === 'Nòng cốt').length; }
-  get tiemNang() { return this.talents().filter(t => t.talentTier === 'Tiềm năng').length; }
-  get keaThua()  { return this.talents().filter(t => t.talentTier === 'Kế thừa').length; }
+  get nongCot()  { return this.talents().filter(t => t.talent_tier === 'Nòng cốt').length; }
+  get tiemNang() { return this.talents().filter(t => t.talent_tier === 'Tiềm năng').length; }
+  get keaThua()  { return this.talents().filter(t => t.talent_tier === 'Kế thừa').length; }
   get total()    { return this.talents().length; }
-  get avgRisk()  { return this.total ? Math.round(this.talents().reduce((s, t) => s + t.riskScore, 0) / this.total) : 0; }
-  get avgPerf()  { return this.total ? Math.round(this.talents().reduce((s, t) => s + t.performanceScore, 0) / this.total) : 0; }
+  get avgRisk()  { return this.total ? Math.round(this.talents().reduce((s, t) => s + (t.risk_score ?? 0), 0) / this.total) : 0; }
+  get avgPerf()  { return this.total ? Math.round(this.talents().reduce((s, t) => s + (t.performance_score ?? 0), 0) / this.total) : 0; }
 
   // ── IDP stats ─────────────────────────────────────────────────────────────
   get idpTotal()       { return this.idps().length; }
@@ -39,7 +39,7 @@ export class ReportsComponent implements OnInit {
   get idpPending()     { return this.idps().filter(i => i.status === 'Pending').length; }
   get avgIdpProgress() {
     const list = this.idps();
-    return list.length ? Math.round(list.reduce((s, i) => s + i.overallProgress, 0) / list.length) : 0;
+    return list.length ? Math.round(list.reduce((s, i) => s + i.overall_progress, 0) / list.length) : 0;
   }
 
   // ── Assessment stats ──────────────────────────────────────────────────────
@@ -54,13 +54,13 @@ export class ReportsComponent implements OnInit {
   get avgTechnical()     { return this.avg('technical'); }
   get avgLeadership()    { return this.avg('leadership'); }
   get avgCommunication() { return this.avg('communication'); }
-  get avgStrategic()     { return this.avg('strategicThinking'); }
+  get avgStrategic()     { return this.avg('strategic_thinking'); }
   get avgOverall() {
     const list = this.completedAssessments;
-    return list.length ? Math.round(list.reduce((s, a) => s + a.overallScore, 0) / list.length) : 0;
+    return list.length ? Math.round(list.reduce((s, a) => s + a.overall_score, 0) / list.length) : 0;
   }
   get topPerformers() {
-    return [...this.completedAssessments].sort((a, b) => b.overallScore - a.overallScore).slice(0, 5);
+    return [...this.completedAssessments].sort((a, b) => b.overall_score - a.overall_score).slice(0, 5);
   }
 
   idpStatusColor(s: string): string { return ({ Active: 'blue', Completed: 'green', Pending: 'orange' } as any)[s] ?? 'default'; }

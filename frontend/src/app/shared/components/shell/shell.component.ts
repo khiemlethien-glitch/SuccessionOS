@@ -9,7 +9,6 @@ import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { safeLocalStorage } from '../../../core/utils/browser.utils';
 
 interface NavItem { label: string; icon: string; route: string; disabled?: boolean; }
 interface NavGroup { label: string; items: NavItem[]; }
@@ -52,47 +51,35 @@ export class ShellComponent {
 
   toggle(): void { this.isCollapsed.set(!this.isCollapsed()); }
 
-  get currentUser(): { name?: string; fullName?: string; role?: string } | null {
-    return this.authService.getCurrentUser?.() ?? null;
+  get currentUser() {
+    return this.authService.currentUser();
   }
 
   get userInitials(): string {
-    const name = this.currentUser?.fullName || this.currentUser?.name || 'U';
+    const name = this.currentUser?.full_name || '';
     return name
       .split(' ')
       .filter(Boolean)
-      .map((w) => w[0])
+      .map((w: string) => w[0])
       .slice(-2)
       .join('')
-      .toUpperCase();
+      .toUpperCase() || 'U';
   }
 
-  goToProfile(): void {
-    this.router.navigate(['/profile']);
-  }
+  goToProfile(): void { this.router.navigate(['/profile']); }
+  goToSettings(): void { this.router.navigate(['/settings']); }
 
-  goToSettings(): void {
-    this.router.navigate(['/settings']);
-  }
-
-  /** Đăng xuất khỏi app — giữ nguyên session VnR */
-  logoutLocal(): void {
-    this.authService.logout(false);
+  async logoutLocal(): Promise<void> {
+    await this.authService.logout();
     this.router.navigate(['/login']);
   }
 
-  /** Đăng xuất khỏi tất cả thiết bị — xóa cả session VnR SSO */
-  logoutSSO(): void {
-    this.authService.logout(true);
-    // logout(true) tự redirect sang VnR endsession nếu có id_token,
-    // nếu không có (mock login) thì fallback về /login
-    if (typeof window !== 'undefined' && !safeLocalStorage.getItem('id_token')) {
-      this.router.navigate(['/login']);
-    }
+  async logoutSSO(): Promise<void> {
+    await this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
-  /** @deprecated dùng logoutLocal() hoặc logoutSSO() */
-  logout(): void {
-    this.logoutLocal();
+  async logout(): Promise<void> {
+    await this.logoutLocal();
   }
 }

@@ -75,12 +75,12 @@
             <!-- Left: Avatar + Info -->
             <div class="person-info">
               <nz-avatar
-                [nzText]="getInitials(t.fullName)"
-                [ngStyle]="{ 'background-color': avatarColor(t.fullName) }"
+                [nzText]="getInitials(t.full_name)"
+                [ngStyle]="{ 'background-color': avatarColor(t.full_name) }"
                 nzSize="default">
               </nz-avatar>
               <div class="person-text">
-                <div class="person-name">{{ t.fullName }}</div>
+                <div class="person-name">{{ t.full_name }}</div>
                 <div class="person-role">{{ t.position }}</div>
               </div>
             </div>
@@ -170,9 +170,9 @@
           </div>
 
           <div class="pos2-holder">
-            <app-avatar [name]="p.currentHolder" [size]="40"></app-avatar>
+            <app-avatar [name]="p.current_holder" [size]="40"></app-avatar>
             <div class="pos2-holder-meta">
-              <div class="pos2-holder-name">{{ p.currentHolder }}</div>
+              <div class="pos2-holder-name">{{ p.current_holder }}</div>
               <div class="pos2-holder-sub">
                 <span nz-icon nzType="clock-circle" nzTheme="outline"></span>
                 {{ holderTenure(p) }}
@@ -187,7 +187,7 @@
             </span>
             <span class="cand2">
               <span nz-icon nzType="team" nzTheme="outline"></span>
-              {{ p.successorCount }} ứng viên
+              {{ p.successor_count }} ứng viên
             </span>
           </div>
         </div>

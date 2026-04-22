@@ -16,7 +16,7 @@ import { ApiService } from '../../core/services/api.service';
 import { Assessment, AssessmentListResponse } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
-interface ScoreInput { technical: number; leadership: number; communication: number; strategicThinking: number; }
+interface ScoreInput { technical: number; leadership: number; communication: number; strategic_thinking: number; }
 
 @Component({
   selector: 'app-assessment',
@@ -33,13 +33,13 @@ export class AssessmentComponent implements OnInit {
 
   // ── Form signals ──────────────────────────────────────────────────────────
   selectedTalentId = signal<string>('');
-  scores = signal<ScoreInput>({ technical: 0, leadership: 0, communication: 0, strategicThinking: 0 });
+  scores = signal<ScoreInput>({ technical: 0, leadership: 0, communication: 0, strategic_thinking: 0 });
 
   readonly dimensions: Array<{ key: keyof ScoreInput; label: string }> = [
-    { key: 'technical',        label: 'Kỹ thuật' },
-    { key: 'leadership',       label: 'Lãnh đạo' },
-    { key: 'communication',    label: 'Giao tiếp' },
-    { key: 'strategicThinking',label: 'Tư duy chiến lược' },
+    { key: 'technical',          label: 'Kỹ thuật' },
+    { key: 'leadership',         label: 'Lãnh đạo' },
+    { key: 'communication',      label: 'Giao tiếp' },
+    { key: 'strategic_thinking', label: 'Tư duy chiến lược' },
   ];
 
   // Only pending assessments available for entry
@@ -65,21 +65,21 @@ export class AssessmentComponent implements OnInit {
     const talentId = this.selectedTalentId();
     if (!talentId) { this.msg.warning('Vui lòng chọn nhân viên'); return; }
     const s = this.scores();
-    const totalScores = [s.technical, s.leadership, s.communication, s.strategicThinking];
+    const totalScores = [s.technical, s.leadership, s.communication, s.strategic_thinking];
     if (totalScores.every(v => v === 0)) { this.msg.warning('Vui lòng nhập ít nhất một điểm số'); return; }
 
     const overall = Math.round(totalScores.reduce((a, b) => a + b, 0) / totalScores.length);
-    const target = this.assessments().find(a => a.talentId === talentId);
+    const target = this.assessments().find(a => a.talent_id === talentId);
 
     this.assessments.update(list => list.map(a =>
-      a.talentId === talentId
-        ? { ...a, scores: { ...s }, overallScore: overall, status: 'Completed', assessorCount: (a.assessorCount || 0) + 1 }
+      a.talent_id === talentId
+        ? { ...a, scores: { ...s }, overall_score: overall, status: 'Completed', assessor_count: (a.assessor_count || 0) + 1 }
         : a
     ));
 
     // TODO: api.post('assessments', payload).subscribe(...)
-    this.msg.success(`Đã lưu đánh giá cho ${target?.talentName ?? talentId}  — Overall: ${overall}`);
+    this.msg.success(`Đã lưu đánh giá cho ${target?.talent_name ?? talentId}  — Overall: ${overall}`);
     this.selectedTalentId.set('');
-    this.scores.set({ technical: 0, leadership: 0, communication: 0, strategicThinking: 0 });
+    this.scores.set({ technical: 0, leadership: 0, communication: 0, strategic_thinking: 0 });
   }
 }

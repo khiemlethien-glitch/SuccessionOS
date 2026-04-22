@@ -1,156 +1,107 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { ApiService } from '../services/api.service';
-import { OidcService, OidcTokenResponse, VnrUserInfo } from './oidc.service';
-import {
-  safeLocalStorage,
-  safeNavigateTo,
-} from '../utils/browser.utils';
+import { Injectable, signal, computed } from '@angular/core';
+import { Session, User } from '@supabase/supabase-js';
+import { SupabaseService } from '../services/supabase.service';
 
-export interface LoginRequest {
+export interface UserProfile {
+  id: string;
   email: string;
-  password: string;
+  full_name: string;
+  role: string;
+  department_id?: string | null;
+  avatar_url?: string | null;
 }
 
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  user: {
-    id: string;
-    email: string;
-    fullName: string;
-    role: string;
-  };
-}
-
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly TOKEN_KEY         = 'access_token';
-  private readonly USER_KEY          = 'current_user';
-  private readonly REFRESH_TOKEN_KEY = 'refresh_token';
-  private readonly ID_TOKEN_KEY      = 'id_token';
-  private readonly TOKEN_EXPIRY_KEY  = 'token_expiry';
-  private silentRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  // ── Signals ──────────────────────────────────────────────
+  readonly session   = signal<Session | null>(null);
+  readonly currentUser = signal<UserProfile | null>(null);
+  readonly isLoading = signal<boolean>(true);
 
-  // SSR-safe: khởi tạo với false (server không có token),
-  // giá trị thực được set trong constructor sau khi kiểm tra môi trường.
-  private isLoggedIn$ = new BehaviorSubject<boolean>(false);
+  readonly isAuthenticated = computed(() => this.session() !== null);
 
-  constructor(
-    private api: ApiService,
-    private oidcService: OidcService,
-  ) {
-    // Đọc token sau khi Angular DI hoàn tất — an toàn cả SSR lẫn browser.
-    this.isLoggedIn$.next(this.hasToken());
+  private get sb() {
+    return this.supabaseService.client;
   }
 
-  login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.api.post<LoginResponse>('auth/login', credentials).pipe(
-      tap((res) => {
-        safeLocalStorage.setItem(this.TOKEN_KEY, res.access_token);
-        safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
-        this.isLoggedIn$.next(true);
-      })
-    );
-  }
+  constructor(private supabaseService: SupabaseService) {
+    // Khởi tạo session từ storage
+    this.sb.auth.getSession().then(({ data }) => {
+      this.session.set(data.session);
+      if (data.session?.user) {
+        this.loadProfile(data.session.user);
+      }
+      this.isLoading.set(false);
+    });
 
-  logout(redirectToSso = false): void {
-    if (this.silentRefreshTimer) clearTimeout(this.silentRefreshTimer);
-
-    const idToken = safeLocalStorage.getItem(this.ID_TOKEN_KEY) ?? '';
-    safeLocalStorage.removeItem(this.TOKEN_KEY);
-    safeLocalStorage.removeItem(this.REFRESH_TOKEN_KEY);
-    safeLocalStorage.removeItem(this.ID_TOKEN_KEY);
-    safeLocalStorage.removeItem(this.TOKEN_EXPIRY_KEY);
-    safeLocalStorage.removeItem(this.USER_KEY);
-    this.isLoggedIn$.next(false);
-
-    if (redirectToSso && idToken) {
-      safeNavigateTo(this.oidcService.buildLogoutUrl(idToken));
-    }
-  }
-
-  /**
-   * Set token + user vào localStorage (reuse cho fake login & real API sau này)
-   */
-  setSession(token: string, user: unknown): void {
-    safeLocalStorage.setItem(this.TOKEN_KEY, token);
-    safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.isLoggedIn$.next(true);
-  }
-
-  /**
-   * Set OIDC session sau khi exchange code thành công.
-   * Được gọi từ OidcCallbackComponent.
-   */
-  setOidcSession(tokens: OidcTokenResponse, user: VnrUserInfo): void {
-    safeLocalStorage.setItem(this.TOKEN_KEY,         tokens.access_token);
-    safeLocalStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? '');
-    safeLocalStorage.setItem(this.ID_TOKEN_KEY,      tokens.id_token ?? '');
-
-    const expiryMs = Date.now() + tokens.expires_in * 1000;
-    safeLocalStorage.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
-
-    const appUser = {
-      id:       user.sub,
-      email:    user.email ?? '',
-      fullName: user.name,
-      role:     Array.isArray(user.role) ? user.role[0] : user.role,
-    };
-    safeLocalStorage.setItem(this.USER_KEY, JSON.stringify(appUser));
-    this.isLoggedIn$.next(true);
-
-    this.scheduleSilentRefresh(tokens.expires_in);
-  }
-
-  private scheduleSilentRefresh(expiresIn: number): void {
-    if (typeof window === 'undefined') return;
-    if (this.silentRefreshTimer) clearTimeout(this.silentRefreshTimer);
-
-    const delayMs = Math.max((expiresIn - 60) * 1000, 0);
-    this.silentRefreshTimer = setTimeout(() => this.doSilentRefresh(), delayMs);
-  }
-
-  private doSilentRefresh(): void {
-    const refreshToken = safeLocalStorage.getItem(this.REFRESH_TOKEN_KEY);
-    if (!refreshToken) return;
-
-    this.oidcService.refreshToken(refreshToken).then(tokens => {
-      safeLocalStorage.setItem(this.TOKEN_KEY,         tokens.access_token);
-      safeLocalStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refresh_token ?? refreshToken);
-      const expiryMs = Date.now() + tokens.expires_in * 1000;
-      safeLocalStorage.setItem(this.TOKEN_EXPIRY_KEY, String(expiryMs));
-      this.scheduleSilentRefresh(tokens.expires_in);
-    }).catch(() => {
-      this.logout();
+    // Lắng nghe thay đổi auth state
+    this.sb.auth.onAuthStateChange((_event, session) => {
+      this.session.set(session);
+      if (session?.user) {
+        this.loadProfile(session.user);
+      } else {
+        this.currentUser.set(null);
+      }
     });
   }
 
-  getToken(): string | null {
-    return safeLocalStorage.getItem(this.TOKEN_KEY);
+  // ── Load profile từ bảng user_profiles ───────────────────
+  async loadProfile(user: User): Promise<void> {
+    const { data, error } = await this.sb
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !data) {
+      // Fallback: tạo profile tối thiểu từ Auth user metadata
+      this.currentUser.set({
+        id:        user.id,
+        email:     user.email ?? '',
+        full_name: user.user_metadata?.['full_name'] ?? user.email ?? '',
+        role:      user.user_metadata?.['role'] ?? 'user',
+      });
+      return;
+    }
+
+    this.currentUser.set(data as UserProfile);
   }
 
-  getCurrentUser() {
-    const raw = safeLocalStorage.getItem(this.USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+  // ── Email / Password ──────────────────────────────────────
+  async loginWithEmail(email: string, password: string): Promise<void> {
+    this.isLoading.set(true);
+    const { error } = await this.sb.auth.signInWithPassword({ email, password });
+    this.isLoading.set(false);
+    if (error) throw error;
   }
 
-  isAuthenticated(): Observable<boolean> {
-    return this.isLoggedIn$.asObservable();
+  // ── OAuth: Google ─────────────────────────────────────────
+  async loginWithGoogle(): Promise<void> {
+    const { error } = await this.sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) throw error;
   }
 
-  get isLoggedIn(): boolean {
-    return this.isAuthenticatedSnapshot();
+  // ── OAuth: Azure AD ───────────────────────────────────────
+  async loginWithAzure(): Promise<void> {
+    const { error } = await this.sb.auth.signInWithOAuth({
+      provider: 'azure',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) throw error;
   }
 
+  // ── Logout ────────────────────────────────────────────────
+  async logout(): Promise<void> {
+    await this.sb.auth.signOut();
+    this.session.set(null);
+    this.currentUser.set(null);
+  }
+
+  // ── Backward-compat snapshot helper (dùng trong authGuard) ─
   isAuthenticatedSnapshot(): boolean {
-    return this.hasToken();
-  }
-
-  private hasToken(): boolean {
-    return !!safeLocalStorage.getItem(this.TOKEN_KEY);
+    return this.isAuthenticated();
   }
 }

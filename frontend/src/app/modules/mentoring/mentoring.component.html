@@ -15,22 +15,22 @@
         <div class="pair-card">
           <div class="pair-status-row">
             <nz-tag [nzColor]="statusColor(p.status)">{{ p.status }}</nz-tag>
-            <span class="pair-dates">{{ p.startDate }} → {{ p.endDate }}</span>
+            <span class="pair-dates">{{ p.start_date }} → {{ p.end_date }}</span>
           </div>
 
           <div class="pair-people">
             <div class="person">
-              <app-avatar [name]="p.mentorName" [size]="40"></app-avatar>
+              <app-avatar [name]="p.mentor_name" [size]="40"></app-avatar>
               <div class="person-info">
-                <span class="person-name">{{ p.mentorName }}</span>
+                <span class="person-name">{{ p.mentor_name }}</span>
                 <span class="person-role">Mentor</span>
               </div>
             </div>
             <span nz-icon nzType="arrow-right" class="arrow-icon"></span>
             <div class="person">
-              <app-avatar [name]="p.menteeName" [size]="40"></app-avatar>
+              <app-avatar [name]="p.mentee_name" [size]="40"></app-avatar>
               <div class="person-info">
-                <span class="person-name">{{ p.menteeName }}</span>
+                <span class="person-name">{{ p.mentee_name }}</span>
                 <span class="person-role">Mentee</span>
               </div>
             </div>
@@ -42,12 +42,12 @@
           </div>
 
           <div class="session-row">
-            <span class="session-label">Buổi gặp: {{ p.sessionsCompleted }}/{{ p.sessionsTotal }}</span>
+            <span class="session-label">Buổi gặp: {{ p.sessions_completed }}/{{ p.sessions_total }}</span>
             <nz-progress [nzPercent]="progress(p)" [nzStrokeColor]="'#4f46e5'" [nzShowInfo]="false" nzSize="small" style="flex:1"></nz-progress>
           </div>
 
-          @if (p.nextSession) {
-            <div class="next-session">Buổi tiếp theo: <strong>{{ p.nextSession }}</strong></div>
+          @if (p.next_session) {
+            <div class="next-session">Buổi tiếp theo: <strong>{{ p.next_session }}</strong></div>
           }
 
           <div class="card-footer-actions">
@@ -146,9 +146,9 @@
   <ng-container *nzDrawerContent>
     @if (logbookPair(); as pair) {
       <div class="logbook-pair-hdr">
-        <app-avatar [name]="pair.mentorName" [size]="36"></app-avatar>
+        <app-avatar [name]="pair.mentor_name" [size]="36"></app-avatar>
         <div class="lb-meta">
-          <span class="lb-names">{{ pair.mentorName }} → {{ pair.menteeName }}</span>
+          <span class="lb-names">{{ pair.mentor_name }} → {{ pair.mentee_name }}</span>
           <span class="lb-focus">{{ pair.focus }}</span>
         </div>
       </div>

@@ -68,6 +68,17 @@
 .sync-icon  { font-size:22px; color:#4f46e5; flex-shrink:0; }
 .sync-desc  { font-size:13px; color:#374151; font-weight:500; }
 .sync-last  { font-size:11.5px; color:#9ca3af; margin-top:2px; }
+.sync-endpoints {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;
+  padding:10px 14px; background:#f0f4ff; border-radius:8px; border:1px solid #e0e7ff;
+}
+.sync-ep {
+  font-size:11.5px; padding:2px 8px; border-radius:10px;
+  background:#fff; border:1px solid #e5e7eb; color:#374151;
+  b { font-weight:600; margin-right:2px; }
+  &.ep-ok   { border-color:#86efac; background:#f0fdf4; color:#166534; }
+  &.ep-wait { border-color:#fde68a; background:#fffbeb; color:#92400e; }
+}
 
 .recent-list     { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
 .recent-item     {

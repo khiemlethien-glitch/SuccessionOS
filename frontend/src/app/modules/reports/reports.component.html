@@ -48,10 +48,10 @@
           <div class="idp-rep-list">
             @for (idp of idps(); track idp.id) {
               <div class="idp-rep-row">
-                <span class="idp-rep-name">{{ idp.talentName }}</span>
-                <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'"
+                <span class="idp-rep-name">{{ idp.talent_name }}</span>
+                <nz-progress [nzPercent]="idp.overall_progress" [nzStrokeColor]="'#4f46e5'"
                              nzSize="small" style="flex:1"></nz-progress>
-                <span class="idp-rep-pct">{{ idp.overallProgress }}%</span>
+                <span class="idp-rep-pct">{{ idp.overall_progress }}%</span>
               </div>
             }
           </div>
@@ -96,7 +96,7 @@
       </div>
 
       <!-- Full IDP table -->
-      <nz-table #idpTable [nzData]="idps()" [nzShowPagination]="false" nzSize="small" class="rep-table">
+      <nz-table ngSkipHydration #idpTable [nzData]="idps()" [nzShowPagination]="false" nzSize="small" class="rep-table">
         <thead>
           <tr>
             <th>Nhân viên</th>
@@ -109,15 +109,15 @@
         <tbody>
           @for (idp of idpTable.data; track idp.id) {
             <tr>
-              <td>{{ idp.talentName }}</td>
+              <td>{{ idp.talent_name }}</td>
               <td>{{ idp.year }}</td>
               <td><nz-tag [nzColor]="idpStatusColor(idp.status)">{{ idp.status }}</nz-tag></td>
               <td nzAlign="center">{{ idp.goals.length }}</td>
               <td>
                 <div class="prog-cell">
-                  <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'"
+                  <nz-progress [nzPercent]="idp.overall_progress" [nzStrokeColor]="'#4f46e5'"
                                nzSize="small" [nzShowInfo]="false" style="flex:1;min-width:80px"></nz-progress>
-                  <span class="prog-pct">{{ idp.overallProgress }}%</span>
+                  <span class="prog-pct">{{ idp.overall_progress }}%</span>
                 </div>
               </td>
             </tr>
@@ -173,9 +173,9 @@
             @for (a of topPerformers; track a.id; let i = $index) {
               <div class="top-perf-row">
                 <span class="top-perf-rank">#{{ i + 1 }}</span>
-                <app-avatar [name]="a.talentName" [size]="28"></app-avatar>
-                <span class="top-perf-name">{{ a.talentName }}</span>
-                <span class="top-perf-score">{{ a.overallScore }}</span>
+                <app-avatar [name]="a.talent_name" [size]="28"></app-avatar>
+                <span class="top-perf-name">{{ a.talent_name }}</span>
+                <span class="top-perf-score">{{ a.overall_score }}</span>
               </div>
             }
           </div>
@@ -183,7 +183,7 @@
       </div>
 
       <!-- Detailed assessment table -->
-      <nz-table #assTable [nzData]="completedAssessments" [nzShowPagination]="false"
+      <nz-table ngSkipHydration #assTable [nzData]="completedAssessments" [nzShowPagination]="false"
                 nzSize="small" class="rep-table">
         <thead>
           <tr>
@@ -199,13 +199,13 @@
         <tbody>
           @for (a of assTable.data; track a.id) {
             <tr>
-              <td>{{ a.talentName }}</td>
+              <td>{{ a.talent_name }}</td>
               <td>{{ a.period }}</td>
               <td nzAlign="center">{{ a.scores.technical }}</td>
               <td nzAlign="center">{{ a.scores.leadership }}</td>
               <td nzAlign="center">{{ a.scores.communication }}</td>
-              <td nzAlign="center">{{ a.scores.strategicThinking }}</td>
-              <td nzAlign="center"><strong class="overall-score">{{ a.overallScore }}</strong></td>
+              <td nzAlign="center">{{ a.scores.strategic_thinking }}</td>
+              <td nzAlign="center"><strong class="overall-score">{{ a.overall_score }}</strong></td>
             </tr>
           }
         </tbody>

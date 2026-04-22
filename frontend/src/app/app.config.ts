@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { vi_VN, provideNzI18n } from 'ng-zorro-antd/i18n';
@@ -92,7 +92,6 @@ import {
 } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
-import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 
 registerLocaleData(vi);
 
@@ -136,7 +135,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideClientHydration(withEventReplay()),
-    provideHttpClient(withFetch(), withInterceptors([jwtInterceptor])),
+    provideHttpClient(withFetch()),
     provideAnimations(),
     provideNzI18n(vi_VN),
     provideNzIcons(icons),

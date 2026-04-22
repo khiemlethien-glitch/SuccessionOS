@@ -4,19 +4,19 @@ export type PotentialLevel = 'Very High' | 'High' | 'Medium' | 'Low';
 
 export interface Talent {
   id: string;
-  fullName: string;
+  full_name: string;
   position: string;
   department: string;
-  talentTier: TalentTier;
-  potentialLevel: PotentialLevel;
+  talent_tier: TalentTier;
+  potential_level: PotentialLevel;
   /** 0–100 */
-  performanceScore: number;
+  performance_score: number;
   /** 0–100 */
-  potentialScore: number;
+  potential_score: number;
   /** 0–100: ≥60 High, 30–59 Medium, <30 Low */
-  riskScore: number;
-  yearsOfExperience: number;
-  readinessLevel: ReadinessLevel;
+  risk_score: number;
+  years_of_experience: number;
+  readiness_level: ReadinessLevel;
   email: string;
 }
 

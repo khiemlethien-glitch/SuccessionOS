@@ -14,7 +14,7 @@
 
       <!-- ── Tổng quan ─────────────────────────────────────────────────── -->
       <nz-tab nzTitle="Tổng quan">
-        <nz-table [nzData]="assessments()" [nzPageSize]="10" class="assess-tbl">
+        <nz-table ngSkipHydration [nzData]="assessments()" [nzPageSize]="10" class="assess-tbl">
           <thead><tr>
             <th nzWidth="200px">Nhân viên</th>
             <th nzWidth="90px">Kỳ</th>
@@ -30,12 +30,12 @@
               <tr>
                 <td>
                   <div class="emp-row">
-                    <app-avatar [name]="a.talentName" [size]="28"></app-avatar>
-                    <span class="emp-name">{{ a.talentName }}</span>
+                    <app-avatar [name]="a.talent_name" [size]="28"></app-avatar>
+                    <span class="emp-name">{{ a.talent_name }}</span>
                   </div>
                 </td>
                 <td><span class="period-txt">{{ a.period }}</span></td>
-                @for (dim of ['technical','leadership','communication','strategicThinking']; track dim) {
+                @for (dim of ['technical','leadership','communication','strategic_thinking']; track dim) {
                   <td nzAlign="center">
                     @if (a.status === 'Completed') {
                       <span class="score-pill" [style.color]="scoreColor(getScore(a, dim))">{{ getScore(a, dim) }}</span>
@@ -44,7 +44,7 @@
                 }
                 <td nzAlign="center">
                   @if (a.status === 'Completed') {
-                    <span class="overall-score" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
+                    <span class="overall-score" [style.color]="scoreColor(a.overall_score)">{{ a.overall_score }}</span>
                   } @else { <span class="na-txt">—</span> }
                 </td>
                 <td nzAlign="center"><nz-tag [nzColor]="statusColor(a.status)">{{ a.status }}</nz-tag></td>
@@ -65,7 +65,7 @@
               <nz-select nzPlaceHolder="Chọn nhân viên" nzShowSearch style="width:100%"
                          [ngModel]="selectedTalentId()" (ngModelChange)="selectedTalentId.set($event)">
                 @for (a of pendingAssessments(); track a.id) {
-                  <nz-option [nzValue]="a.talentId" [nzLabel]="a.talentName + ' (' + a.period + ')'"></nz-option>
+                  <nz-option [nzValue]="a.talent_id" [nzLabel]="a.talent_name + ' (' + a.period + ')'"></nz-option>
                 }
                 @if (pendingAssessments().length === 0) {
                   <nz-option nzDisabled nzValue="" nzLabel="Tất cả đã hoàn thành"></nz-option>
@@ -90,8 +90,8 @@
 
           <div class="form-summary" *ngIf="selectedTalentId()">
             <span class="summary-lbl">Overall dự kiến:</span>
-            <span class="summary-val" [style.color]="scoreColor((scores().technical + scores().leadership + scores().communication + scores().strategicThinking) / 4)">
-              {{ ((scores().technical + scores().leadership + scores().communication + scores().strategicThinking) / 4).toFixed(0) }}
+            <span class="summary-val" [style.color]="scoreColor((scores().technical + scores().leadership + scores().communication + scores().strategic_thinking) / 4)">
+              {{ ((scores().technical + scores().leadership + scores().communication + scores().strategic_thinking) / 4).toFixed(0) }}
             </span>
           </div>
 
@@ -108,10 +108,10 @@
             @if (a.status === 'Completed') {
               <div class="history-item">
                 <div class="history-left">
-                  <app-avatar [name]="a.talentName" [size]="30"></app-avatar>
+                  <app-avatar [name]="a.talent_name" [size]="30"></app-avatar>
                   <div>
-                    <div class="hist-name">{{ a.talentName }}</div>
-                    <div class="hist-period">{{ a.period }} · {{ a.assessorCount }} người đánh giá</div>
+                    <div class="hist-name">{{ a.talent_name }}</div>
+                    <div class="hist-period">{{ a.period }} · {{ a.assessor_count }} người đánh giá</div>
                   </div>
                 </div>
                 <div class="hist-scores">
@@ -124,7 +124,7 @@
                 </div>
                 <div class="history-score">
                   <span class="ov-label">Overall</span>
-                  <span class="ov-val" [style.color]="scoreColor(a.overallScore)">{{ a.overallScore }}</span>
+                  <span class="ov-val" [style.color]="scoreColor(a.overall_score)">{{ a.overall_score }}</span>
                 </div>
               </div>
             }

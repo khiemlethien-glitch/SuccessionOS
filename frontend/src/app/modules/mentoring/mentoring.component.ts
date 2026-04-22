@@ -88,7 +88,7 @@ export class MentoringComponent implements OnInit {
   }
 
   statusColor(s: string): string { return ({ Active: 'blue', Completed: 'green' } as any)[s] ?? 'default'; }
-  progress(p: MentoringPair): number { return Math.round((p.sessionsCompleted / p.sessionsTotal) * 100); }
+  progress(p: MentoringPair): number { return Math.round((p.sessions_completed / p.sessions_total) * 100); }
   sessionCount(pairId: string): number { return this.PAIR_SESSIONS[pairId]?.length ?? 0; }
 
   // ── Create pair ───────────────────────────────────────────────────────────
@@ -108,13 +108,13 @@ export class MentoringComponent implements OnInit {
     if (!this.draftFocus().trim())      { this.msg.warning('Vui lòng nhập lĩnh vực phát triển'); return; }
     const newPair: MentoringPair = {
       id: `M${Date.now()}`,
-      mentorId: `T_m${Date.now()}`, mentorName: this.draftMentorName(),
-      menteeId:  `T_e${Date.now()}`, menteeName: this.draftMenteeName(),
+      mentor_id: `T_m${Date.now()}`, mentor_name: this.draftMentorName(),
+      mentee_id: `T_e${Date.now()}`, mentee_name: this.draftMenteeName(),
       focus: this.draftFocus(),
-      startDate: this.draftStartDate(), endDate: this.draftEndDate(),
+      start_date: this.draftStartDate(), end_date: this.draftEndDate(),
       status: 'Active',
-      sessionsCompleted: 0, sessionsTotal: this.draftSessions(),
-      nextSession: null,
+      sessions_completed: 0, sessions_total: this.draftSessions(),
+      next_session: null,
     };
     this.pairs.update(list => [newPair, ...list]);
     this.showCreateDrawer.set(false);
@@ -147,7 +147,7 @@ export class MentoringComponent implements OnInit {
     if (pair) {
       this.pairs.update(list => list.map(p =>
         p.id === pair.id
-          ? { ...p, sessionsCompleted: Math.min(p.sessionsCompleted + 1, p.sessionsTotal) }
+          ? { ...p, sessions_completed: Math.min(p.sessions_completed + 1, p.sessions_total) }
           : p
       ));
     }

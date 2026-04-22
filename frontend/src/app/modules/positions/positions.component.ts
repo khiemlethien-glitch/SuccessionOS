@@ -12,8 +12,8 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { ApiService } from '../../core/services/api.service';
-import { KeyPosition, PositionListResponse, SuccessionPlan, SuccessionPlanListResponse, CriticalLevel } from '../../core/models/models';
+import { KeyPosition, SuccessionPlan, CriticalLevel } from '../../core/models/models';
+import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 interface Competency {
@@ -25,8 +25,8 @@ interface Competency {
 interface NewPositionDraft {
   title: string;
   department: string | null;
-  currentHolder: string;
-  criticalLevel: CriticalLevel;
+  current_holder: string;
+  critical_level: CriticalLevel;
 }
 
 @Component({
@@ -50,9 +50,9 @@ export class PositionsComponent implements OnInit {
   loading   = signal(true);
 
   readonly totalCount     = computed(() => this.positions().length);
-  readonly criticalCount  = computed(() => this.positions().filter(p => p.criticalLevel === 'Critical').length);
-  readonly noSuccessor    = computed(() => this.positions().filter(p => p.successorCount === 0).length);
-  readonly highRiskCount  = computed(() => this.positions().filter(p => p.riskLevel === 'High').length);
+  readonly criticalCount  = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
+  readonly noSuccessor    = computed(() => this.positions().filter(p => p.successor_count === 0).length);
+  readonly highRiskCount  = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
 
   // ─── Modal state ───────────────────────────────────────────
   showAddModal = signal(false);
@@ -60,8 +60,8 @@ export class PositionsComponent implements OnInit {
   draft = signal<NewPositionDraft>({
     title: '',
     department: null,
-    currentHolder: '',
-    criticalLevel: 'Medium',
+    current_holder: '',
+    critical_level: 'Medium',
   });
 
   readonly allCompetencies: Competency[] = [
@@ -87,15 +87,25 @@ export class PositionsComponent implements OnInit {
     { value: 'Low',      label: 'Low',      tone: 'green' },
   ];
 
-  constructor(private api: ApiService, private msg: NzMessageService) {}
+  constructor(private posSvc: KeyPositionService, private msg: NzMessageService) {}
 
-  ngOnInit(): void {
-    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => { this.positions.set(r.data); this.loading.set(false); });
-    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
+  async ngOnInit(): Promise<void> {
+    try {
+      const [positions, plans] = await Promise.all([
+        this.posSvc.getAll(),
+        this.posSvc.getSuccessionPlans(),
+      ]);
+      this.positions.set(positions as unknown as KeyPosition[]);
+      this.plans.set(plans as unknown as SuccessionPlan[]);
+    } catch (e) {
+      console.error('Positions load error:', e);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   getPlan(posId: string): SuccessionPlan | undefined {
-    return this.plans().find(p => p.positionId === posId);
+    return this.plans().find(p => p.position_id === posId);
   }
 
   // ─── Tone helpers — map criticalLevel to card tone ───────
@@ -135,7 +145,7 @@ export class PositionsComponent implements OnInit {
   }
 
   resetDraft(): void {
-    this.draft.set({ title: '', department: null, currentHolder: '', criticalLevel: 'Medium' });
+    this.draft.set({ title: '', department: null, current_holder: '', critical_level: 'Medium' });
     this.availableCompetencies.set([...this.allCompetencies]);
     this.selectedCompetencies.set([]);
   }
@@ -176,42 +186,38 @@ export class PositionsComponent implements OnInit {
 
   canSubmit = computed(() => {
     const d = this.draft();
-    return !!(d.title.trim() && d.department && d.currentHolder.trim() && this.selectedCompetencies().length > 0);
+    return !!(d.title.trim() && d.department && d.current_holder.trim() && this.selectedCompetencies().length > 0);
   });
 
-  submit(): void {
+  async submit(): Promise<void> {
     if (!this.canSubmit()) {
       this.msg.warning('Vui lòng điền đầy đủ và chọn ít nhất 1 năng lực');
       return;
     }
     const d = this.draft();
-    const idx = this.positions().length + 1;
-    const newPos: KeyPosition = {
-      id: `P${String(idx).padStart(3, '0')}`,
+    const newPosData: Partial<KeyPosition> = {
       title: d.title.trim(),
       department: d.department!,
-      currentHolder: d.currentHolder.trim(),
-      successorCount: 0,
-      readyNowCount: 0,
-      riskLevel: 'Low',
-      criticalLevel: d.criticalLevel,
+      current_holder: d.current_holder.trim(),
+      successor_count: 0,
+      ready_now_count: 0,
+      risk_level: 'Low',
+      critical_level: d.critical_level,
       successors: [],
-      requiredCompetencies: this.selectedCompetencies().map(c => c.key),
+      required_competencies: this.selectedCompetencies().map(c => c.key),
     };
-    // Optimistic update — add locally immediately
-    this.positions.update(list => [newPos, ...list]);
-    this.msg.success(`Đã thêm vị trí "${newPos.title}"`);
+    // Optimistic update
+    const tempPos: KeyPosition = { id: `temp_${Date.now()}`, ...newPosData } as KeyPosition;
+    this.positions.update(list => [tempPos, ...list]);
+    this.msg.success(`Đã thêm vị trí "${tempPos.title}"`);
     this.closeAddModal();
 
-    // Persist to backend (graceful degrade on mock)
-    this.api.post<{ data: KeyPosition }>('key-positions', newPos).subscribe({
-      next:  r => {
-        // Replace temp ID with server-assigned ID if backend returns one
-        if (r?.data?.id && r.data.id !== newPos.id) {
-          this.positions.update(list => list.map(p => p.id === newPos.id ? { ...p, id: r.data.id } : p));
-        }
-      },
-      error: () => { /* mock mode — local state is source of truth */ },
-    });
+    // Persist to Supabase
+    try {
+      const saved = await this.posSvc.create(newPosData);
+      this.positions.update(list => list.map(p => p.id === tempPos.id ? saved as unknown as KeyPosition : p));
+    } catch (e) {
+      console.error('Create position error:', e);
+    }
   }
 }

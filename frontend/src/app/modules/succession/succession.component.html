@@ -79,9 +79,9 @@
 
                   <div class="box-chips">
                     @for (t of talentsInBox(box); track t.id) {
-                      <div class="chip" [title]="t.fullName + ' — ' + t.position">
-                        <app-avatar [name]="t.fullName" [size]="22"></app-avatar>
-                        <span class="chip-name">{{ lastName(t.fullName) }}</span>
+                      <div class="chip" [title]="t.full_name + ' — ' + t.position">
+                        <app-avatar [name]="t.full_name" [size]="22"></app-avatar>
+                        <span class="chip-name">{{ lastName(t.full_name) }}</span>
                       </div>
                     }
                     @if (!talentsInBox(box).length) {
@@ -130,7 +130,7 @@
             </div>
           }
 
-          @for (root of treeRoots(); track root.positionId) {
+          @for (root of treeRoots(); track root.position_id) {
             <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
           }
 
@@ -143,10 +143,10 @@
                 role="button"
                 tabindex="0"
                 class="tree-row"
-                [ngClass]="['crit-' + criticalTone(node.criticalLevel), isNodeExpanded(node.positionId) ? 'is-expanded' : '']"
-                (click)="toggleNode(node.positionId)"
-                (keydown.enter)="toggleNode(node.positionId)"
-                (keydown.space)="$event.preventDefault(); toggleNode(node.positionId)"
+                [ngClass]="['crit-' + criticalTone(node.critical_level), isNodeExpanded(node.position_id) ? 'is-expanded' : '']"
+                (click)="toggleNode(node.position_id)"
+                (keydown.enter)="toggleNode(node.position_id)"
+                (keydown.space)="$event.preventDefault(); toggleNode(node.position_id)"
               >
                 <span nz-icon nzType="right" class="tr-chevron"></span>
                 <span class="tr-dot"></span>
@@ -155,7 +155,7 @@
                   <div class="tr-title">{{ node.title }}</div>
                   <div class="tr-sub">
                     {{ node.department }}
-                    @if (node.currentHolder) { · {{ node.currentHolder }} }
+                    @if (node.current_holder) { · {{ node.current_holder }} }
                   </div>
                 </div>
                 <div class="tr-stats">
@@ -181,23 +181,23 @@
               </div>
 
               <!-- Expanded details: successors + children -->
-              @if (isNodeExpanded(node.positionId)) {
+              @if (isNodeExpanded(node.position_id)) {
                 <div class="tree-details">
 
                   @if (node.successors.length) {
                     @let shown = successorsToShow(node);
                     <div class="succ-pipeline" [style.--n]="shown.length + (hiddenCount(node) > 0 ? 1 : 0)">
-                      @for (s of shown; track s.talentId) {
+                      @for (s of shown; track s.talent_id) {
                         <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
                           <span class="sn-priority">#{{ s.priority }}</span>
                           <div class="sn-avatar">
-                            <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                            <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
                           </div>
-                          <div class="sn-name">{{ s.talentName }}</div>
+                          <div class="sn-name">{{ s.talent_name }}</div>
                           <div class="sn-meta">
                             <span class="sn-gap">
                               <span nz-icon nzType="line-chart"></span>
-                              Gap {{ s.gapScore }}
+                              Gap {{ s.gap_score }}
                             </span>
                           </div>
                           <span class="sn-ready">
@@ -207,7 +207,7 @@
                         </div>
                       }
                       @if (hiddenCount(node) > 0) {
-                        <button type="button" class="succ-more" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
+                        <button type="button" class="succ-more" (click)="toggleExpand(node.position_id); $event.stopPropagation()">
                           <div class="sm-circle"><span nz-icon nzType="plus"></span></div>
                           <div class="sm-text">
                             <div class="sm-count">+{{ hiddenCount(node) }}</div>
@@ -216,9 +216,9 @@
                         </button>
                       }
                     </div>
-                    @if (node.successors.length > 3 && isExpanded(node.positionId)) {
+                    @if (node.successors.length > 3 && isExpanded(node.position_id)) {
                       <div class="succ-collapse-wrap">
-                        <button type="button" class="succ-collapse" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
+                        <button type="button" class="succ-collapse" (click)="toggleExpand(node.position_id); $event.stopPropagation()">
                           <span nz-icon nzType="arrow-up"></span>
                           Thu gọn danh sách kế thừa
                         </button>
@@ -233,7 +233,7 @@
 
                   @if (node.children.length) {
                     <div class="tree-children">
-                      @for (child of node.children; track child.positionId) {
+                      @for (child of node.children; track child.position_id) {
                         <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
                       }
                     </div>
@@ -408,15 +408,15 @@
   <ng-container *nzDrawerContent>
     @if (drawerNode(); as node) {
       <!-- Header -->
-      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
+      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.critical_level)">
         <div class="pd-hero-ico"><span nz-icon nzType="apartment"></span></div>
         <div class="pd-hero-text">
           <div class="pd-hero-title">{{ node.title }}</div>
           <div class="pd-hero-sub">
             <span nz-icon nzType="bank"></span>
             {{ node.department }}
-            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
-              {{ node.criticalLevel }}
+            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.critical_level)">
+              {{ node.critical_level }}
             </span>
           </div>
         </div>
@@ -432,17 +432,17 @@
           <h4>Người đương nhiệm</h4>
         </div>
 
-        @if (node.currentHolder) {
+        @if (node.current_holder) {
           <div class="pd-holder">
-            <app-avatar [name]="node.currentHolder" [size]="52"></app-avatar>
+            <app-avatar [name]="node.current_holder" [size]="52"></app-avatar>
             <div class="pd-holder-main">
-              <div class="pd-holder-name">{{ node.currentHolder }}</div>
+              <div class="pd-holder-name">{{ node.current_holder }}</div>
               @if (drawerHolderTalent(); as t) {
                 <div class="pd-holder-sub">{{ t.position }} · {{ t.department }}</div>
                 <div class="pd-holder-stats">
-                  <span class="pd-stat">Hiệu suất <strong>{{ t.performanceScore }}</strong></span>
-                  <span class="pd-stat">Tiềm năng <strong>{{ t.potentialScore }}</strong></span>
-                  <span class="pd-stat">Risk <strong>{{ t.riskScore }}</strong></span>
+                  <span class="pd-stat">Hiệu suất <strong>{{ t.performance_score }}</strong></span>
+                  <span class="pd-stat">Tiềm năng <strong>{{ t.potential_score }}</strong></span>
+                  <span class="pd-stat">Risk <strong>{{ t.risk_score }}</strong></span>
                 </div>
                 <button class="pd-link-btn" (click)="openTalentPreview(t.id, $event)">
                   <span nz-icon nzType="user"></span> Xem hồ sơ
@@ -470,15 +470,15 @@
 
         @if (node.successors.length) {
           <ul class="pd-succ-list">
-            @for (s of drawerSuccessorTalents(); track s.talentId) {
+            @for (s of drawerSuccessorTalents(); track s.talent_id) {
               <li class="pd-succ-item" [ngClass]="'rd-' + readinessTone(s.readiness)">
                 <span class="pd-priority">#{{ s.priority }}</span>
-                <app-avatar [name]="s.talentName" [size]="44"></app-avatar>
+                <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
                 <div class="pd-succ-main">
-                  <div class="pd-succ-name">{{ s.talentName }}</div>
+                  <div class="pd-succ-name">{{ s.talent_name }}</div>
                   <div class="pd-succ-sub">
                     @if (s.talent) { {{ s.talent.position }} · {{ s.talent.department }} }
-                    @else { Talent · {{ s.talentId }} }
+                    @else { Talent · {{ s.talent_id }} }
                   </div>
                   <div class="pd-succ-meta">
                     <span class="pd-ready">
@@ -487,7 +487,7 @@
                     </span>
                     <span class="pd-gap">
                       <span nz-icon nzType="line-chart"></span>
-                      Gap {{ s.gapScore }}
+                      Gap {{ s.gap_score }}
                     </span>
                   </div>
                 </div>

@@ -22,9 +22,9 @@ import { Talent, TalentTier } from '../../core/models/talent.model';
         <nz-spin nzSimple></nz-spin>
       } @else if (talent()) {
         <div style="background:#fff; border-radius:12px; padding:32px; box-shadow: 0 1px 4px rgba(0,0,0,0.06)">
-          <h2 style="color:#1e1b4b; margin:0 0 4px">{{ talent()!.fullName }}</h2>
+          <h2 style="color:#1e1b4b; margin:0 0 4px">{{ talent()!.full_name }}</h2>
           <p style="color:#6b7280; margin:0 0 16px">{{ talent()!.position }} · {{ talent()!.department }}</p>
-          <nz-tag [nzColor]="getTierColor(talent()!.talentTier)">{{ talent()!.talentTier }}</nz-tag>
+          <nz-tag [nzColor]="getTierColor(talent()!.talent_tier)">{{ talent()!.talent_tier }}</nz-tag>
           <p style="margin-top:24px; color:#9ca3af; font-style:italic">
             Chi tiết nhân tài — coming soon
           </p>

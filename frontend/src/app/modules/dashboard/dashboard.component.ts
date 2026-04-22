@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, IdpPlan, IdpListResponse, KeyPosition, PositionListResponse, DashboardKpi } from '../../core/models/models';
+import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
-import { environment } from '../../../environments/environment';
+import { EmployeeService, Employee } from '../../core/services/data/employee.service';
+import { KeyPositionService } from '../../core/services/data/key-position.service';
+import { IdpService } from '../../core/services/data/idp.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -32,19 +33,19 @@ export class DashboardComponent implements OnInit {
   readonly tierCounts = computed(() => {
     const acc = { core: 0, potential: 0, successor: 0 };
     for (const t of this.talents()) {
-      if (t.talentTier === 'Nòng cốt') acc.core++;
-      else if (t.talentTier === 'Tiềm năng') acc.potential++;
+      if (t.talent_tier === 'Nòng cốt') acc.core++;
+      else if (t.talent_tier === 'Tiềm năng') acc.potential++;
       else acc.successor++;
     }
     return acc;
   });
 
-  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successorCount > 0).length);
-  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successorCount === 0).length);
+  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successor_count > 0).length);
+  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successor_count === 0).length);
 
   // High risk threshold aligned with RiskBadge: >=60.
   readonly highRiskTalents = computed(() =>
-    [...this.talents()].filter(t => t.riskScore >= 60).sort((a, b) => b.riskScore - a.riskScore)
+    [...this.talents()].filter(t => (t.risk_score ?? 0) >= 60).sort((a, b) => (b.risk_score ?? 0) - (a.risk_score ?? 0))
   );
   readonly highRiskCount = computed(() => this.highRiskTalents().length);
   readonly topRiskNow = computed(() => this.highRiskTalents().slice(0, 3));
@@ -59,36 +60,30 @@ export class DashboardComponent implements OnInit {
   readonly avgIdpProgress = computed(() => {
     const list = this.activeIdps();
     if (!list.length) return 0;
-    return Math.round(list.reduce((s, p) => s + (p.overallProgress ?? 0), 0) / list.length);
+    return Math.round(list.reduce((s, p) => s + (p.overall_progress ?? 0), 0) / list.length);
   });
 
   today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private empSvc: EmployeeService,
+    private posSvc: KeyPositionService,
+    private idpSvc: IdpService,
+  ) {}
 
-  ngOnInit(): void {
-    // Khi useMock=false → dùng /dashboard/kpi aggregated endpoint (1 call thay 3).
-    // Khi useMock=true  → giữ 3 calls riêng để dùng mock data phong phú hơn.
-    if (!environment.useMock) {
-      this.api.get<DashboardKpi>('dashboard/kpi').subscribe(kpi => {
-        // Reconstruct minimal signal shapes từ KPI response
-        const fakeTalents: Talent[] = kpi.topRisk.map(r => ({
-          id: r.id, fullName: '', position: '', department: '',
-          talentTier: 'Kế thừa' as const, potentialLevel: 'Medium' as const,
-          performanceScore: 0, potentialScore: 0,
-          riskScore: r.riskScore ?? 0,
-          yearsOfExperience: 0, readinessLevel: 'Ready in 2 Years' as const,
-          email: '', riskReasons: r.riskReasons,
-        }));
-        // Note: full talents list vẫn cần riêng cho detail views
-        this.api.get<TalentListResponse>('employees').subscribe(r => this.talents.set(r.data));
-        this.api.get<PositionListResponse>('key-positions').subscribe(r => this.positions.set(r.data));
-      });
-      this.api.get<IdpListResponse>('idp').subscribe(r => this.idps.set(r.data));
-    } else {
-      this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
-      this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
-      this.api.get<PositionListResponse>('key-positions', 'positions').subscribe(r => this.positions.set(r.data));
+  async ngOnInit(): Promise<void> {
+    try {
+      const [employees, positions, idps] = await Promise.all([
+        this.empSvc.getAll(),
+        this.posSvc.getAll(),
+        this.idpSvc.getAll(),
+      ]);
+      // Map Employee → Talent shape (Talent is the UI model used by computed signals)
+      this.talents.set(employees as unknown as Talent[]);
+      this.positions.set(positions as unknown as KeyPosition[]);
+      this.idps.set(idps as unknown as IdpPlan[]);
+    } catch (e) {
+      console.error('Dashboard load error:', e);
     }
   }
 
@@ -101,8 +96,8 @@ export class DashboardComponent implements OnInit {
   }
 
   readinessLabel(p: KeyPosition): 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm' | 'Đang tuyển dụng' {
-    if ((p.readyNowCount ?? 0) > 0) return 'Sẵn sàng ngay';
-    if ((p.successorCount ?? 0) > 0) return '1-2 năm';
+    if ((p.ready_now_count ?? 0) > 0) return 'Sẵn sàng ngay';
+    if ((p.successor_count ?? 0) > 0) return '1-2 năm';
     return 'Đang tuyển dụng';
   }
 
@@ -115,14 +110,14 @@ export class DashboardComponent implements OnInit {
 
   riskReason(t: Talent): string {
     // Intent: show a short "reason" like the screenshot without needing extra backend fields.
-    if (t.riskScore >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
-    if (t.riskScore >= 70) return 'Hiệu suất giảm sút';
+    if ((t.risk_score ?? 0) >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
+    if ((t.risk_score ?? 0) >= 70) return 'Hiệu suất giảm sút';
     return 'Cần theo dõi nguy cơ nghỉ việc';
   }
 
   riskPill(t: Talent): { text: string; cls: string } {
-    if (t.riskScore >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
-    if (t.riskScore >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
+    if ((t.risk_score ?? 0) >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
+    if ((t.risk_score ?? 0) >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
     return { text: 'Rủi ro thấp', cls: 'pill-risk-low' };
   }
 
