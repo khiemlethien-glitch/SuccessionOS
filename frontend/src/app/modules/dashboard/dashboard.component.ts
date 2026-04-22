@@ -1,13 +1,11 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { DashboardService } from '../../core/services/data/dashboard.service';
 import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
-import { EmployeeService, Employee } from '../../core/services/data/employee.service';
-import { KeyPositionService } from '../../core/services/data/key-position.service';
-import { IdpService } from '../../core/services/data/idp.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,6 +21,10 @@ import { IdpService } from '../../core/services/data/idp.service';
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
+  private dashboardSvc = inject(DashboardService);
+
+  isLoading = signal(false);
+
   talents = signal<Talent[]>([]);
   idps    = signal<IdpPlan[]>([]);
   positions = signal<KeyPosition[]>([]);
@@ -33,26 +35,26 @@ export class DashboardComponent implements OnInit {
   readonly tierCounts = computed(() => {
     const acc = { core: 0, potential: 0, successor: 0 };
     for (const t of this.talents()) {
-      if (t.talent_tier === 'Nòng cốt') acc.core++;
-      else if (t.talent_tier === 'Tiềm năng') acc.potential++;
+      if (t.talentTier === 'Nòng cốt') acc.core++;
+      else if (t.talentTier === 'Tiềm năng') acc.potential++;
       else acc.successor++;
     }
     return acc;
   });
 
-  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successor_count > 0).length);
-  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successor_count === 0).length);
+  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successorCount > 0).length);
+  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successorCount === 0).length);
 
   // High risk threshold aligned with RiskBadge: >=60.
   readonly highRiskTalents = computed(() =>
-    [...this.talents()].filter(t => (t.risk_score ?? 0) >= 60).sort((a, b) => (b.risk_score ?? 0) - (a.risk_score ?? 0))
+    [...this.talents()].filter(t => t.riskScore >= 60).sort((a, b) => b.riskScore - a.riskScore)
   );
   readonly highRiskCount = computed(() => this.highRiskTalents().length);
   readonly topRiskNow = computed(() => this.highRiskTalents().slice(0, 3));
   readonly highRiskPct = computed(() => {
     const total = this.totalTalents();
     if (!total) return 0;
-    return Math.round((this.highRiskCount() / total) * 1000) / 10; // 1 decimal
+    return Math.round((this.highRiskCount() / total) * 1000) / 10;
   });
 
   readonly activeIdps = computed(() => this.idps().filter(i => i.status === 'Active'));
@@ -60,31 +62,13 @@ export class DashboardComponent implements OnInit {
   readonly avgIdpProgress = computed(() => {
     const list = this.activeIdps();
     if (!list.length) return 0;
-    return Math.round(list.reduce((s, p) => s + (p.overall_progress ?? 0), 0) / list.length);
+    return Math.round(list.reduce((s, p) => s + (p.overallProgress ?? 0), 0) / list.length);
   });
 
   today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  constructor(
-    private empSvc: EmployeeService,
-    private posSvc: KeyPositionService,
-    private idpSvc: IdpService,
-  ) {}
-
-  async ngOnInit(): Promise<void> {
-    try {
-      const [employees, positions, idps] = await Promise.all([
-        this.empSvc.getAll(),
-        this.posSvc.getAll(),
-        this.idpSvc.getAll(),
-      ]);
-      // Map Employee → Talent shape (Talent is the UI model used by computed signals)
-      this.talents.set(employees as unknown as Talent[]);
-      this.positions.set(positions as unknown as KeyPosition[]);
-      this.idps.set(idps as unknown as IdpPlan[]);
-    } catch (e) {
-      console.error('Dashboard load error:', e);
-    }
+  ngOnInit(): void {
+    // TODO: await dashboardSvc.getKpi()
   }
 
   positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {
@@ -96,8 +80,8 @@ export class DashboardComponent implements OnInit {
   }
 
   readinessLabel(p: KeyPosition): 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm' | 'Đang tuyển dụng' {
-    if ((p.ready_now_count ?? 0) > 0) return 'Sẵn sàng ngay';
-    if ((p.successor_count ?? 0) > 0) return '1-2 năm';
+    if ((p.readyNowCount ?? 0) > 0) return 'Sẵn sàng ngay';
+    if ((p.successorCount ?? 0) > 0) return '1-2 năm';
     return 'Đang tuyển dụng';
   }
 
@@ -109,15 +93,14 @@ export class DashboardComponent implements OnInit {
   }
 
   riskReason(t: Talent): string {
-    // Intent: show a short "reason" like the screenshot without needing extra backend fields.
-    if ((t.risk_score ?? 0) >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
-    if ((t.risk_score ?? 0) >= 70) return 'Hiệu suất giảm sút';
+    if (t.riskScore >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
+    if (t.riskScore >= 70) return 'Hiệu suất giảm sút';
     return 'Cần theo dõi nguy cơ nghỉ việc';
   }
 
   riskPill(t: Talent): { text: string; cls: string } {
-    if ((t.risk_score ?? 0) >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
-    if ((t.risk_score ?? 0) >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
+    if (t.riskScore >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
+    if (t.riskScore >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
     return { text: 'Rủi ro thấp', cls: 'pill-risk-low' };
   }
 
@@ -138,7 +121,6 @@ export class DashboardComponent implements OnInit {
     return palette[h % palette.length];
   }
 
-  // TODO: field `unassignedCount` sẽ do API cung cấp. Tạm derive ~12% cho mockup.
   readonly unassignedCount = computed(() => {
     const { core, potential, successor } = this.tierCounts();
     const real = core + potential + successor;
@@ -179,11 +161,10 @@ export class DashboardComponent implements OnInit {
     return Math.round((n / total) * 100);
   }
 
-  // Deterministic "tenure" text to match prototype without backend field.
   holderTenure(p: KeyPosition): string {
     const id = (p.id ?? '').replace(/\D/g, '');
     const n = Number(id || 0);
-    const years = (n % 4) + 2; // 2-5
+    const years = (n % 4) + 2;
     return `Giữ vị trí ${years} năm`;
   }
 }

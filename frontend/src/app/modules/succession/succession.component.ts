@@ -14,8 +14,6 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { Talent, TalentListResponse, SuccessionPlan, SuccessionPlanListResponse,
   KeyPosition, PositionListResponse, Successor } from '../../core/models/models';
-import { EmployeeService } from '../../core/services/data/employee.service';
-import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
@@ -32,10 +30,10 @@ const DEFAULT_PERF: [number, number] = [70, 85];
 const DEFAULT_POT:  [number, number] = [70, 85];
 
 interface TreeNode {
-  position_id: string;
+  positionId: string;
   title: string;
   department: string;
-  current_holder: string;
+  current_holder_id: string;
   critical_level: string;
   successors: Successor[];  // from matching SuccessionPlan, or []
   children: TreeNode[];
@@ -114,11 +112,11 @@ export class SuccessionComponent implements OnInit {
   }
   closePositionDrawer(): void { this.positionDrawerOpen.set(false); }
 
-  /** Match currentHolder string (plain name) against talents list if possible. */
+  /** Match current_holder_id against talents list if possible. */
   drawerHolderTalent = computed<Talent | null>(() => {
     const node = this.drawerNode();
-    if (!node?.current_holder) return null;
-    return this.talents().find(t => t.full_name === node.current_holder) ?? null;
+    if (!node?.current_holder_id) return null;
+    return this.talents().find(t => t.id === node.current_holder_id) ?? null;
   });
 
   /** Full talent records for successors of drawer node. */
@@ -127,24 +125,24 @@ export class SuccessionComponent implements OnInit {
     if (!node) return [];
     return node.successors.map(s => ({
       ...s,
-      talent: this.talents().find(t => t.id === s.talent_id) ?? null,
+      talent: this.talents().find(t => t.id === s.talentId) ?? null,
     }));
   });
 
-  currentUser = signal<{ role?: string; department?: string; talent_id?: string; full_name?: string; name?: string } | null>(null);
+  currentUser = signal<{ role?: string; department?: string; talentId?: string; fullName?: string; name?: string } | null>(null);
 
   isRestrictedView = computed(() => this.currentUser()?.role === 'Line Manager');
 
   /** Build tree from flat positions[] via parentId + attach successors from matching plan */
   private buildTree(positions: KeyPosition[], plans: SuccessionPlan[]): TreeNode[] {
-    const planByPos = new Map(plans.map(p => [p.position_id, p]));
+    const planByPos = new Map(plans.map(p => [p.positionId, p]));
     const nodeById  = new Map<string, TreeNode>();
     positions.forEach(p => {
       nodeById.set(p.id, {
-        position_id:    p.id,
+        positionId:    p.id,
         title:         p.title,
         department:    p.department,
-        current_holder: p.current_holder,
+        current_holder_id: p.current_holder_id,
         critical_level: p.critical_level,
         successors:    planByPos.get(p.id)?.successors ?? [],
         children:      [],
@@ -154,8 +152,8 @@ export class SuccessionComponent implements OnInit {
     const roots: TreeNode[] = [];
     positions.forEach(p => {
       const node = nodeById.get(p.id)!;
-      if (p.parent_id && nodeById.has(p.parent_id)) {
-        nodeById.get(p.parent_id)!.children.push(node);
+      if (p.parentId && nodeById.has(p.parentId)) {
+        nodeById.get(p.parentId)!.children.push(node);
       } else {
         roots.push(node);
       }
@@ -193,7 +191,7 @@ export class SuccessionComponent implements OnInit {
 
     const match = (n: TreeNode) =>
       (user.department ? n.department === user.department : false) ||
-      (user.talent_id   ? n.successors.some(s => s.talent_id === user.talent_id) : false);
+      (user.talentId   ? n.successors.some(s => s.talentId === user.talentId) : false);
     return this.pruneTree(full, match);
   });
 
@@ -235,13 +233,13 @@ export class SuccessionComponent implements OnInit {
 
   successorsToShow(node: TreeNode): Successor[] {
     if (node.successors.length <= this.COLLAPSE_THRESHOLD) return node.successors;
-    if (this.isExpanded(node.position_id)) return node.successors;
+    if (this.isExpanded(node.positionId)) return node.successors;
     return node.successors.slice(0, this.COLLAPSE_THRESHOLD);
   }
 
   hiddenCount(node: TreeNode): number {
     if (node.successors.length <= this.COLLAPSE_THRESHOLD) return 0;
-    if (this.isExpanded(node.position_id)) return 0;
+    if (this.isExpanded(node.positionId)) return 0;
     return node.successors.length - this.COLLAPSE_THRESHOLD;
   }
 
@@ -264,8 +262,6 @@ export class SuccessionComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private location: Location,
-    private empSvc: EmployeeService,
-    private posSvc: KeyPositionService,
   ) {}
 
   // ── Talent preview drawer (chạm sidebar, URL sync)
@@ -310,20 +306,11 @@ export class SuccessionComponent implements OnInit {
     this.openTalentPreview(id);
   }
 
-  async ngOnInit(): Promise<void> {
-    this.currentUser.set(this.auth.currentUser());
-    try {
-      const [employees, positions, plans] = await Promise.all([
-        this.empSvc.getAll(),
-        this.posSvc.getAll(),
-        this.posSvc.getSuccessionPlans(),
-      ]);
-      this.talents.set(employees as unknown as Talent[]);
-      this.positions.set(positions as unknown as KeyPosition[]);
-      this.plans.set(plans as unknown as SuccessionPlan[]);
-    } catch (e) {
-      console.error('Succession load error:', e);
-    }
+  ngOnInit(): void {
+    this.currentUser.set(this.auth.getCurrentUser());
+    this.api.get<TalentListResponse>('employees','talents').subscribe(r => this.talents.set(r.data));
+    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
+    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => this.positions.set(r.data));
   }
 
   // ─── Scoring ───────────────────────────────────────
@@ -334,21 +321,17 @@ export class SuccessionComponent implements OnInit {
   }
 
   talentsInBox(b: BoxDef): Talent[] {
-    const perf = this.perfThresholds();
-    const pot  = this.potThresholds();
-    return this.talents().filter(t =>
-      this.tier(t.performance_score ?? 0, perf) === b.row &&
-      this.tier(t.potential_score ?? 0,  pot)  === b.col
-    );
+    // Nine-box dùng field `box` (1-9) từ view v_nine_box thay vì compute từ thresholds
+    return this.talents().filter(t => (t as any).box === b.num);
   }
 
   readonly totalInGrid = computed(() => this.talents().length);
   readonly starCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 3 &&
-    this.tier(t.potential_score ?? 0,  this.potThresholds())  === 3
+    this.tier(t.performance_score, this.perfThresholds()) === 3 &&
+    this.tier(t.potential_score,  this.potThresholds())  === 3
   ).length);
   readonly needsActionCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 1
+    this.tier(t.performance_score, this.perfThresholds()) === 1
   ).length);
 
   // ─── Preview counts for each tier while editing thresholds ────
@@ -356,18 +339,18 @@ export class SuccessionComponent implements OnInit {
     const [lo, hi] = this.perfDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => (t.performance_score ?? 0) < lo).length,
-      mid:  list.filter(t => (t.performance_score ?? 0) >= lo && (t.performance_score ?? 0) < hi).length,
-      high: list.filter(t => (t.performance_score ?? 0) >= hi).length,
+      low:  list.filter(t => t.performance_score < lo).length,
+      mid:  list.filter(t => t.performance_score >= lo && t.performance_score < hi).length,
+      high: list.filter(t => t.performance_score >= hi).length,
     };
   });
   readonly previewPot = computed(() => {
     const [lo, hi] = this.potDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => (t.potential_score ?? 0) < lo).length,
-      mid:  list.filter(t => (t.potential_score ?? 0) >= lo && (t.potential_score ?? 0) < hi).length,
-      high: list.filter(t => (t.potential_score ?? 0) >= hi).length,
+      low:  list.filter(t => t.potential_score < lo).length,
+      mid:  list.filter(t => t.potential_score >= lo && t.potential_score < hi).length,
+      high: list.filter(t => t.potential_score >= hi).length,
     };
   });
 

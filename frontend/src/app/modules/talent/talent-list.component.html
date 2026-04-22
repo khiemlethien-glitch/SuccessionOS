@@ -45,7 +45,7 @@
         <span nz-icon nzType="line-chart" class="ms-ico"></span>
         <div class="ms-body">
           <span class="lbl">Avg Score</span>
-          <span class="val">{{ avgOverall() ?? '—' }}</span>
+          <span class="val">{{ avgOverall() }}</span>
         </div>
       </div>
       <div class="mini-stat ms-red">
@@ -98,7 +98,6 @@
   <div class="table-card">
     <nz-table
       #tbl
-      ngSkipHydration
       [nzData]="filtered()"
       [nzLoading]="loading()"
       [nzPageSize]="10"
@@ -172,7 +171,7 @@
             </td>
 
             <td>
-              <div class="overall">{{ overallScore(t) ?? '—' }}</div>
+              <div class="overall">{{ overallScore(t) }}</div>
             </td>
 
             <td>
@@ -187,7 +186,7 @@
             <td>
               <div class="risk-cell">
                 <span class="risk-pill" [ngClass]="riskLabel(t.risk_score).cls">{{ riskLabel(t.risk_score).text }}</span>
-                @if ((t.risk_score ?? 0) >= 60) {
+                @if (t.risk_score >= 60) {
                   @let reasons = departureReasons(t);
                   @if (reasons.length > 0) {
                     <div class="risk-reasons">

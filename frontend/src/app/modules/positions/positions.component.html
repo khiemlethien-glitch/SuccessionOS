@@ -69,9 +69,9 @@
 
         <!-- Current holder -->
         <div class="card-holder">
-          <app-avatar [name]="p.current_holder" [size]="38"></app-avatar>
+          <app-avatar [name]="p.current_holder_id" [size]="38"></app-avatar>
           <div class="holder-meta">
-            <div class="holder-name">{{ p.current_holder }}</div>
+            <div class="holder-name">{{ p.current_holder_id }}</div>
             <div class="holder-sub">Đương nhiệm · {{ p.department }}</div>
           </div>
         </div>
@@ -99,10 +99,10 @@
         <!-- Successors -->
         @if (getPlan(p.id)?.successors?.length) {
           <div class="succ-list">
-            @for (s of getPlan(p.id)!.successors; track s.talent_id) {
+            @for (s of getPlan(p.id)!.successors; track s.talentId) {
               <div class="succ-row">
-                <app-avatar [name]="s.talent_name" [size]="24"></app-avatar>
-                <span class="succ-name">{{ s.talent_name }}</span>
+                <app-avatar [name]="s.talentName" [size]="24"></app-avatar>
+                <span class="succ-name">{{ s.talentName }}</span>
                 <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">
                   {{ readinessLabel(s.readiness) }}
                 </span>
@@ -195,8 +195,8 @@
             nz-input
             class="m-input"
             placeholder="Họ tên người đang giữ vị trí"
-            [ngModel]="draft().current_holder"
-            (ngModelChange)="updateDraft('current_holder', $event)"
+            [ngModel]="draft().current_holder_id"
+            (ngModelChange)="updateDraft('current_holder_id', $event)"
           />
         </div>
       </div>

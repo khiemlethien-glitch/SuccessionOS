@@ -12,8 +12,8 @@ import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { KeyPosition, SuccessionPlan, CriticalLevel } from '../../core/models/models';
-import { KeyPositionService } from '../../core/services/data/key-position.service';
+import { ApiService } from '../../core/services/api.service';
+import { KeyPosition, PositionListResponse, SuccessionPlan, SuccessionPlanListResponse, CriticalLevel } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 interface Competency {
@@ -25,7 +25,7 @@ interface Competency {
 interface NewPositionDraft {
   title: string;
   department: string | null;
-  current_holder: string;
+  current_holder_id: string;
   critical_level: CriticalLevel;
 }
 
@@ -60,7 +60,7 @@ export class PositionsComponent implements OnInit {
   draft = signal<NewPositionDraft>({
     title: '',
     department: null,
-    current_holder: '',
+    current_holder_id: '',
     critical_level: 'Medium',
   });
 
@@ -87,25 +87,15 @@ export class PositionsComponent implements OnInit {
     { value: 'Low',      label: 'Low',      tone: 'green' },
   ];
 
-  constructor(private posSvc: KeyPositionService, private msg: NzMessageService) {}
+  constructor(private api: ApiService, private msg: NzMessageService) {}
 
-  async ngOnInit(): Promise<void> {
-    try {
-      const [positions, plans] = await Promise.all([
-        this.posSvc.getAll(),
-        this.posSvc.getSuccessionPlans(),
-      ]);
-      this.positions.set(positions as unknown as KeyPosition[]);
-      this.plans.set(plans as unknown as SuccessionPlan[]);
-    } catch (e) {
-      console.error('Positions load error:', e);
-    } finally {
-      this.loading.set(false);
-    }
+  ngOnInit(): void {
+    this.api.get<PositionListResponse>('key-positions','positions').subscribe(r => { this.positions.set(r.data); this.loading.set(false); });
+    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe(r => this.plans.set(r.data));
   }
 
   getPlan(posId: string): SuccessionPlan | undefined {
-    return this.plans().find(p => p.position_id === posId);
+    return this.plans().find(p => p.positionId === posId);
   }
 
   // ─── Tone helpers — map criticalLevel to card tone ───────
@@ -145,7 +135,7 @@ export class PositionsComponent implements OnInit {
   }
 
   resetDraft(): void {
-    this.draft.set({ title: '', department: null, current_holder: '', critical_level: 'Medium' });
+    this.draft.set({ title: '', department: null, current_holder_id: '', critical_level: 'Medium' });
     this.availableCompetencies.set([...this.allCompetencies]);
     this.selectedCompetencies.set([]);
   }
@@ -186,38 +176,42 @@ export class PositionsComponent implements OnInit {
 
   canSubmit = computed(() => {
     const d = this.draft();
-    return !!(d.title.trim() && d.department && d.current_holder.trim() && this.selectedCompetencies().length > 0);
+    return !!(d.title.trim() && d.department && d.current_holder_id.trim() && this.selectedCompetencies().length > 0);
   });
 
-  async submit(): Promise<void> {
+  submit(): void {
     if (!this.canSubmit()) {
       this.msg.warning('Vui lòng điền đầy đủ và chọn ít nhất 1 năng lực');
       return;
     }
     const d = this.draft();
-    const newPosData: Partial<KeyPosition> = {
+    const idx = this.positions().length + 1;
+    const newPos: KeyPosition = {
+      id: `P${String(idx).padStart(3, '0')}`,
       title: d.title.trim(),
       department: d.department!,
-      current_holder: d.current_holder.trim(),
+      current_holder_id: d.current_holder_id.trim(),
       successor_count: 0,
       ready_now_count: 0,
       risk_level: 'Low',
       critical_level: d.critical_level,
       successors: [],
-      required_competencies: this.selectedCompetencies().map(c => c.key),
+      requiredCompetencies: this.selectedCompetencies().map(c => c.key),
     };
-    // Optimistic update
-    const tempPos: KeyPosition = { id: `temp_${Date.now()}`, ...newPosData } as KeyPosition;
-    this.positions.update(list => [tempPos, ...list]);
-    this.msg.success(`Đã thêm vị trí "${tempPos.title}"`);
+    // Optimistic update — add locally immediately
+    this.positions.update(list => [newPos, ...list]);
+    this.msg.success(`Đã thêm vị trí "${newPos.title}"`);
     this.closeAddModal();
 
-    // Persist to Supabase
-    try {
-      const saved = await this.posSvc.create(newPosData);
-      this.positions.update(list => list.map(p => p.id === tempPos.id ? saved as unknown as KeyPosition : p));
-    } catch (e) {
-      console.error('Create position error:', e);
-    }
+    // Persist to backend (graceful degrade on mock)
+    this.api.post<{ data: KeyPosition }>('key-positions', newPos).subscribe({
+      next:  r => {
+        // Replace temp ID with server-assigned ID if backend returns one
+        if (r?.data?.id && r.data.id !== newPos.id) {
+          this.positions.update(list => list.map(p => p.id === newPos.id ? { ...p, id: r.data.id } : p));
+        }
+      },
+      error: () => { /* mock mode — local state is source of truth */ },
+    });
   }
 }

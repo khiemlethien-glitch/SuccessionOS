@@ -1,6 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
+<<<<<<< HEAD
 > Cập nhật lần cuối: 2026-04-22 19:00
 
 ---
@@ -51,6 +52,9 @@
 | Task 7 | Sửa models.ts → toàn bộ snake_case (full_name, performance_score, v.v.) | ✅ Done |
 | Task 8 | Sửa app.config.ts → xóa jwtInterceptor, giữ HttpClient | ✅ Done |
 | Task 9 | Fix toàn bộ TypeScript errors → 0 errors, build exit 0 | ✅ Done |
+=======
+> Cập nhật lần cuối: 2026-04-22 (snake_case refactor pass)
+>>>>>>> claude/sleepy-margulis-3c9b5d
 
 ---
 
@@ -98,6 +102,31 @@ Staging:  https://succession-os-y6mt.vercel.app
 ---
 
 ## ✅ Đã hoàn thành
+
+### Service Stubs — core/services/data/ (2026-04-22)
+- [x] **`core/services/data/employee.service.ts`** — `getAll(filter)`, `getById(id)`, `getNetwork(id)`, `getRiskFactors(id)`, `update(id, payload)`
+- [x] **`core/services/data/key-position.service.ts`** — `getAll(filter)`, `getById(id)`, `getSuccessors(positionId)`, `getSummary()`, `create/update/delete`
+- [x] **`core/services/data/succession.service.ts`** — `getPlans(filter)`, `getNineBox()`, `upsertPlan(payload)`, `deletePlan(id)`
+- [x] **`core/services/data/idp.service.ts`** — `getAll(filter)`, `getByEmployee(employeeId)`, `create(payload)`, `addGoal`, `updateGoal`
+- [x] **`core/services/data/dashboard.service.ts`** — `getKpi()`, `getRiskAlerts(limit)`, `getDepartments()`
+- Tất cả stub inject `SupabaseService` từ `../supabase.service` (chờ CLI tạo); methods trả empty data/null để compile — logic thật sẽ do CLI fill sau
+- **Fix import paths**: [dashboard.component.ts](frontend/src/app/modules/dashboard/dashboard.component.ts) + [talent-list.component.ts](frontend/src/app/modules/talent/talent-list.component.ts) chuyển từ `core/services/*.service` → `core/services/data/*.service`
+- **Chưa build** — chờ CLI fix 4 lỗi (SupabaseService tạo mới + còn lại) rồi build một lần
+
+### Supabase Auth Callback (2026-04-22)
+- [x] **`modules/auth/callback/callback.component.ts`** — Standalone, inject `SupabaseService`, `ngOnInit` gọi `sb.client.auth.getSession()` → `/dashboard` nếu có session, `/login` nếu không; template chỉ `nz-spin` fullscreen centered
+- [x] **`app.routes.ts`** — Route `auth/callback` trỏ sang `CallbackComponent` mới; xóa `/logout` (logout-callback) và `/silent-refresh` cũ (OIDC)
+- [x] **OIDC cleanup** — Xóa `core/auth/oidc-callback/`, `core/auth/logout-callback/`, `core/auth/oidc.service.ts`. Còn lại trong `core/auth/`: chỉ `auth.service.ts`
+
+### Data Binding Refactor — snake_case + service stubs (2026-04-22)
+- [x] **TASK 1 — dashboard.component.ts** — Xóa `ApiService`, inject `DashboardService` (stub từ CLI), `isLoading = signal(false)`, TODO `await dashboardSvc.getKpi()` trong `ngOnInit`
+- [x] **TASK 2 — talent-list.component.ts** — Xóa HttpClient calls, inject `EmployeeService`, rename fields `fullName/performanceScore/potentialScore/riskScore/talentTier/readinessLevel` → snake_case (TS + HTML)
+- [x] **TASK 3 — talent-profile.component.ts + .html** — Toàn bộ field snake_case (trên Talent) + `talent().mentor` → `talent().mentor_name` (từ v_employees view)
+- [x] **TASK 4 — positions.component.ts + .html** — `currentHolder → current_holder_id`, `successorCount → successor_count`, `readyNowCount → ready_now_count`, `riskLevel → risk_level`, `criticalLevel → critical_level` (NewPositionDraft interface + KeyPosition construction đồng bộ)
+- [x] **TASK 5 — succession.component.ts + .html** — Snake_case Talent + TreeNode interface (`current_holder_id`, `critical_level`); `talentsInBox()` giờ dùng `t.box` field từ view `v_nine_box` thay vì compute từ thresholds
+- [x] **TASK 6 — idp.component.ts + .html** — `talentName/talentId/overallProgress/targetPosition/approvedBy/approvedDate/goals12m/goals2to3y` → snake_case
+- [x] **TASK 7 — admin.component.ts** — Xóa 8 `api.get()` với endpoint strings cũ trong ngOnInit, thay bằng 5 TODO comment per tab (Overview/Data/Users/Settings/Audit)
+- **UI giữ nguyên 100%** — Chỉ đổi data binding/field names. KHÔNG đụng `core/` / `services/` (CLI làm song song). Build sẽ chạy sau khi CLI xong.
 
 ### Backend API (.NET 8)
 - [x] **Prompt 1 — EmployeeExtension + SyncService (2026-04-22)**

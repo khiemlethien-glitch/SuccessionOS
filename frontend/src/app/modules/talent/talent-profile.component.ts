@@ -21,10 +21,7 @@ import {
   CurrentProject, CurrentProjectResponse,
   KnowledgeTransfer, KnowledgeTransferResponse,
   Assessment360, Assessment360Response,
-  AiInsight,
 } from '../../core/models/models';
-import { EmployeeService } from '../../core/services/data/employee.service';
-import { IdpService } from '../../core/services/data/idp.service';
 
 // ─── Default fallback values (dùng trong mock mode / khi backend chưa có data) ─
 const DEFAULT_360: Assessment360 = {
@@ -48,8 +45,8 @@ const DEFAULT_360: Assessment360 = {
     { label: 'Tiềm năng phát triển',              score: 4.41 },
   ],
   strengths: ['FEA analysis ở đẳng cấp quốc tế', 'Đầu ra thiết kế không có lỗi major', 'Mentor hiệu quả'],
-  needs_dev: ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
-  manager_note: 'Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ.',
+  needsDev:  ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
+  managerNote: 'Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ.',
 };
 
 const DEFAULT_CAREER_REVIEW: CareerReview = {
@@ -62,8 +59,8 @@ const DEFAULT_CAREER_REVIEW: CareerReview = {
   ],
   overall: 91,
   strengths: ['FEA analysis ở đẳng cấp quốc tế', 'Đầu ra thiết kế không có lỗi major', 'Mentor hiệu quả'],
-  needs_dev: ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
-  manager_note: 'Nhận xét quản lý: Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ. Principal Engineer là con đường phù hợp nhất.',
+  needsDev:  ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
+  managerNote: 'Nhận xét quản lý: Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ. Principal Engineer là con đường phù hợp nhất.',
 };
 
 const DEFAULT_PROJECT: CurrentProject = {
@@ -73,8 +70,8 @@ const DEFAULT_PROJECT: CurrentProject = {
 };
 
 const DEFAULT_KT: KnowledgeTransfer = {
-  successor: 'Phạm Văn Việt', successor_role: 'Commissioning Engineer',
-  start_date: '2024-03-01', target_date: '2025-06-30', overall_progress: 40,
+  successor: 'Phạm Văn Việt', successorRole: 'Commissioning Engineer',
+  startDate: '2024-03-01', targetDate: '2025-06-30', overallProgress: 40,
   items: [
     { title: 'FEA methodology cho Jacket analysis',  category: 'Technical',   status: 'Completed',   progress: 100 },
     { title: 'API RP 2A-WSD design standards',       category: 'Standards',   status: 'In Progress', progress: 60  },
@@ -114,10 +111,6 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   careerReviewData     = signal<CareerReview>(DEFAULT_CAREER_REVIEW);
   currentProjectData   = signal<CurrentProject>(DEFAULT_PROJECT);
   knowledgeTransferData = signal<KnowledgeTransfer>(DEFAULT_KT);
-
-  // ─── AI Insight ───────────────────────────────────────────────────────────
-  aiInsight  = signal<string | null>(null);
-  aiLoading  = signal(false);
 
   // Trạng thái load từng section: null=loading, true=có data, false=không có data (404/error)
   assessment360Loaded    = signal<boolean | null>(null);
@@ -171,32 +164,30 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   hireDateFmt = computed(() => {
-    const d = this.talent()?.hire_date;
+    const d = this.talent()?.hireDate;
     if (!d) return '—';
     const [y, m, day] = d.split('-');
     return `${day}/${m}/${y}`;
   });
 
-  tenureYears = computed(() => this.talent()?.tenure_years ?? this.talent()?.years_of_experience ?? 0);
+  tenureYears = computed(() => this.talent()?.tenureYears ?? this.talent()?.yearsOfExperience ?? 0);
 
-  overallScore = computed<number | null>(() => {
+  overallScore = computed(() => {
     const t = this.talent();
-    if (!t) return null;
-    if (t.overall_score != null) return t.overall_score;
-    if (t.performance_score == null && t.potential_score == null) return null;
-    return Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
+    if (!t) return 0;
+    if (t.overallScore != null) return t.overallScore;
+    return Math.round((t.performance_score + t.potential_score) / 2);
   });
 
   overallRank = computed(() => {
-    const s = this.overallScore() ?? 0;
+    const s = this.overallScore();
     if (s >= 90) return 'Top 5% toàn công ty';
     if (s >= 80) return 'Top 20% toàn công ty';
     if (s >= 70) return 'Trung bình trên';
-    if (s === 0) return 'Chưa có điểm';
     return 'Trung bình';
   });
 
-  idpProgress = computed(() => this.idp()?.overall_progress ?? 0);
+  idpProgress = computed(() => this.idp()?.overallProgress ?? 0);
   ktpProgress = computed(() => this.talent()?.ktp_progress ?? 0);
 
   isHighRisk = computed(() => (this.talent()?.risk_score ?? 0) >= 60);
@@ -211,13 +202,13 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   riskFactorsList = computed<RiskFactor[]>(() => {
     const t = this.talent();
     if (!t) return [];
-    if (t.risk_factors && t.risk_factors.length) return t.risk_factors;
+    if (t.riskFactors && t.riskFactors.length) return t.riskFactors;
 
     const out: RiskFactor[] = [];
-    if ((t.risk_score ?? 0) >= 60) {
-      out.push({ title: `Risk score cao (${t.risk_score ?? 0})`, detail: 'Tổng hợp từ nhiều yếu tố, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    if (t.risk_score >= 60) {
+      out.push({ title: `Risk score cao (${t.risk_score})`, detail: 'Tổng hợp từ nhiều yếu tố, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
     }
-    if (!t.mentor) {
+    if (!t.mentor_name) {
       out.push({ title: 'Chưa có mentor', detail: 'Chưa gán mentor trong hệ thống PTNT', severity: 'medium', source: 'HR', date: 'Q1/2025' });
     }
     const ktp = t.ktp_progress ?? 0;
@@ -249,9 +240,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return 0;
     const peers = this.allTalents().filter(x => x.department === t.department);
     if (peers.length === 0) return 0;
-    const avg = peers.reduce((s, x) => s + (x.risk_score ?? 0), 0) / peers.length;
+    const avg = peers.reduce((s, x) => s + x.risk_score, 0) / peers.length;
     if (avg <= 0) return 0;
-    return Math.round((((t.risk_score ?? 0) - avg) / avg) * 100);
+    return Math.round(((t.risk_score - avg) / avg) * 100);
   });
 
   riskReasons = computed<string[]>(() => {
@@ -259,7 +250,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return [];
     if (t.risk_reasons && t.risk_reasons.length) return t.risk_reasons;
     const out: string[] = [];
-    if (!t.mentor) out.push('Chưa có mentor');
+    if (!t.mentor_name) out.push('Chưa có mentor');
     if ((t.ktp_progress ?? 100) < 50) out.push(`KTP tiến độ thấp ${t.ktp_progress ?? 0}%`);
     if (this.idpProgress() < 50) out.push(`IDP tiến độ thấp ${this.idpProgress()}%`);
     return out;
@@ -277,10 +268,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return [] as { label: string; value: number }[];
     return [
       { label: 'Kỹ thuật',  value: t.competencies?.technical ?? 0 },
-      { label: 'Hiệu suất', value: t.performance_score ?? 0 },
+      { label: 'Hiệu suất', value: t.performance_score },
       { label: 'Hành vi',   value: t.competencies?.communication ?? 0 },
-      { label: 'Tiềm năng', value: t.potential_score ?? 0 },
-      { label: 'Tổng hợp',  value: this.overallScore() ?? 0 },
+      { label: 'Tiềm năng', value: t.potential_score },
+      { label: 'Tổng hợp',  value: this.overallScore() },
     ];
   });
 
@@ -293,12 +284,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // ─── IDP Plan (narrative view cho review card) ─────────────────────────────
   idpTargetPosition = computed(() =>
-    this.idp()?.target_position ?? this.talent()?.target_position ?? '—');
-  idpApprovedBy   = computed(() => this.idp()?.approved_by   ?? '—');
-  idpApprovedDate = computed(() => this.idp()?.approved_date ?? '—');
+    this.idp()?.targetPosition ?? this.talent()?.targetPosition ?? '—');
+  idpApprovedBy   = computed(() => this.idp()?.approvedBy   ?? '—');
+  idpApprovedDate = computed(() => this.idp()?.approvedDate ?? '—');
   idpStatus       = computed(() => this.idp()?.status ?? '—');
-  idpGoals12m     = computed(() => this.idp()?.goals_12m  ?? []);
-  idpGoals2to3y   = computed(() => this.idp()?.goals_2to3y ?? []);
+  idpGoals12m     = computed(() => this.idp()?.goals12m  ?? []);
+  idpGoals2to3y   = computed(() => this.idp()?.goals2to3y ?? []);
 
   // ─── Review helpers ────────────────────────────────────────────────────────
   reviewLabel(score: number): string {
@@ -338,12 +329,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     const t = this.talent();
     if (!t) return [];
     const c   = t.competencies;
-    const tgt = t.competency_targets ?? { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 };
+    const tgt = t.competencyTargets ?? { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 };
     const values = [
       { label: 'Kỹ thuật',  actual: c?.technical ?? 0,      target: tgt.technical },
-      { label: 'Hiệu suất', actual: t.performance_score ?? 0,  target: tgt.performance },
+      { label: 'Hiệu suất', actual: t.performance_score,      target: tgt.performance },
       { label: 'Hành vi',   actual: c?.communication ?? 0,   target: tgt.behavior },
-      { label: 'Tiềm năng', actual: t.potential_score ?? 0,   target: tgt.potential },
+      { label: 'Tiềm năng', actual: t.potential_score,        target: tgt.potential },
       { label: 'Lãnh đạo',  actual: c?.leadership ?? 0,      target: tgt.leadership },
     ];
     return values.map(v => ({ ...v, delta: v.actual - v.target }));
@@ -402,17 +393,17 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   mentees = computed<Talent[]>(() => {
     const me = this.talent();
     if (!me) return [];
-    return this.allTalents().filter(t => t.mentor === me.full_name);
+    return this.allTalents().filter(t => t.mentor_name === me.full_name);
   });
 
   mentorTalent = computed<Talent | null>(() => {
     const me = this.talent();
-    if (!me || !me.mentor) return null;
-    return this.allTalents().find(t => t.full_name === me.mentor) ?? null;
+    if (!me || !me.mentor_name) return null;
+    return this.allTalents().find(t => t.full_name === me.mentor_name) ?? null;
   });
 
   targetInitials = computed(() => {
-    const tp = this.talent()?.target_position;
+    const tp = this.talent()?.targetPosition;
     if (!tp) return '—';
     const parts = tp.trim().split(/\s+/);
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -435,13 +426,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private api: ApiService,
-    private empSvc: EmployeeService,
-    private idpSvc: IdpService,
-  ) {}
+  constructor(private route: ActivatedRoute, private router: Router, private api: ApiService) {}
 
   ngOnInit(): void {
     const id = this.embedded
@@ -472,61 +457,59 @@ export class TalentProfileComponent implements OnInit, OnChanges {
    *   employees/{id}/knowledge-transfer → knowledge-transfer.json
    *   employees (full list)          → talents.json  (mentor picker)
    */
-  private async loadTalentData(id: string): Promise<void> {
+  private loadTalentData(id: string): void {
     this.loading.set(true);
     if (!id) { this.loading.set(false); return; }
 
-    try {
-      // 1. Employee by ID (Supabase)
-      const employee = await this.empSvc.getById(id);
-      this.talent.set(employee as unknown as Talent);
-      this.loading.set(false);
+    // 1. Employee by ID
+    this.api.get<TalentDetailResponse>(`employees/${id}`, 'talent-profile')
+      .subscribe({
+        next:  r => { this.talent.set(r.data); this.loading.set(false); },
+        error: () => this.loading.set(false),
+      });
 
-      // 2. All employees cho mentor picker
-      const allEmps = await this.empSvc.getAll();
-      this.allTalents.set(allEmps as unknown as Talent[]);
+    // 2. Full list cho mentor picker + riskVsDeptAvg
+    this.api.get<TalentListResponse>('employees', 'talents')
+      .subscribe(r => this.allTalents.set(r.data));
 
-      // 3. IDP (Supabase)
-      const idps = await this.idpSvc.getAll(id);
-      const idp = idps[0] ?? null;
-      this.idp.set(idp as unknown as IdpPlan);
-      this.idpLoaded.set(!!idp);
-    } catch (e) {
-      console.error('TalentProfile load error:', e);
-      this.loading.set(false);
-      this.idpLoaded.set(false);
-    }
+    // 3. Assessment 360° card
+    this.api.get<Assessment360Response>(`assessments/${id}/latest`, 'assessment-latest')
+      .subscribe({
+        next:  r => { this.assessment360Data.set(r.data); this.assessment360Loaded.set(true); },
+        error: () => this.assessment360Loaded.set(false),
+      });
 
-    // 4–8. Các section còn lại: giữ mock fallback (assessment360, careerReview, currentProject, knowledgeTransfer, assessment)
-    // Chúng dùng DEFAULT constants khai báo ở đầu file → luôn có data hiển thị
-    this.assessment360Loaded.set(true);
-    this.careerReviewLoaded.set(true);
-    this.currentProjectLoaded.set(true);
-    this.knowledgeTransferLoaded.set(true);
+    // 4. IDP (dùng cho cả review card lẫn tab IDP)
+    this.api.get<IdpDetailResponse>(`idp/${id}/employee`, 'idp-employee')
+      .subscribe({
+        next:  r => { this.idp.set(r.data); this.idpLoaded.set(true); },
+        error: () => this.idpLoaded.set(false),
+      });
 
-    // 9. AI Insight — giữ disabled khi không có backend
-    this.aiLoading.set(false);
-  }
+    // 5. Tab "Đánh giá 360°" — score-based assessment từ Assessment list
+    this.api.get<AssessmentListResponse>('assessments', 'assessments')
+      .subscribe(r => this.assessment.set(r.data.find(a => a.talentId === id) ?? null));
 
-  markdownToHtml(md: string): string {
-    if (!md) return '';
-    return md
-      // ## Heading → <h4>
-      .replace(/^## (.+)$/gm, '<h4 class="ai-heading">$1</h4>')
-      // **bold** → <strong>
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      // *italic* → <em>
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      // Bullet list items (- item)
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      // Wrap consecutive <li> blocks in <ul>
-      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul class="ai-list">${m}</ul>`)
-      // Blank lines → paragraph breaks
-      .replace(/\n{2,}/g, '</p><p class="ai-p">')
-      // Single newlines → <br>
-      .replace(/\n/g, '<br>')
-      // Wrap everything in a paragraph tag (if not already wrapped)
-      .replace(/^(?!<[hup])(.+)$/gm, '<p class="ai-p">$1</p>');
+    // 6. Career Review card
+    this.api.get<CareerReviewResponse>(`employees/${id}/review`, 'career-review')
+      .subscribe({
+        next:  r => { this.careerReviewData.set(r.data); this.careerReviewLoaded.set(true); },
+        error: () => this.careerReviewLoaded.set(false),
+      });
+
+    // 7. Current Project card
+    this.api.get<CurrentProjectResponse>(`employees/${id}/current-project`, 'current-project')
+      .subscribe({
+        next:  r => { this.currentProjectData.set(r.data); this.currentProjectLoaded.set(true); },
+        error: () => this.currentProjectLoaded.set(false),
+      });
+
+    // 8. Knowledge Transfer card
+    this.api.get<KnowledgeTransferResponse>(`employees/${id}/knowledge-transfer`, 'knowledge-transfer')
+      .subscribe({
+        next:  r => { this.knowledgeTransferData.set(r.data); this.knowledgeTransferLoaded.set(true); },
+        error: () => this.knowledgeTransferLoaded.set(false),
+      });
   }
 
   goBack(): void {
@@ -545,11 +528,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     return this.allTalents()
       .filter(t =>
         t.id !== me.id &&
-        t.years_of_experience >= 8 &&
+        t.yearsOfExperience >= 8 &&
         (t.talent_tier === 'Nòng cốt' || t.talent_tier === 'Kế thừa')
       )
       .filter(t => !q || t.full_name.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q))
-      .sort((a, b) => b.years_of_experience - a.years_of_experience);
+      .sort((a, b) => b.yearsOfExperience - a.yearsOfExperience);
   });
 
   mentorInitials(name: string): string {
@@ -561,7 +544,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   assignMentor(m: Talent): void {
     const current = this.talent();
     if (!current) return;
-    this.talent.set({ ...current, mentor: m.full_name });
+    this.talent.set({ ...current, mentor_name: m.full_name });
     this.showMentorModal.set(false);
     // TODO: PATCH /employees/{id}/mentor khi backend sẵn sàng
   }
@@ -569,7 +552,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   clearMentor(): void {
     const current = this.talent();
     if (!current) return;
-    this.talent.set({ ...current, mentor: null });
+    this.talent.set({ ...current, mentor_name: null });
     // TODO: DELETE /employees/{id}/mentor khi backend sẵn sàng
   }
 
