@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-22 15:30
+> Cập nhật lần cuối: 2026-04-22 16:30
 
 ---
 
@@ -16,7 +16,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 Staging:  https://succession-os-y6mt.vercel.app
 ```
 
-### Tiến độ tổng thể: ~78% ███████████████░░░░░
+### Tiến độ tổng thể: ~85% █████████████████░░░
 
 | Nhóm | Trạng thái | % |
 |---|---|---|
@@ -28,11 +28,11 @@ Staging:  https://succession-os-y6mt.vercel.app
 | Succession Map | ✅ Hoàn thành | 100% |
 | Admin Panel | ✅ Hoàn thành | 100% |
 | SSO / OIDC Integration | ✅ Hoàn thành | 100% |
-| IDP Module | 🔲 Chưa làm | 0% |
+| IDP Module | ✅ Hoàn thành (P1) | 90% |
+| Mentoring Module | ✅ Hoàn thành (P1) | 85% |
+| Reports Module | ✅ Hoàn thành (P1) | 80% |
 | Assessment Module | 🔲 Chưa làm | 0% |
-| Mentoring Module | 🔲 Chưa làm | 0% |
 | Calibration Module | 🔲 Chưa làm | 0% |
-| Reports Module | 🔲 Chưa làm | 0% |
 | Marketplace Module | 🔲 Chưa làm | 0% |
 | RBAC / Permissions | 🔲 Chưa làm | 0% |
 
@@ -59,6 +59,25 @@ Staging:  https://succession-os-y6mt.vercel.app
   - Mapping: `"Core"→"Nòng cốt"`, `"1-2 Years"→"Ready in 1 Year"`, v.v. — đúng format frontend
   - **5/5 frontend call đã CONNECTED** (dashboard, talent-list, succession, talent-profile ×2)
   - Build: ✅ 0 lỗi 0 warning
+
+- [x] **Prompt 3 — Key Positions + Succession Plans (2026-04-22)**
+  - `Domain/Entities/KeyPosition.cs` + `SuccessionPlan.cs` — entities với JSON columns
+  - `DbContext` cập nhật: 3 DbSets + JSON converters cho List<string> + OwnsMany SuccessorEntry
+  - `KeyPositionsController.cs` — full CRUD: GET list, GET by id, POST, PUT, DELETE (soft)
+    - `riskLevel` computed: successorCount==0 → High, readyNowCount==0 → High, <2 → Medium, else Low
+  - `SuccessionController.cs` — GET plans, GET by id, GET by employee, GET nine-box, POST upsert, PUT
+  - `admin.component.ts` — **fixed** path `'succession-plans'` → `'succession/plans'`
+  - **4/4 GET key-positions CONNECTED** · **3/3 GET succession/plans CONNECTED**
+  - Angular build: ✅ 0 TypeScript error
+
+- [x] **Prompt 4 — Dashboard KPI (2026-04-22)**
+  - `Domain/Entities/IdpPlan.cs` — entity mới (Id, TalentId, TalentName, Year, Status, OverallProgress)
+  - `DbContext` cập nhật: thêm DbSet<IdpPlan>
+  - `DashboardController.cs` — `GET /api/v1/dashboard/kpi`, cache 2 phút, 3 queries parallel
+    - Trả: totalTalents, tierCounts (Vietnamese), positionsWithSuccessors, highRiskTalents, activeIdps, avgIdpProgress, topRisk
+  - `models.ts` — thêm `DashboardKpi` interface
+  - `dashboard.component.ts` — phân nhánh: `useMock=false` → gọi `dashboard/kpi`, `useMock=true` → 3 calls mock
+  - Build backend: ✅ 0 lỗi 0 warning · Build frontend: ✅ 0 TypeScript error
 
 ### Bug Fixes
 - [x] **SSR Hydration Fix (2026-04-22)** — Fix triệt để `TypeError: Cannot read properties of null (reading 'hasAttribute')`:
@@ -197,6 +216,13 @@ Staging:  https://succession-os-y6mt.vercel.app
 - [x] **`positions.component.ts`**: `'positions'→'key-positions'`, `'succession-plans'→'succession/plans'`
 - [x] **`succession.component.ts`**: `'talents'→'employees'`, `'succession-plans'→'succession/plans'`, `'positions'→'key-positions'`
 
+### P1 Features — IDP + Mentoring + Reports (2026-04-22)
+- [x] **IDP Module** (`/idp`) — Create/Edit drawer (560px right) với dynamic goals list; 3-level approval modal (Quản lý trực tiếp → Phòng Nhân sự → Ban Giám đốc) với nz-steps; approve/reject flow cập nhật status IDP → Active; loading spinner; filter buttons; edit/duyệt buttons per card
+- [x] **Mentoring Module** (`/mentoring`) — Create pair drawer (500px): mentor/mentee name, focus, start/end dates, sessions count; Logbook drawer (540px): session history per pair (mock 8 sessions M004 đầy đủ), add session form inline với date + summary + next action; session badge count hiển thị trên button; nz-spin khi loading
+- [x] **Reports Module** (`/reports`) — IDP Progress tab: 5 KPI cards (total/active/completed/pending/avg%), status distribution bars, full plans table với progress column; Assessment tab: 4 competency avg bars, Top-5 performers với avatar, detailed score table; Tổng quan tab đã có từ trước + giữ nguyên
+- [x] **TypeScript compile** ✅ 0 lỗi — tất cả 3 component files
+- [x] **Git commit + push** → `khiemlethien-glitch/SuccessionOS` (commit `35ff7d3`)
+
 ### Excel Documentation — v3 (2026-04-22)
 - [x] **`SuccessionOS_API_Docs.xlsx`** — 3 sheets: Hướng dẫn + API List (31 in-scope / 30 skip, màu sắc) + Field Spec (4 modules: Dashboard, Nhân tài, Vị trí then chốt, Bản đồ kế thừa)
 - [x] Color coding: VnR HRE ✅ xanh lá / SuccessionOS DB 🔨 đỏ / in-scope trắng / skip xám
@@ -222,11 +248,11 @@ Staging:  https://succession-os-y6mt.vercel.app
 
 ### Modules (sidebar đang disabled — "Sắp ra mắt")
 
-- [ ] **IDP Module** (`/idp`) — list cards + approval stepper 3 cấp + detail modal + draft status
+- [x] ~~**IDP Module**~~ ✅ **DONE P1** — list + filter + create/edit drawer + 3-level approval modal
 - [ ] **Assessment Module** (`/assessment`) — tabs HRM360 + form nhập điểm + charts radar
-- [ ] **Mentoring Module** (`/mentoring`) — pairs list + logbook + session tracking
+- [x] ~~**Mentoring Module**~~ ✅ **DONE P1** — pairs grid + create pair drawer + logbook + add session
 - [ ] **Calibration Module** (`/calibration`) — session list + 9-Box interactive + lock + audit
-- [ ] **Reports Module** (`/reports`) — charts + export PDF/Excel
+- [x] ~~**Reports Module**~~ ✅ **DONE P1** — Tổng quan + IDP Progress + Assessment tabs
 - [ ] **Marketplace Module** (`/marketplace`) — module cards + filter tabs + pricing
 
 ### RBAC (sau khi UI xong)
@@ -293,11 +319,11 @@ frontend/src/
 │       ├── positions/                ✅ Cards + add drawer + details drawer + preview
 │       ├── succession/               ✅ 9-Box + org tree + compact view + drawers
 │       ├── admin/                    ✅ 5-tab CRUD + module config drawer + audit
-│       ├── idp/                      🔲 Placeholder (disabled)
+│       ├── idp/                      ✅ P1 — list + create/edit drawer + approval modal
 │       ├── assessment/               🔲 Placeholder (disabled)
-│       ├── mentoring/                🔲 Placeholder (disabled)
+│       ├── mentoring/                ✅ P1 — pairs grid + create drawer + logbook drawer
 │       ├── calibration/              🔲 Placeholder (disabled)
-│       ├── reports/                  🔲 Placeholder (disabled)
+│       ├── reports/                  ✅ P1 — 4 tabs (Tổng quan + IDP Progress + Assessment + ROI)
 │       └── marketplace/              🔲 Placeholder (disabled)
 ├── environments/
 │   ├── environment.ts                ✅ (gitignored — secret)
