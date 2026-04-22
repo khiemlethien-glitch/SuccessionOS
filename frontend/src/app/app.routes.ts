@@ -7,18 +7,8 @@ export const routes: Routes = [
   {
     path: 'auth/callback',
     loadComponent: () =>
-      import('./core/auth/oidc-callback/oidc-callback.component')
-        .then(m => m.OidcCallbackComponent),
-  },
-  {
-    path: 'logout',
-    loadComponent: () =>
-      import('./core/auth/logout-callback/logout-callback.component')
-        .then(m => m.LogoutCallbackComponent),
-  },
-  {
-    path: 'silent-refresh',
-    redirectTo: '/',
+      import('./modules/auth/callback/callback.component')
+        .then(m => m.CallbackComponent),
   },
   {
     path: '',

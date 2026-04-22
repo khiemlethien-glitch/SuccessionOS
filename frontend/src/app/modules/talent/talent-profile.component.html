@@ -8,7 +8,7 @@
       <div class="crumb">
         <a routerLink="/talent" class="crumb-link">Nhân tài</a>
         <span nz-icon nzType="right" class="crumb-sep"></span>
-        <span class="crumb-current">{{ talent()!.fullName }}</span>
+        <span class="crumb-current">{{ talent()!.full_name }}</span>
       </div>
     }
 
@@ -18,7 +18,7 @@
         <span nz-icon nzType="warning" nzTheme="outline" class="risk-icon"></span>
         <div class="risk-content">
           <div class="risk-title">
-            Nhân sự rủi ro cao — <strong>{{ talent()!.riskScore }}/100</strong>
+            Nhân sự rủi ro cao — <strong>{{ talent()!.risk_score }}/100</strong>
           </div>
           <div class="risk-chips">
             @for (r of riskReasons(); track r) {
@@ -36,7 +36,7 @@
         <div class="identity">
           <div class="avatar-circle">{{ initials() }}</div>
           <div class="identity-text">
-            <h2 class="name">{{ talent()!.fullName }}</h2>
+            <h2 class="name">{{ talent()!.full_name }}</h2>
             <p class="position">{{ talent()!.position }}</p>
             <p class="sub">{{ talent()!.department }}@if (roleLevel()) { <span> · {{ roleLevel() }}</span> }</p>
           </div>
@@ -51,19 +51,19 @@
       <!-- Center: metrics -->
       <div class="hero-center">
         <div class="pills">
-          <span [class]="tierPillClass()">{{ talent()!.talentTier }}</span>
-          <span class="pill pill-ready">{{ readinessLabel(talent()!.readinessLevel) }}</span>
+          <span [class]="tierPillClass()">{{ talent()!.talent_tier }}</span>
+          <span class="pill pill-ready">{{ readinessLabel(talent()!.readiness_level) }}</span>
           <span class="pill pill-idp">IDP: {{ idpProgress() }}%</span>
         </div>
 
         <div class="bar-grid">
           <div class="bar">
-            <div class="bar-head"><span>Hiệu suất</span><strong>{{ talent()!.performanceScore }}/100</strong></div>
-            <div class="bar-track"><div class="bar-fill bar-perf" [style.width.%]="talent()!.performanceScore"></div></div>
+            <div class="bar-head"><span>Hiệu suất</span><strong>{{ talent()!.performance_score }}/100</strong></div>
+            <div class="bar-track"><div class="bar-fill bar-perf" [style.width.%]="talent()!.performance_score"></div></div>
           </div>
           <div class="bar">
-            <div class="bar-head"><span>Tiềm năng</span><strong>{{ talent()!.potentialScore }}/100</strong></div>
-            <div class="bar-track"><div class="bar-fill bar-pot" [style.width.%]="talent()!.potentialScore"></div></div>
+            <div class="bar-head"><span>Tiềm năng</span><strong>{{ talent()!.potential_score }}/100</strong></div>
+            <div class="bar-track"><div class="bar-fill bar-pot" [style.width.%]="talent()!.potential_score"></div></div>
           </div>
           <div class="bar">
             <div class="bar-head"><span>IDP</span><strong>{{ idpProgress() }}%</strong></div>
@@ -75,21 +75,21 @@
           </div>
         </div>
 
-        <div class="mentor-row" [class.empty]="!talent()!.mentor">
-          <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
+        <div class="mentor-row" [class.empty]="!talent()!.mentor_name">
+          <span nz-icon [nzType]="talent()!.mentor_name ? 'user' : 'user-delete'" class="mentor-icon"></span>
           <span class="mentor-text">
-            @if (talent()!.mentor) {
-              Mentor: <strong>{{ talent()!.mentor }}</strong>
+            @if (talent()!.mentor_name) {
+              Mentor: <strong>{{ talent()!.mentor_name }}</strong>
             } @else {
               Chưa có mentor được gán
             }
           </span>
-          @if (talent()!.mentor) {
+          @if (talent()!.mentor_name) {
             <button type="button" class="mentor-btn mentor-btn-clear" (click)="clearMentor()" title="Bỏ gán">
               <span nz-icon nzType="close"></span>
             </button>
           }
-          <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor ? 'Đổi mentor' : 'Gán mentor'">
+          <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor_name ? 'Đổi mentor' : 'Gán mentor'">
             <span nz-icon nzType="plus"></span>
           </button>
         </div>
@@ -103,7 +103,7 @@
           <div class="metric-sub">{{ overallRank() }}</div>
         </div>
         <div class="metric metric-red">
-          <div class="metric-val">{{ talent()!.riskScore }}</div>
+          <div class="metric-val">{{ talent()!.risk_score }}</div>
           <div class="metric-label">Rủi ro</div>
           <div class="metric-sub">{{ riskLabel() }}</div>
         </div>
@@ -113,7 +113,7 @@
           <div class="metric-sub">Kế thừa ưu tiên</div>
         </div>
         <div class="metric metric-amber">
-          <div class="metric-val metric-val-sm">{{ readinessLabel(talent()!.readinessLevel) }}</div>
+          <div class="metric-val metric-val-sm">{{ readinessLabel(talent()!.readiness_level) }}</div>
           <div class="metric-label">Thời gian còn lại</div>
           <div class="metric-sub">Đến readiness</div>
         </div>
@@ -224,7 +224,7 @@
                [class.clickable]="mentorTalent()"
                (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
             @if (mentorTalent()) {
-              <div class="node-circle mentor-circle">{{ menteeInitials(mentorTalent()!.fullName) }}</div>
+              <div class="node-circle mentor-circle">{{ menteeInitials(mentorTalent()!.full_name) }}</div>
             } @else {
               <div class="node-circle mentor-empty">—</div>
             }
@@ -244,14 +244,14 @@
 
           @if (mentees()[0]; as m) {
             <div class="node node-mentee clickable" [style.left.%]="34" [style.top.%]="88" (click)="switchCenter(m.id)">
-              <div class="node-circle mentee-circle">{{ menteeInitials(m.fullName) }}</div>
-              <div class="node-label below">{{ m.talentTier }}</div>
+              <div class="node-circle mentee-circle">{{ menteeInitials(m.full_name) }}</div>
+              <div class="node-label below">{{ m.talent_tier }}</div>
             </div>
           }
           @if (mentees()[1]; as m) {
             <div class="node node-mentee clickable" [style.left.%]="66" [style.top.%]="88" (click)="switchCenter(m.id)">
-              <div class="node-circle mentee-circle mentee-alt">{{ menteeInitials(m.fullName) }}</div>
-              <div class="node-label below">{{ m.talentTier }}</div>
+              <div class="node-circle mentee-circle mentee-alt">{{ menteeInitials(m.full_name) }}</div>
+              <div class="node-label below">{{ m.talent_tier }}</div>
             </div>
           }
         </div>
@@ -263,13 +263,13 @@
       <button type="button" class="risk-card-head" (click)="riskExpanded.set(!riskExpanded())">
         <span nz-icon nzType="warning" nzTheme="outline" class="rc-ico"></span>
         <span class="rc-title">Yếu tố rủi ro</span>
-        <span class="rc-badge">Risk {{ talent()!.riskScore }} · {{ riskFactorsList().length }} yếu tố</span>
+        <span class="rc-badge">Risk {{ talent()!.risk_score }} · {{ riskFactorsList().length }} yếu tố</span>
         <span nz-icon [nzType]="riskExpanded() ? 'arrow-up' : 'arrow-down'" class="rc-toggle"></span>
       </button>
 
       @if (riskExpanded()) {
         <div class="risk-summary">
-          Risk score <strong>{{ talent()!.riskScore }}</strong>
+          Risk score <strong>{{ talent()!.risk_score }}</strong>
           @if (riskVsDeptAvg() > 0) {
             — Cao hơn <strong>{{ riskVsDeptAvg() }}%</strong> trung bình phòng
           } @else if (riskVsDeptAvg() < 0) {
@@ -498,7 +498,7 @@
             </div>
             <div class="qs-cell">
               <div class="qs-label">Risk Score</div>
-              <div class="qs-value qs-value-risk">{{ quickStats().riskScore }} / 100</div>
+              <div class="qs-value qs-value-risk">{{ quickStats().risk_score }} / 100</div>
             </div>
           </div>
         </div>
@@ -631,7 +631,7 @@
       <div class="mm-hero">
         <div class="mm-hero-ico"><span nz-icon nzType="user-add"></span></div>
         <div class="mm-hero-text">
-          <div class="mm-hero-title">Gán mentor cho {{ talent()?.fullName }}</div>
+          <div class="mm-hero-title">Gán mentor cho {{ talent()?.full_name }}</div>
           <div class="mm-hero-sub">Chọn người có thể hướng dẫn (senior, Nòng cốt / Kế thừa)</div>
         </div>
       </div>
@@ -649,13 +649,13 @@
       <div class="mm-list">
         @for (m of mentorCandidates(); track m.id) {
           <button type="button" class="mm-item" (click)="assignMentor(m)">
-            <div class="mm-ava">{{ mentorInitials(m.fullName) }}</div>
+            <div class="mm-ava">{{ mentorInitials(m.full_name) }}</div>
             <div class="mm-info">
-              <div class="mm-name">{{ m.fullName }}</div>
+              <div class="mm-name">{{ m.full_name }}</div>
               <div class="mm-pos">{{ m.position }} · {{ m.department }}</div>
             </div>
             <div class="mm-meta">
-              <span class="mm-tag mm-tag-tier">{{ m.talentTier }}</span>
+              <span class="mm-tag mm-tag-tier">{{ m.talent_tier }}</span>
               <span class="mm-exp">{{ m.yearsOfExperience }} năm KN</span>
             </div>
             <span nz-icon nzType="arrow-right" class="mm-arrow"></span>

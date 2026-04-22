@@ -25,8 +25,8 @@ interface Competency {
 interface NewPositionDraft {
   title: string;
   department: string | null;
-  currentHolder: string;
-  criticalLevel: CriticalLevel;
+  current_holder_id: string;
+  critical_level: CriticalLevel;
 }
 
 @Component({
@@ -50,9 +50,9 @@ export class PositionsComponent implements OnInit {
   loading   = signal(true);
 
   readonly totalCount     = computed(() => this.positions().length);
-  readonly criticalCount  = computed(() => this.positions().filter(p => p.criticalLevel === 'Critical').length);
-  readonly noSuccessor    = computed(() => this.positions().filter(p => p.successorCount === 0).length);
-  readonly highRiskCount  = computed(() => this.positions().filter(p => p.riskLevel === 'High').length);
+  readonly criticalCount  = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
+  readonly noSuccessor    = computed(() => this.positions().filter(p => p.successor_count === 0).length);
+  readonly highRiskCount  = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
 
   // ─── Modal state ───────────────────────────────────────────
   showAddModal = signal(false);
@@ -60,8 +60,8 @@ export class PositionsComponent implements OnInit {
   draft = signal<NewPositionDraft>({
     title: '',
     department: null,
-    currentHolder: '',
-    criticalLevel: 'Medium',
+    current_holder_id: '',
+    critical_level: 'Medium',
   });
 
   readonly allCompetencies: Competency[] = [
@@ -135,7 +135,7 @@ export class PositionsComponent implements OnInit {
   }
 
   resetDraft(): void {
-    this.draft.set({ title: '', department: null, currentHolder: '', criticalLevel: 'Medium' });
+    this.draft.set({ title: '', department: null, current_holder_id: '', critical_level: 'Medium' });
     this.availableCompetencies.set([...this.allCompetencies]);
     this.selectedCompetencies.set([]);
   }
@@ -176,7 +176,7 @@ export class PositionsComponent implements OnInit {
 
   canSubmit = computed(() => {
     const d = this.draft();
-    return !!(d.title.trim() && d.department && d.currentHolder.trim() && this.selectedCompetencies().length > 0);
+    return !!(d.title.trim() && d.department && d.current_holder_id.trim() && this.selectedCompetencies().length > 0);
   });
 
   submit(): void {
@@ -190,11 +190,11 @@ export class PositionsComponent implements OnInit {
       id: `P${String(idx).padStart(3, '0')}`,
       title: d.title.trim(),
       department: d.department!,
-      currentHolder: d.currentHolder.trim(),
-      successorCount: 0,
-      readyNowCount: 0,
-      riskLevel: 'Low',
-      criticalLevel: d.criticalLevel,
+      current_holder_id: d.current_holder_id.trim(),
+      successor_count: 0,
+      ready_now_count: 0,
+      risk_level: 'Low',
+      critical_level: d.critical_level,
       successors: [],
       requiredCompetencies: this.selectedCompetencies().map(c => c.key),
     };

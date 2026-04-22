@@ -123,10 +123,10 @@
           <tr class="t-row" (click)="navigate(t)">
             <td>
               <div class="emp">
-                <app-avatar [name]="t.fullName" [size]="36"></app-avatar>
+                <app-avatar [name]="t.full_name" [size]="36"></app-avatar>
                 <div class="emp-meta">
                   <div class="emp-name">
-                    {{ t.fullName }}
+                    {{ t.full_name }}
                     @if (heldPosition(t); as kp) {
                       <span class="key-badge" nz-tooltip [nzTooltipTitle]="'Đang giữ vị trí then chốt: ' + kp.title">
                         <span nz-icon nzType="key"></span>
@@ -134,7 +134,7 @@
                     }
                   </div>
                   <div class="emp-sub">{{ t.position }}</div>
-                  @if (t.talentTier === 'Kế thừa') {
+                  @if (t.talent_tier === 'Kế thừa') {
                     @let succ = successorOf(t);
                     @if (succ.length > 0) {
                       <div class="emp-succ"
@@ -153,19 +153,19 @@
             </td>
 
             <td class="dept">{{ t.department }}</td>
-            <td><app-tier-badge [tier]="t.talentTier"></app-tier-badge></td>
+            <td><app-tier-badge [tier]="t.talent_tier"></app-tier-badge></td>
 
             <td>
               <div class="eval">
                 <div class="eval-row">
                   <div class="eval-lbl">Perf</div>
-                  <nz-progress [nzPercent]="t.performanceScore" [nzShowInfo]="false" nzSize="small" class="bar perf"></nz-progress>
-                  <div class="eval-num">{{ t.performanceScore }}</div>
+                  <nz-progress [nzPercent]="t.performance_score" [nzShowInfo]="false" nzSize="small" class="bar perf"></nz-progress>
+                  <div class="eval-num">{{ t.performance_score }}</div>
                 </div>
                 <div class="eval-row">
                   <div class="eval-lbl">Pot</div>
-                  <nz-progress [nzPercent]="t.potentialScore" [nzShowInfo]="false" nzSize="small" class="bar pot"></nz-progress>
-                  <div class="eval-num">{{ t.potentialScore }}</div>
+                  <nz-progress [nzPercent]="t.potential_score" [nzShowInfo]="false" nzSize="small" class="bar pot"></nz-progress>
+                  <div class="eval-num">{{ t.potential_score }}</div>
                 </div>
               </div>
             </td>
@@ -180,13 +180,13 @@
             </td>
 
             <td>
-              <span class="ready-pill" [ngClass]="readinessClass(t.readinessLevel)">{{ readinessLabel(t.readinessLevel) }}</span>
+              <span class="ready-pill" [ngClass]="readinessClass(t.readiness_level)">{{ readinessLabel(t.readiness_level) }}</span>
             </td>
 
             <td>
               <div class="risk-cell">
-                <span class="risk-pill" [ngClass]="riskLabel(t.riskScore).cls">{{ riskLabel(t.riskScore).text }}</span>
-                @if (t.riskScore >= 60) {
+                <span class="risk-pill" [ngClass]="riskLabel(t.risk_score).cls">{{ riskLabel(t.risk_score).text }}</span>
+                @if (t.risk_score >= 60) {
                   @let reasons = departureReasons(t);
                   @if (reasons.length > 0) {
                     <div class="risk-reasons">

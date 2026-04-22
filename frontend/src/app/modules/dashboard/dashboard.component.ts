@@ -1,12 +1,11 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
-import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, IdpPlan, IdpListResponse, KeyPosition, PositionListResponse, DashboardKpi } from '../../core/models/models';
+import { DashboardService } from '../../core/services/data/dashboard.service';
+import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
-import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +21,10 @@ import { environment } from '../../../environments/environment';
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
+  private dashboardSvc = inject(DashboardService);
+
+  isLoading = signal(false);
+
   talents = signal<Talent[]>([]);
   idps    = signal<IdpPlan[]>([]);
   positions = signal<KeyPosition[]>([]);
@@ -51,7 +54,7 @@ export class DashboardComponent implements OnInit {
   readonly highRiskPct = computed(() => {
     const total = this.totalTalents();
     if (!total) return 0;
-    return Math.round((this.highRiskCount() / total) * 1000) / 10; // 1 decimal
+    return Math.round((this.highRiskCount() / total) * 1000) / 10;
   });
 
   readonly activeIdps = computed(() => this.idps().filter(i => i.status === 'Active'));
@@ -64,32 +67,8 @@ export class DashboardComponent implements OnInit {
 
   today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
 
-  constructor(private api: ApiService) {}
-
   ngOnInit(): void {
-    // Khi useMock=false → dùng /dashboard/kpi aggregated endpoint (1 call thay 3).
-    // Khi useMock=true  → giữ 3 calls riêng để dùng mock data phong phú hơn.
-    if (!environment.useMock) {
-      this.api.get<DashboardKpi>('dashboard/kpi').subscribe(kpi => {
-        // Reconstruct minimal signal shapes từ KPI response
-        const fakeTalents: Talent[] = kpi.topRisk.map(r => ({
-          id: r.id, fullName: '', position: '', department: '',
-          talentTier: 'Kế thừa' as const, potentialLevel: 'Medium' as const,
-          performanceScore: 0, potentialScore: 0,
-          riskScore: r.riskScore ?? 0,
-          yearsOfExperience: 0, readinessLevel: 'Ready in 2 Years' as const,
-          email: '', riskReasons: r.riskReasons,
-        }));
-        // Note: full talents list vẫn cần riêng cho detail views
-        this.api.get<TalentListResponse>('employees').subscribe(r => this.talents.set(r.data));
-        this.api.get<PositionListResponse>('key-positions').subscribe(r => this.positions.set(r.data));
-      });
-      this.api.get<IdpListResponse>('idp').subscribe(r => this.idps.set(r.data));
-    } else {
-      this.api.get<TalentListResponse>('employees', 'talents').subscribe(r => this.talents.set(r.data));
-      this.api.get<IdpListResponse>('idp', 'idp-plans').subscribe(r => this.idps.set(r.data));
-      this.api.get<PositionListResponse>('key-positions', 'positions').subscribe(r => this.positions.set(r.data));
-    }
+    // TODO: await dashboardSvc.getKpi()
   }
 
   positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {
@@ -114,7 +93,6 @@ export class DashboardComponent implements OnInit {
   }
 
   riskReason(t: Talent): string {
-    // Intent: show a short "reason" like the screenshot without needing extra backend fields.
     if (t.riskScore >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
     if (t.riskScore >= 70) return 'Hiệu suất giảm sút';
     return 'Cần theo dõi nguy cơ nghỉ việc';
@@ -143,7 +121,6 @@ export class DashboardComponent implements OnInit {
     return palette[h % palette.length];
   }
 
-  // TODO: field `unassignedCount` sẽ do API cung cấp. Tạm derive ~12% cho mockup.
   readonly unassignedCount = computed(() => {
     const { core, potential, successor } = this.tierCounts();
     const real = core + potential + successor;
@@ -184,11 +161,10 @@ export class DashboardComponent implements OnInit {
     return Math.round((n / total) * 100);
   }
 
-  // Deterministic "tenure" text to match prototype without backend field.
   holderTenure(p: KeyPosition): string {
     const id = (p.id ?? '').replace(/\D/g, '');
     const n = Number(id || 0);
-    const years = (n % 4) + 2; // 2-5
+    const years = (n % 4) + 2;
     return `Giữ vị trí ${years} năm`;
   }
 }

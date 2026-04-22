@@ -79,9 +79,9 @@
 
                   <div class="box-chips">
                     @for (t of talentsInBox(box); track t.id) {
-                      <div class="chip" [title]="t.fullName + ' — ' + t.position">
-                        <app-avatar [name]="t.fullName" [size]="22"></app-avatar>
-                        <span class="chip-name">{{ lastName(t.fullName) }}</span>
+                      <div class="chip" [title]="t.full_name + ' — ' + t.position">
+                        <app-avatar [name]="t.full_name" [size]="22"></app-avatar>
+                        <span class="chip-name">{{ lastName(t.full_name) }}</span>
                       </div>
                     }
                     @if (!talentsInBox(box).length) {
@@ -143,7 +143,7 @@
                 role="button"
                 tabindex="0"
                 class="tree-row"
-                [ngClass]="['crit-' + criticalTone(node.criticalLevel), isNodeExpanded(node.positionId) ? 'is-expanded' : '']"
+                [ngClass]="['crit-' + criticalTone(node.critical_level), isNodeExpanded(node.positionId) ? 'is-expanded' : '']"
                 (click)="toggleNode(node.positionId)"
                 (keydown.enter)="toggleNode(node.positionId)"
                 (keydown.space)="$event.preventDefault(); toggleNode(node.positionId)"
@@ -155,7 +155,7 @@
                   <div class="tr-title">{{ node.title }}</div>
                   <div class="tr-sub">
                     {{ node.department }}
-                    @if (node.currentHolder) { · {{ node.currentHolder }} }
+                    @if (node.current_holder_id) { · {{ node.current_holder_id }} }
                   </div>
                 </div>
                 <div class="tr-stats">
@@ -408,15 +408,15 @@
   <ng-container *nzDrawerContent>
     @if (drawerNode(); as node) {
       <!-- Header -->
-      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
+      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.critical_level)">
         <div class="pd-hero-ico"><span nz-icon nzType="apartment"></span></div>
         <div class="pd-hero-text">
           <div class="pd-hero-title">{{ node.title }}</div>
           <div class="pd-hero-sub">
             <span nz-icon nzType="bank"></span>
             {{ node.department }}
-            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.criticalLevel)">
-              {{ node.criticalLevel }}
+            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.critical_level)">
+              {{ node.critical_level }}
             </span>
           </div>
         </div>
@@ -432,17 +432,17 @@
           <h4>Người đương nhiệm</h4>
         </div>
 
-        @if (node.currentHolder) {
+        @if (node.current_holder_id) {
           <div class="pd-holder">
-            <app-avatar [name]="node.currentHolder" [size]="52"></app-avatar>
+            <app-avatar [name]="node.current_holder_id" [size]="52"></app-avatar>
             <div class="pd-holder-main">
-              <div class="pd-holder-name">{{ node.currentHolder }}</div>
+              <div class="pd-holder-name">{{ node.current_holder_id }}</div>
               @if (drawerHolderTalent(); as t) {
                 <div class="pd-holder-sub">{{ t.position }} · {{ t.department }}</div>
                 <div class="pd-holder-stats">
-                  <span class="pd-stat">Hiệu suất <strong>{{ t.performanceScore }}</strong></span>
-                  <span class="pd-stat">Tiềm năng <strong>{{ t.potentialScore }}</strong></span>
-                  <span class="pd-stat">Risk <strong>{{ t.riskScore }}</strong></span>
+                  <span class="pd-stat">Hiệu suất <strong>{{ t.performance_score }}</strong></span>
+                  <span class="pd-stat">Tiềm năng <strong>{{ t.potential_score }}</strong></span>
+                  <span class="pd-stat">Risk <strong>{{ t.risk_score }}</strong></span>
                 </div>
                 <button class="pd-link-btn" (click)="openTalentPreview(t.id, $event)">
                   <span nz-icon nzType="user"></span> Xem hồ sơ

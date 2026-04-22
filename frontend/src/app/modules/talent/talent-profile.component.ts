@@ -143,7 +143,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // ─── Derived values ────────────────────────────────────────────────────────
   initials = computed(() => {
-    const name = this.talent()?.fullName ?? '';
+    const name = this.talent()?.full_name ?? '';
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -176,7 +176,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     const t = this.talent();
     if (!t) return 0;
     if (t.overallScore != null) return t.overallScore;
-    return Math.round((t.performanceScore + t.potentialScore) / 2);
+    return Math.round((t.performance_score + t.potential_score) / 2);
   });
 
   overallRank = computed(() => {
@@ -188,12 +188,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   idpProgress = computed(() => this.idp()?.overallProgress ?? 0);
-  ktpProgress = computed(() => this.talent()?.ktpProgress ?? 0);
+  ktpProgress = computed(() => this.talent()?.ktp_progress ?? 0);
 
-  isHighRisk = computed(() => (this.talent()?.riskScore ?? 0) >= 60);
+  isHighRisk = computed(() => (this.talent()?.risk_score ?? 0) >= 60);
 
   riskLabel = computed(() => {
-    const r = this.talent()?.riskScore ?? 0;
+    const r = this.talent()?.risk_score ?? 0;
     if (r >= 60) return 'Cao — cần chú ý';
     if (r >= 30) return 'Trung bình';
     return 'Thấp';
@@ -205,13 +205,13 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (t.riskFactors && t.riskFactors.length) return t.riskFactors;
 
     const out: RiskFactor[] = [];
-    if (t.riskScore >= 60) {
-      out.push({ title: `Risk score cao (${t.riskScore})`, detail: 'Tổng hợp từ nhiều yếu tố, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    if (t.risk_score >= 60) {
+      out.push({ title: `Risk score cao (${t.risk_score})`, detail: 'Tổng hợp từ nhiều yếu tố, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
     }
-    if (!t.mentor) {
+    if (!t.mentor_name) {
       out.push({ title: 'Chưa có mentor', detail: 'Chưa gán mentor trong hệ thống PTNT', severity: 'medium', source: 'HR', date: 'Q1/2025' });
     }
-    const ktp = t.ktpProgress ?? 0;
+    const ktp = t.ktp_progress ?? 0;
     if (ktp > 0 && ktp < 50) {
       out.push({ title: `KTP tiến độ thấp ${ktp}%`, detail: 'Theo KTP holder progress / kế hoạch chuyển giao', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
     }
@@ -219,7 +219,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (idpP > 0 && idpP < 30) {
       out.push({ title: `IDP tiến độ thấp ${idpP}%`, detail: 'Kế hoạch phát triển cá nhân chưa tiến triển', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
     }
-    if (t.readinessLevel === 'Ready in 2 Years' && t.talentTier === 'Nòng cốt') {
+    if (t.readiness_level === 'Ready in 2 Years' && t.talent_tier === 'Nòng cốt') {
       out.push({ title: 'Thời gian sẵn sàng dài', detail: 'Ready in 2 Years — cần tăng tốc IDP', severity: 'low', source: 'Tự động', date: 'Q1/2025' });
     }
     if (out.length === 0) {
@@ -229,7 +229,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   riskTone = computed<'high' | 'medium' | 'low'>(() => {
-    const r = this.talent()?.riskScore ?? 0;
+    const r = this.talent()?.risk_score ?? 0;
     if (r >= 60) return 'high';
     if (r >= 30) return 'medium';
     return 'low';
@@ -240,24 +240,24 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return 0;
     const peers = this.allTalents().filter(x => x.department === t.department);
     if (peers.length === 0) return 0;
-    const avg = peers.reduce((s, x) => s + x.riskScore, 0) / peers.length;
+    const avg = peers.reduce((s, x) => s + x.risk_score, 0) / peers.length;
     if (avg <= 0) return 0;
-    return Math.round(((t.riskScore - avg) / avg) * 100);
+    return Math.round(((t.risk_score - avg) / avg) * 100);
   });
 
   riskReasons = computed<string[]>(() => {
     const t = this.talent();
     if (!t) return [];
-    if (t.riskReasons && t.riskReasons.length) return t.riskReasons;
+    if (t.risk_reasons && t.risk_reasons.length) return t.risk_reasons;
     const out: string[] = [];
-    if (!t.mentor) out.push('Chưa có mentor');
-    if ((t.ktpProgress ?? 100) < 50) out.push(`KTP tiến độ thấp ${t.ktpProgress ?? 0}%`);
+    if (!t.mentor_name) out.push('Chưa có mentor');
+    if ((t.ktp_progress ?? 100) < 50) out.push(`KTP tiến độ thấp ${t.ktp_progress ?? 0}%`);
     if (this.idpProgress() < 50) out.push(`IDP tiến độ thấp ${this.idpProgress()}%`);
     return out;
   });
 
   tierPillClass = computed(() => {
-    const tier = this.talent()?.talentTier;
+    const tier = this.talent()?.talent_tier;
     if (tier === 'Nòng cốt')  return 'pill pill-core';
     if (tier === 'Tiềm năng') return 'pill pill-potential';
     return 'pill pill-successor';
@@ -268,9 +268,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return [] as { label: string; value: number }[];
     return [
       { label: 'Kỹ thuật',  value: t.competencies?.technical ?? 0 },
-      { label: 'Hiệu suất', value: t.performanceScore },
+      { label: 'Hiệu suất', value: t.performance_score },
       { label: 'Hành vi',   value: t.competencies?.communication ?? 0 },
-      { label: 'Tiềm năng', value: t.potentialScore },
+      { label: 'Tiềm năng', value: t.potential_score },
       { label: 'Tổng hợp',  value: this.overallScore() },
     ];
   });
@@ -279,7 +279,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     trainingHours:  60,                         // TODO: từ /employees/{id}/stats
     lastPromotion:  2020,                       // TODO: từ /employees/{id}/stats
     idpProgress:    this.idpProgress(),
-    riskScore:      this.talent()?.riskScore ?? 0,
+    riskScore:      this.talent()?.risk_score ?? 0,
   }));
 
   // ─── IDP Plan (narrative view cho review card) ─────────────────────────────
@@ -332,9 +332,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     const tgt = t.competencyTargets ?? { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 };
     const values = [
       { label: 'Kỹ thuật',  actual: c?.technical ?? 0,      target: tgt.technical },
-      { label: 'Hiệu suất', actual: t.performanceScore,      target: tgt.performance },
+      { label: 'Hiệu suất', actual: t.performance_score,      target: tgt.performance },
       { label: 'Hành vi',   actual: c?.communication ?? 0,   target: tgt.behavior },
-      { label: 'Tiềm năng', actual: t.potentialScore,        target: tgt.potential },
+      { label: 'Tiềm năng', actual: t.potential_score,        target: tgt.potential },
       { label: 'Lãnh đạo',  actual: c?.leadership ?? 0,      target: tgt.leadership },
     ];
     return values.map(v => ({ ...v, delta: v.actual - v.target }));
@@ -393,13 +393,13 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   mentees = computed<Talent[]>(() => {
     const me = this.talent();
     if (!me) return [];
-    return this.allTalents().filter(t => t.mentor === me.fullName);
+    return this.allTalents().filter(t => t.mentor_name === me.full_name);
   });
 
   mentorTalent = computed<Talent | null>(() => {
     const me = this.talent();
-    if (!me || !me.mentor) return null;
-    return this.allTalents().find(t => t.fullName === me.mentor) ?? null;
+    if (!me || !me.mentor_name) return null;
+    return this.allTalents().find(t => t.full_name === me.mentor_name) ?? null;
   });
 
   targetInitials = computed(() => {
@@ -411,7 +411,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   centerInitials = computed(() => {
-    const name  = this.talent()?.fullName ?? '';
+    const name  = this.talent()?.full_name ?? '';
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -529,9 +529,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       .filter(t =>
         t.id !== me.id &&
         t.yearsOfExperience >= 8 &&
-        (t.talentTier === 'Nòng cốt' || t.talentTier === 'Kế thừa')
+        (t.talent_tier === 'Nòng cốt' || t.talent_tier === 'Kế thừa')
       )
-      .filter(t => !q || t.fullName.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q))
+      .filter(t => !q || t.full_name.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q))
       .sort((a, b) => b.yearsOfExperience - a.yearsOfExperience);
   });
 
@@ -544,7 +544,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   assignMentor(m: Talent): void {
     const current = this.talent();
     if (!current) return;
-    this.talent.set({ ...current, mentor: m.fullName });
+    this.talent.set({ ...current, mentor_name: m.full_name });
     this.showMentorModal.set(false);
     // TODO: PATCH /employees/{id}/mentor khi backend sẵn sàng
   }
@@ -552,7 +552,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   clearMentor(): void {
     const current = this.talent();
     if (!current) return;
-    this.talent.set({ ...current, mentor: null });
+    this.talent.set({ ...current, mentor_name: null });
     // TODO: DELETE /employees/{id}/mentor khi backend sẵn sàng
   }
 

@@ -33,8 +33,8 @@ interface TreeNode {
   positionId: string;
   title: string;
   department: string;
-  currentHolder: string;
-  criticalLevel: string;
+  current_holder_id: string;
+  critical_level: string;
   successors: Successor[];  // from matching SuccessionPlan, or []
   children: TreeNode[];
   depth: number;
@@ -112,11 +112,11 @@ export class SuccessionComponent implements OnInit {
   }
   closePositionDrawer(): void { this.positionDrawerOpen.set(false); }
 
-  /** Match currentHolder string (plain name) against talents list if possible. */
+  /** Match current_holder_id against talents list if possible. */
   drawerHolderTalent = computed<Talent | null>(() => {
     const node = this.drawerNode();
-    if (!node?.currentHolder) return null;
-    return this.talents().find(t => t.fullName === node.currentHolder) ?? null;
+    if (!node?.current_holder_id) return null;
+    return this.talents().find(t => t.id === node.current_holder_id) ?? null;
   });
 
   /** Full talent records for successors of drawer node. */
@@ -142,8 +142,8 @@ export class SuccessionComponent implements OnInit {
         positionId:    p.id,
         title:         p.title,
         department:    p.department,
-        currentHolder: p.currentHolder,
-        criticalLevel: p.criticalLevel,
+        current_holder_id: p.current_holder_id,
+        critical_level: p.critical_level,
         successors:    planByPos.get(p.id)?.successors ?? [],
         children:      [],
         depth:         0,
@@ -321,21 +321,17 @@ export class SuccessionComponent implements OnInit {
   }
 
   talentsInBox(b: BoxDef): Talent[] {
-    const perf = this.perfThresholds();
-    const pot  = this.potThresholds();
-    return this.talents().filter(t =>
-      this.tier(t.performanceScore, perf) === b.row &&
-      this.tier(t.potentialScore,  pot)  === b.col
-    );
+    // Nine-box dùng field `box` (1-9) từ view v_nine_box thay vì compute từ thresholds
+    return this.talents().filter(t => (t as any).box === b.num);
   }
 
   readonly totalInGrid = computed(() => this.talents().length);
   readonly starCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performanceScore, this.perfThresholds()) === 3 &&
-    this.tier(t.potentialScore,  this.potThresholds())  === 3
+    this.tier(t.performance_score, this.perfThresholds()) === 3 &&
+    this.tier(t.potential_score,  this.potThresholds())  === 3
   ).length);
   readonly needsActionCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performanceScore, this.perfThresholds()) === 1
+    this.tier(t.performance_score, this.perfThresholds()) === 1
   ).length);
 
   // ─── Preview counts for each tier while editing thresholds ────
@@ -343,18 +339,18 @@ export class SuccessionComponent implements OnInit {
     const [lo, hi] = this.perfDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => t.performanceScore < lo).length,
-      mid:  list.filter(t => t.performanceScore >= lo && t.performanceScore < hi).length,
-      high: list.filter(t => t.performanceScore >= hi).length,
+      low:  list.filter(t => t.performance_score < lo).length,
+      mid:  list.filter(t => t.performance_score >= lo && t.performance_score < hi).length,
+      high: list.filter(t => t.performance_score >= hi).length,
     };
   });
   readonly previewPot = computed(() => {
     const [lo, hi] = this.potDraft();
     const list = this.talents();
     return {
-      low:  list.filter(t => t.potentialScore < lo).length,
-      mid:  list.filter(t => t.potentialScore >= lo && t.potentialScore < hi).length,
-      high: list.filter(t => t.potentialScore >= hi).length,
+      low:  list.filter(t => t.potential_score < lo).length,
+      mid:  list.filter(t => t.potential_score >= lo && t.potential_score < hi).length,
+      high: list.filter(t => t.potential_score >= hi).length,
     };
   });
 

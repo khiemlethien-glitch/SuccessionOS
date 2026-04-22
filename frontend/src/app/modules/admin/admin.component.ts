@@ -411,16 +411,13 @@ export class AdminComponent implements OnInit {
   constructor(private api: ApiService, private msg: NzMessageService) {}
 
   ngOnInit(): void {
-    let pending = 8;
-    const done = () => { if (--pending === 0) this.loading.set(false); };
-    this.api.get<AuditLogListResponse>('audit-logs','audit-logs').subscribe({ next: r => { this.logs.set(r.data); done(); }, error: done });
-    this.api.get<TalentListResponse>('talents','talents').subscribe({ next: r => { this.talents.set(r.data); done(); }, error: done });
-    this.api.get<PositionListResponse>('positions','positions').subscribe({ next: r => { this.positions.set(r.data); done(); }, error: done });
-    this.api.get<IdpListResponse>('idp-plans','idp-plans').subscribe({ next: r => { this.idpPlans.set(r.data); done(); }, error: done });
-    this.api.get<AssessmentListResponse>('assessments','assessments').subscribe({ next: r => { this.assessments.set(r.data); done(); }, error: done });
-    this.api.get<SuccessionPlanListResponse>('succession/plans','succession-plans').subscribe({ next: r => { this.successions.set(r.data); done(); }, error: done });
-    this.api.get<MentoringListResponse>('mentoring-pairs','mentoring-pairs').subscribe({ next: r => { this.mentorings.set(r.data); done(); }, error: done });
-    this.api.get<CalibrationListResponse>('calibration-sessions','calibration-sessions').subscribe({ next: r => { this.calibrations.set(r.data); done(); }, error: done });
+    // TODO Overview tab: stats tổng hợp sẽ do DashboardService.getAdminStats() cung cấp
+    // TODO Data tab: mỗi entity có service riêng (EmployeeService, PositionService,
+    //   IdpService, AssessmentService, SuccessionService, MentoringService, CalibrationService)
+    // TODO Users tab: UserService.getList() (hiện dùng static list local)
+    // TODO Settings tab: ModuleConfigService.getConfigs() + updateToggle()
+    // TODO Audit tab: AuditService.getLogs({ limit, since })
+    this.loading.set(false);
   }
 
   // ── Tab control

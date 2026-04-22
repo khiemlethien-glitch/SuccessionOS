@@ -22,12 +22,12 @@
 
           <ng-template #planHdr>
             <div class="idp-hdr">
-              <app-avatar [name]="idp.talentName" [size]="32"></app-avatar>
+              <app-avatar [name]="idp.talent_name" [size]="32"></app-avatar>
               <div class="idp-hdr-info">
-                <span class="idp-name">{{ idp.talentName }}</span>
+                <span class="idp-name">{{ idp.talent_name }}</span>
                 <span class="idp-year">IDP {{ idp.year }}</span>
-                @if (idp.targetPosition) {
-                  <span class="idp-target">→ {{ idp.targetPosition }}</span>
+                @if (idp.target_position) {
+                  <span class="idp-target">→ {{ idp.target_position }}</span>
                 }
               </div>
               <nz-tag [nzColor]="statusColor(idp.status)" class="status-tag">{{ idp.status }}</nz-tag>
@@ -47,8 +47,8 @@
 
           <ng-template #extra>
             <div class="idp-progress-mini">
-              <nz-progress [nzPercent]="idp.overallProgress" [nzStrokeColor]="'#4f46e5'" nzSize="small" [nzShowInfo]="false" style="width:80px"></nz-progress>
-              <span class="pct-mini">{{ idp.overallProgress }}%</span>
+              <nz-progress [nzPercent]="idp.overall_progress" [nzStrokeColor]="'#4f46e5'" nzSize="small" [nzShowInfo]="false" style="width:80px"></nz-progress>
+              <span class="pct-mini">{{ idp.overall_progress }}%</span>
             </div>
           </ng-template>
 
@@ -168,9 +168,9 @@
   <ng-container *nzModalContent>
     @if (approvalIdp(); as idp) {
       <div class="approval-hero">
-        <app-avatar [name]="idp.talentName" [size]="40"></app-avatar>
+        <app-avatar [name]="idp.talent_name" [size]="40"></app-avatar>
         <div>
-          <div class="ah-name">{{ idp.talentName }}</div>
+          <div class="ah-name">{{ idp.talent_name }}</div>
           <div class="ah-meta">IDP {{ idp.year }} — {{ idp.goals.length }} mục tiêu</div>
         </div>
       </div>

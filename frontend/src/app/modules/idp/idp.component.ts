@@ -94,9 +94,9 @@ export class IdpComponent implements OnInit {
 
   openEdit(idp: IdpPlan): void {
     this.editingIdp.set(idp);
-    this.draftName.set(idp.talentName);
+    this.draftName.set(idp.talent_name);
     this.draftYear.set(idp.year);
-    this.draftTargetPos.set(idp.targetPosition ?? '');
+    this.draftTargetPos.set(idp.target_position ?? '');
     this.draftGoals.set(idp.goals.map(g => ({ title: g.title, type: g.type, deadline: g.deadline })));
     this.showCreateDrawer.set(true);
   }
@@ -136,16 +136,16 @@ export class IdpComponent implements OnInit {
       // Create new
       const newIdp: IdpPlan = {
         id: `IDP_${Date.now()}`,
-        talentId: `T_${Date.now()}`,
-        talentName: this.draftName(),
+        talent_id: `T_${Date.now()}`,
+        talent_name: this.draftName(),
         year: this.draftYear(),
         status: 'Pending',
-        overallProgress: 0,
-        targetPosition: this.draftTargetPos(),
-        approvedBy: '—',
-        approvedDate: '—',
-        goals12m: [],
-        goals2to3y: [],
+        overall_progress: 0,
+        target_position: this.draftTargetPos(),
+        approved_by: '—',
+        approved_date: '—',
+        goals_12m: [],
+        goals_2to3y: [],
         goals: this.draftGoals().map((g, i) => ({
           id: `G_${Date.now()}_${i}`,
           title: g.title, type: g.type, deadline: g.deadline,

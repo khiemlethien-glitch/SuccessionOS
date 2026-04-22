@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -10,8 +10,8 @@ import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
-import { ApiService } from '../../core/services/api.service';
-import { Talent, TalentListResponse, TalentTier, KeyPosition, PositionListResponse } from '../../core/models/models';
+import { EmployeeService } from '../../core/services/data/employee.service';
+import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
 
@@ -66,31 +66,28 @@ export class TalentListComponent implements OnInit {
   filtered = computed(() => {
     let list = this.all();
     const q = this.search().trim().toLowerCase();
-    if (q) list = list.filter(t => t.fullName.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q));
-    if (this.tier()) list = list.filter(t => t.talentTier === this.tier());
+    if (q) list = list.filter(t => t.full_name.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q));
+    if (this.tier()) list = list.filter(t => t.talent_tier === this.tier());
     if (this.dept()) list = list.filter(t => t.department === this.dept());
-    if (this.readiness()) list = list.filter(t => this.readinessLabel(t.readinessLevel) === this.readiness());
-    if (this.riskBand()) list = list.filter(t => this.riskLabel(t.riskScore).band === this.riskBand());
+    if (this.readiness()) list = list.filter(t => this.readinessLabel(t.readiness_level) === this.readiness());
+    if (this.riskBand()) list = list.filter(t => this.riskLabel(t.risk_score).band === this.riskBand());
     list = this.sort(list);
     return list;
   });
 
-  constructor(private api: ApiService, private router: Router) {}
+  private employeeSvc = inject(EmployeeService);
+
+  constructor(private router: Router) {}
 
   ngOnInit(): void {
-    let pending = 2;
-    const done = () => { if (--pending === 0) this.loading.set(false); };
-    this.api.get<TalentListResponse>('employees', 'talents').subscribe({
-      next: r => { this.all.set(r.data); done(); }, error: done,
-    });
-    this.api.get<PositionListResponse>('key-positions', 'positions').subscribe({
-      next: r => { this.positions.set(r.data); done(); }, error: done,
-    });
+    // TODO: await employeeSvc.getList() → this.all.set(...)
+    // TODO: positions fetch sẽ do PositionService cung cấp
+    this.loading.set(false);
   }
 
   // ── Held position (current holder of a key position)
   heldPosition(t: Talent): KeyPosition | null {
-    return this.positions().find(p => p.currentHolder === t.fullName) ?? null;
+    return this.positions().find(p => p.currentHolder === t.full_name) ?? null;
   }
 
   // ── Successor of which positions (for Kế thừa tier)
@@ -105,8 +102,8 @@ export class TalentListComponent implements OnInit {
   // ── Departure reasons (explicit from mock + derived from risk + seniority)
   departureReasons(t: Talent): string[] {
     if (t.departureReasons && t.departureReasons.length) return t.departureReasons;
-    if (t.riskScore >= 60 && t.yearsOfExperience >= 20) return ['Sắp nghỉ hưu'];
-    if (t.riskScore >= 60) return ['Cần làm rõ nguyên nhân'];
+    if (t.risk_score >= 60 && t.yearsOfExperience >= 20) return ['Sắp nghỉ hưu'];
+    if (t.risk_score >= 60) return ['Cần làm rõ nguyên nhân'];
     return [];
   }
 
@@ -114,13 +111,13 @@ export class TalentListComponent implements OnInit {
   competencyGap(t: Talent): { gap: number; tone: 'good' | 'mid' | 'bad'; label: string } {
     const actual = {
       technical:   t.competencies?.technical    ?? 0,
-      performance: t.performanceScore,
+      performance: t.performance_score,
       behavior:    t.competencies?.communication ?? 0,
-      potential:   t.potentialScore,
+      potential:   t.potential_score,
       leadership:  t.competencies?.leadership   ?? 0,
     };
     const target = t.competencyTargets ?? (
-      t.talentTier === 'Nòng cốt'
+      t.talent_tier === 'Nòng cốt'
         ? { technical: 90, performance: 90, behavior: 85, potential: 85, leadership: 90 }
         : { technical: 85, performance: 85, behavior: 80, potential: 80, leadership: 85 }
     );
@@ -155,7 +152,7 @@ export class TalentListComponent implements OnInit {
   }
 
   overallScore(t: Talent): number {
-    return Math.round(((t.performanceScore ?? 0) + (t.potentialScore ?? 0)) / 2);
+    return Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
   }
 
   readinessLabel(r: string): ReadinessUi {
@@ -182,7 +179,7 @@ export class TalentListComponent implements OnInit {
     return Math.round(list.reduce((s, t) => s + this.overallScore(t), 0) / list.length);
   });
 
-  readonly highRiskCount = computed(() => this.filtered().filter(t => t.riskScore >= 60).length);
+  readonly highRiskCount = computed(() => this.filtered().filter(t => t.risk_score >= 60).length);
 
   private sort(list: Talent[]): Talent[] {
     const field = this.sortField();
@@ -192,10 +189,10 @@ export class TalentListComponent implements OnInit {
       let av = 0;
       let bv = 0;
       if (field === 'overall') { av = this.overallScore(a); bv = this.overallScore(b); }
-      else if (field === 'performance') { av = a.performanceScore ?? 0; bv = b.performanceScore ?? 0; }
-      else if (field === 'potential') { av = a.potentialScore ?? 0; bv = b.potentialScore ?? 0; }
-      else if (field === 'risk') { av = a.riskScore ?? 0; bv = b.riskScore ?? 0; }
-      else { return dir * (a.fullName.localeCompare(b.fullName, 'vi')); }
+      else if (field === 'performance') { av = a.performance_score ?? 0; bv = b.performance_score ?? 0; }
+      else if (field === 'potential') { av = a.potential_score ?? 0; bv = b.potential_score ?? 0; }
+      else if (field === 'risk') { av = a.risk_score ?? 0; bv = b.risk_score ?? 0; }
+      else { return dir * (a.full_name.localeCompare(b.full_name, 'vi')); }
       return dir * (av - bv);
     });
     return clone;
