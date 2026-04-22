@@ -1,10 +1,12 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { DashboardService } from '../../core/services/data/dashboard.service';
 import { EmployeeService } from '../../core/services/data/employee.service';
+import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
@@ -13,6 +15,7 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     NzIconModule,
     NzCardModule,
     NzAvatarModule,
@@ -24,6 +27,7 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
 export class DashboardComponent implements OnInit {
   private dashboardSvc = inject(DashboardService);
   private employeeSvc = inject(EmployeeService);
+  private positionSvc = inject(KeyPositionService);
 
   isLoading = signal(false);
 
@@ -46,6 +50,8 @@ export class DashboardComponent implements OnInit {
 
   readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successor_count > 0).length);
   readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successor_count === 0).length);
+  readonly criticalPositionsCount = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
+  readonly highRiskPositionsCount = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
 
   // High risk threshold aligned with RiskBadge: >=60.
   readonly highRiskTalents = computed(() =>
@@ -71,10 +77,12 @@ export class DashboardComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.isLoading.set(true);
-    // Lấy full list cho dashboard computed (tierCounts/highRiskTalents/topRisk).
-    // Positions + IDPs wire sau khi RLS sửa xong.
-    const res = await this.employeeSvc.getAll();
-    this.talents.set(res.data);
+    const [empRes, positions] = await Promise.all([
+      this.employeeSvc.getAll(),
+      this.positionSvc.getAll(),
+    ]);
+    this.talents.set(empRes.data);
+    this.positions.set(positions as any);
     this.isLoading.set(false);
   }
 

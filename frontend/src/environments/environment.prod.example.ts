@@ -11,6 +11,6 @@ export const environment = {
 
   supabase: {
     url:     'https://psaidbntrvrzodurnisz.supabase.co',
-    anonKey: 'REPLACE_WITH_SUPABASE_ANON_KEY',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzYWlkYm50cnZyem9kdXJuaXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDExNjQsImV4cCI6MjA5MjQxNzE2NH0.Gqb216Qvw3h3KmckA9VqMnyNXDmtriW67uU1t0TfQfo',
   },
 };

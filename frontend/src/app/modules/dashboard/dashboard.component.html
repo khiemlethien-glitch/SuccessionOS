@@ -147,51 +147,55 @@
     </div>
   </div>
 
-  <!-- Tình trạng 12 vị trí then chốt -->
+  <!-- Tình trạng Vị trí Then chốt — chỉ stats, chi tiết ở /positions -->
   <div class="card positions-card">
     <div class="section-header">
       <div>
-        <div class="section-title">Tình trạng 12 Vị trí Then chốt</div>
+        <div class="section-title">Tình trạng {{ totalPositions() }} Vị trí Then chốt</div>
         <div class="section-sub">Theo dõi độ sẵn sàng kế thừa theo từng vị trí</div>
       </div>
+      <a routerLink="/positions" class="btn-view-details">
+        Xem chi tiết
+        <span nz-icon nzType="arrow-right"></span>
+      </a>
     </div>
 
-    <div class="pos-grid">
-      @for (p of positions(); track p.id) {
-        <div class="pos-card2" [ngClass]="'tone-' + readinessTone(p)">
-          <div class="pos2-accent"></div>
-
-          <div class="pos2-top">
-            <div class="pos2-title-wrap">
-              <div class="pos2-title">{{ p.title }}</div>
-              <div class="pos2-dept">{{ p.department }}</div>
-            </div>
-            <span class="pos2-badge" [ngClass]="positionBadge(p).cls">{{ positionBadge(p).label }}</span>
-          </div>
-
-          <div class="pos2-holder">
-            <app-avatar [name]="p.current_holder" [size]="40"></app-avatar>
-            <div class="pos2-holder-meta">
-              <div class="pos2-holder-name">{{ p.current_holder }}</div>
-              <div class="pos2-holder-sub">
-                <span nz-icon nzType="clock-circle" nzTheme="outline"></span>
-                {{ holderTenure(p) }}
-              </div>
-            </div>
-          </div>
-
-          <div class="pos2-foot">
-            <span class="ready2">
-              <span class="ready2-dot"></span>
-              {{ readinessLabel(p) }}
-            </span>
-            <span class="cand2">
-              <span nz-icon nzType="team" nzTheme="outline"></span>
-              {{ p.successor_count }} ứng viên
-            </span>
-          </div>
+    <div class="pos-stats-grid">
+      <div class="ps-card ps-blue">
+        <div class="ps-ico"><span nz-icon nzType="apartment"></span></div>
+        <div class="ps-body">
+          <div class="ps-val">{{ totalPositions() }}</div>
+          <div class="ps-lbl">Tổng vị trí</div>
         </div>
-      }
+      </div>
+      <div class="ps-card ps-red">
+        <div class="ps-ico"><span nz-icon nzType="alert"></span></div>
+        <div class="ps-body">
+          <div class="ps-val">{{ criticalPositionsCount() }}</div>
+          <div class="ps-lbl">Critical</div>
+        </div>
+      </div>
+      <div class="ps-card ps-amber">
+        <div class="ps-ico"><span nz-icon nzType="warning"></span></div>
+        <div class="ps-body">
+          <div class="ps-val">{{ highRiskPositionsCount() }}</div>
+          <div class="ps-lbl">Rủi ro cao</div>
+        </div>
+      </div>
+      <div class="ps-card ps-slate">
+        <div class="ps-ico"><span nz-icon nzType="user-delete"></span></div>
+        <div class="ps-body">
+          <div class="ps-val">{{ positionsNoSuccessor() }}</div>
+          <div class="ps-lbl">Chưa có kế thừa</div>
+        </div>
+      </div>
+      <div class="ps-card ps-green">
+        <div class="ps-ico"><span nz-icon nzType="safety-certificate"></span></div>
+        <div class="ps-body">
+          <div class="ps-val">{{ positionsWithSuccessors() }}</div>
+          <div class="ps-lbl">Có kế thừa</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
