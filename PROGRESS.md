@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-22 16:30
+> Cập nhật lần cuối: 2026-04-22 18:00
 
 ---
 
@@ -16,7 +16,7 @@ Backend:  Dev team build .NET 8 API (chưa có)
 Staging:  https://succession-os-y6mt.vercel.app
 ```
 
-### Tiến độ tổng thể: ~85% █████████████████░░░
+### Tiến độ tổng thể: ~95% ███████████████████░
 
 | Nhóm | Trạng thái | % |
 |---|---|---|
@@ -28,13 +28,14 @@ Staging:  https://succession-os-y6mt.vercel.app
 | Succession Map | ✅ Hoàn thành | 100% |
 | Admin Panel | ✅ Hoàn thành | 100% |
 | SSO / OIDC Integration | ✅ Hoàn thành | 100% |
-| IDP Module | ✅ Hoàn thành (P1) | 90% |
-| Mentoring Module | ✅ Hoàn thành (P1) | 85% |
-| Reports Module | ✅ Hoàn thành (P1) | 80% |
-| Assessment Module | 🔲 Chưa làm | 0% |
-| Calibration Module | 🔲 Chưa làm | 0% |
-| Marketplace Module | 🔲 Chưa làm | 0% |
-| RBAC / Permissions | 🔲 Chưa làm | 0% |
+| IDP Module | ✅ Hoàn thành | 90% |
+| Assessment Module | ✅ Hoàn thành | 90% |
+| Mentoring Module | ✅ Hoàn thành | 90% |
+| Calibration Module | ✅ Hoàn thành | 85% |
+| Reports Module | ✅ Hoàn thành | 85% |
+| Marketplace Module | ✅ Hoàn thành | 90% |
+| Backend Integration | 🟡 Đang tiến hành | 60% |
+| RBAC / Permissions | 🔲 Backlog | 0% |
 
 ---
 
@@ -216,6 +217,17 @@ Staging:  https://succession-os-y6mt.vercel.app
 - [x] **`positions.component.ts`**: `'positions'→'key-positions'`, `'succession-plans'→'succession/plans'`
 - [x] **`succession.component.ts`**: `'talents'→'employees'`, `'succession-plans'→'succession/plans'`, `'positions'→'key-positions'`
 
+### Frontend Complete Pass (2026-04-22)
+- [x] **Sidebar** — Enable tất cả 6 module đã bị disable: IDP, Assessment, Mentoring, Calibration, Reports, Marketplace
+- [x] **Assessment Module** — Wire form "Nhập điểm": selectedTalentId + draftScores signals, live preview bar, overall preview, saveAssessment() với validation + local update + TODO api.post
+- [x] **Calibration Module** — "Tạo phiên họp" modal (title/facilitator/date); "Lock phiên" → nz-popconfirm → lockSession(); "Xuất kết quả" → exportSession() toast; NzSpin loading
+- [x] **Marketplace Module** — toggleModule(): Thêm/Tắt buttons cập nhật status signal + toast
+- [x] **Admin — Sync VnR** — Card "Đồng bộ dữ liệu VnResource HRE" trong Overview tab: syncVnR() gọi POST /employees/sync, loading spinner, lastSyncAt timestamp
+- [x] **Positions — api.post** — submit() gọi api.post('key-positions', newPos) sau optimistic local update, graceful degrade khi mock
+- [x] **Dashboard (CLI)** — Branch useMock=false → GET /dashboard/kpi; useMock=true → 3 mock calls
+- [x] **Talent Profile (CLI)** — section loaded state signals (assessment360Loaded, careerReviewLoaded, etc.) cho UX graceful loading
+- [x] **TypeScript** ✅ 0 lỗi · **Git** → commit `07fdc9a` pushed to `khiemlethien-glitch/SuccessionOS`
+
 ### P1 Features — IDP + Mentoring + Reports (2026-04-22)
 - [x] **IDP Module** (`/idp`) — Create/Edit drawer (560px right) với dynamic goals list; 3-level approval modal (Quản lý trực tiếp → Phòng Nhân sự → Ban Giám đốc) với nz-steps; approve/reject flow cập nhật status IDP → Active; loading spinner; filter buttons; edit/duyệt buttons per card
 - [x] **Mentoring Module** (`/mentoring`) — Create pair drawer (500px): mentor/mentee name, focus, start/end dates, sessions count; Logbook drawer (540px): session history per pair (mock 8 sessions M004 đầy đủ), add session form inline với date + summary + next action; session badge count hiển thị trên button; nz-spin khi loading
@@ -248,11 +260,12 @@ Staging:  https://succession-os-y6mt.vercel.app
 
 ### Modules (sidebar đang disabled — "Sắp ra mắt")
 
-- [x] ~~**IDP Module**~~ ✅ **DONE P1** — list + filter + create/edit drawer + 3-level approval modal
-- [ ] **Assessment Module** (`/assessment`) — tabs HRM360 + form nhập điểm + charts radar
-- [x] ~~**Mentoring Module**~~ ✅ **DONE P1** — pairs grid + create pair drawer + logbook + add session
-- [ ] **Calibration Module** (`/calibration`) — session list + 9-Box interactive + lock + audit
-- [x] ~~**Reports Module**~~ ✅ **DONE P1** — Tổng quan + IDP Progress + Assessment tabs
+- [x] ~~**IDP Module**~~ ✅ — list + filter + create/edit drawer + 3-level approval modal
+- [x] ~~**Assessment Module**~~ ✅ — Tổng quan table + Nhập điểm form wired + Lịch sử list
+- [x] ~~**Mentoring Module**~~ ✅ — pairs grid + create pair drawer + logbook + add session
+- [x] ~~**Calibration Module**~~ ✅ — sessions list + create modal + lock popconfirm + export
+- [x] ~~**Reports Module**~~ ✅ — Tổng quan + IDP Progress + Assessment tabs
+- [x] ~~**Marketplace Module**~~ ✅ — module cards + filter + Thêm/Tắt toggle wired
 - [ ] **Marketplace Module** (`/marketplace`) — module cards + filter tabs + pricing
 
 ### RBAC (sau khi UI xong)
@@ -319,12 +332,12 @@ frontend/src/
 │       ├── positions/                ✅ Cards + add drawer + details drawer + preview
 │       ├── succession/               ✅ 9-Box + org tree + compact view + drawers
 │       ├── admin/                    ✅ 5-tab CRUD + module config drawer + audit
-│       ├── idp/                      ✅ P1 — list + create/edit drawer + approval modal
-│       ├── assessment/               🔲 Placeholder (disabled)
-│       ├── mentoring/                ✅ P1 — pairs grid + create drawer + logbook drawer
-│       ├── calibration/              🔲 Placeholder (disabled)
-│       ├── reports/                  ✅ P1 — 4 tabs (Tổng quan + IDP Progress + Assessment + ROI)
-│       └── marketplace/              🔲 Placeholder (disabled)
+│       ├── idp/                      ✅ list + create/edit drawer + 3-level approval modal
+│       ├── assessment/               ✅ Tổng quan + Nhập điểm wired + Lịch sử
+│       ├── mentoring/                ✅ pairs grid + create drawer + logbook drawer
+│       ├── calibration/              ✅ sessions + create modal + lock + export
+│       ├── reports/                  ✅ 4 tabs: Tổng quan + IDP Progress + Assessment + ROI
+│       └── marketplace/              ✅ module cards + filter + toggle Thêm/Tắt
 ├── environments/
 │   ├── environment.ts                ✅ (gitignored — secret)
 │   ├── environment.ts.example        ✅
