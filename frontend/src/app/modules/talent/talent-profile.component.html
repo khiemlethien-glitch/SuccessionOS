@@ -128,7 +128,12 @@
         <div class="chart-head">
           <div>
             <h3 class="chart-title">Hồ sơ năng lực</h3>
-            <p class="chart-sub">So với yêu cầu vị trí mục tiêu</p>
+            <p class="chart-sub">
+              GAP tổng <strong>{{ radarTotalGap() }}</strong>
+              · TB <strong [class.rs-up]="radarAvgGap() >= 0" [class.rs-down]="radarAvgGap() < 0">
+                {{ radarAvgGap() >= 0 ? '+' : '' }}{{ radarAvgGap() }}
+              </strong>
+            </p>
           </div>
           <div class="chart-badges">
             <span class="badge badge-good"><span nz-icon nzType="check"></span> {{ radarAbove() }} vượt chuẩn</span>

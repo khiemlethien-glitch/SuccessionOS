@@ -33,6 +33,27 @@ export interface AssessmentView {
   items: Array<Criterion & { score: number | null }>;
 }
 
+/**
+ * GAP năng lực per trục radar — tính từ điểm đánh giá thực tế vs target.
+ *   delta = actual - target
+ *   >= 0 → vượt chuẩn; < 0 → cần cải thiện
+ */
+export interface RadarEntry {
+  key:    string;                    // technical | performance | behavior | potential | leadership
+  label:  string;                    // Kỹ thuật / Hiệu suất / ...
+  actual: number | null;             // từ assessment_scores (cycle đã chọn)
+  target: number;                    // từ v_employees.comp_target_*
+  delta:  number | null;             // actual - target (null nếu actual null)
+}
+
+export interface RadarProfile {
+  entries:        RadarEntry[];
+  above_count:    number;            // số trục vượt chuẩn (delta >= 0)
+  below_count:    number;            // số trục cần cải thiện (delta < 0)
+  total_gap_abs:  number;            // Σ |delta| — độ lệch tổng
+  avg_gap:        number;            // Σ delta / count — trung bình có dấu
+}
+
 @Injectable({ providedIn: 'root' })
 export class AssessmentService {
   private sb = inject(SupabaseService).client;
@@ -75,6 +96,60 @@ export class AssessmentService {
       .upsert({ id: 1, criterion_ids: criterionIds, updated_at: new Date().toISOString() });
     if (error) { console.error('[AssessmentService.updateDisplayConfig]', error); return false; }
     return true;
+  }
+
+  /**
+   * GAP năng lực 5 trục — actual từ assessment_scores của cycle, target từ v_employees.comp_target_*.
+   * Formula: delta = actual - target. Trả kèm aggregate (above/below/total_gap_abs/avg_gap).
+   */
+  async getRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile> {
+    const RADAR_AXES = [
+      { key: 'technical',   label: 'Kỹ thuật',  targetField: 'comp_target_technical'       },
+      { key: 'performance', label: 'Hiệu suất', targetField: 'comp_target_problem_solving' },
+      { key: 'behavior',    label: 'Hành vi',   targetField: 'comp_target_communication'   },
+      { key: 'potential',   label: 'Tiềm năng', targetField: 'comp_target_adaptability'    },
+      { key: 'leadership',  label: 'Lãnh đạo',  targetField: 'comp_target_leadership'      },
+    ];
+
+    const [criteriaRes, scoresRes, empRes] = await Promise.all([
+      this.sb.from('assessment_criteria').select('id, key').in('key', RADAR_AXES.map(a => a.key)),
+      this.sb.from('assessment_scores').select('criterion_id, score')
+        .eq('employee_id', employeeId).eq('cycle_id', cycleId),
+      this.sb.from('v_employees')
+        .select('comp_target_technical, comp_target_leadership, comp_target_communication, comp_target_problem_solving, comp_target_adaptability')
+        .eq('id', employeeId).maybeSingle(),
+    ]);
+
+    const idByKey      = new Map((criteriaRes.data ?? []).map(c => [c.key, c.id]));
+    const scoreByCrit  = new Map((scoresRes.data   ?? []).map(s => [s.criterion_id, Number(s.score)]));
+    const targets: any = empRes.data ?? {};
+
+    const entries: RadarEntry[] = RADAR_AXES.map(a => {
+      const critId = idByKey.get(a.key);
+      const actual = critId ? (scoreByCrit.get(critId) ?? null) : null;
+      const target = targets[a.targetField] ?? 85;
+      return {
+        key:    a.key,
+        label:  a.label,
+        actual,
+        target,
+        delta:  actual != null ? actual - target : null,
+      };
+    });
+
+    const withDelta = entries.filter(e => e.delta !== null);
+    const above    = withDelta.filter(e => (e.delta ?? 0) >= 0).length;
+    const below    = withDelta.filter(e => (e.delta ?? 0) < 0).length;
+    const absSum   = withDelta.reduce((s, e) => s + Math.abs(e.delta ?? 0), 0);
+    const signedSum = withDelta.reduce((s, e) => s + (e.delta ?? 0), 0);
+
+    return {
+      entries,
+      above_count:   above,
+      below_count:   below,
+      total_gap_abs: Math.round(absSum * 10) / 10,
+      avg_gap:       withDelta.length ? Math.round((signedSum / withDelta.length) * 10) / 10 : 0,
+    };
   }
 
   /**

@@ -14,7 +14,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { FormsModule } from '@angular/forms';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
-import { AssessmentService, Cycle, AssessmentView } from '../../core/services/data/assessment.service';
+import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
 import {
   Talent,
   Assessment,
@@ -329,7 +329,20 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   private RADAR_R  = 72;
   private RADAR_LBL_PAD = 14;
 
+  /**
+   * Radar 5 trục — ưu tiên data từ `radarProfile` (assessment_scores của cycle đã chọn).
+   * Fallback về `t.competencies` nếu chưa load được assessment (cycle mới/chưa có phiếu).
+   */
   radarEntries = computed(() => {
+    const profile = this.radarProfile();
+    if (profile) {
+      return profile.entries.map(e => ({
+        label:  e.label,
+        actual: e.actual ?? 0,
+        target: e.target,
+        delta:  e.delta  ?? 0,
+      }));
+    }
     const t = this.talent();
     if (!t) return [];
     const c   = t.competencies;
@@ -344,8 +357,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     return values.map(v => ({ ...v, delta: v.actual - v.target }));
   });
 
-  radarAbove = computed(() => this.radarEntries().filter(e => e.delta >= 0).length);
-  radarBelow = computed(() => this.radarEntries().filter(e => e.delta < 0).length);
+  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta >= 0).length);
+  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta < 0).length);
+  /** Tổng độ lệch tuyệt đối (Σ|delta|) — chỉ số GAP chung để so giữa các talent. */
+  radarTotalGap = computed(() => this.radarProfile()?.total_gap_abs ?? 0);
+  /** Trung bình gap có dấu (Σdelta / 5). Âm = tổng thể dưới chuẩn, dương = vượt chuẩn. */
+  radarAvgGap   = computed(() => this.radarProfile()?.avg_gap ?? 0);
 
   private radarPoint(index: number, value: number): { x: number; y: number } {
     const n = this.radarLabels.length;
@@ -433,6 +450,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   cycles           = signal<Cycle[]>([]);
   selectedCycleId  = signal<string | null>(null);
   assessmentView   = signal<AssessmentView | null>(null);
+  radarProfile     = signal<RadarProfile | null>(null);
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
   private employeeSvc = inject(EmployeeService);
@@ -509,8 +527,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   }
 
   private async loadAssessmentForCycle(employeeId: string, cycleId: string): Promise<void> {
-    const view = await this.assessmentSvc.getAssessment(employeeId, cycleId);
+    const [view, radar] = await Promise.all([
+      this.assessmentSvc.getAssessment(employeeId, cycleId),
+      this.assessmentSvc.getRadarProfile(employeeId, cycleId),
+    ]);
     this.assessmentView.set(view);
+    this.radarProfile.set(radar);
     if (view) this.careerReviewLoaded.set(true);
   }
 
