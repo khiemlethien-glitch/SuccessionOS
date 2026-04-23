@@ -1,16 +1,35 @@
 <nz-layout class="app-layout">
 
-  <!-- ════ Sidebar ═══════════════════════════════════════════ -->
-  <nz-sider class="app-sider sidebar" [nzCollapsed]="isCollapsed()" [nzWidth]="240" [nzCollapsedWidth]="64" [nzTrigger]="null">
+  <!-- ════ Mobile backdrop ══════════════════════════════════════ -->
+  @if (isMobile() && mobileOpen()) {
+    <div class="mobile-backdrop" (click)="closeMobileMenu()"></div>
+  }
 
-    <div class="logo-wrapper" [class.collapsed]="isCollapsed()">
+  <!-- ════ Sidebar ═══════════════════════════════════════════════ -->
+  <nz-sider
+    class="app-sider sidebar"
+    [class.is-mobile]="isMobile()"
+    [class.mobile-open]="isMobile() && mobileOpen()"
+    [nzCollapsed]="!isMobile() && isCollapsed()"
+    [nzWidth]="240"
+    [nzCollapsedWidth]="64"
+    [nzTrigger]="null">
+
+    <!-- Mobile close button -->
+    @if (isMobile()) {
+      <button class="mobile-close-btn" (click)="closeMobileMenu()">
+        <span nz-icon nzType="close"></span>
+      </button>
+    }
+
+    <div class="logo-wrapper" [class.collapsed]="!isMobile() && isCollapsed()">
       <img class="brand-logo-img" src="/logo.png" alt="PTSC" />
     </div>
 
     <!-- Navigation groups -->
     <div class="menu-content nav-scroll">
       @for (group of navGroups; track group.label) {
-        @if (!isCollapsed()) {
+        @if (!isCollapsed() || isMobile()) {
           <div class="nav-group-label menu-group-label">{{ group.label }}</div>
         }
         <ul nz-menu nzTheme="light" nzMode="inline" class="nav-group">
@@ -21,11 +40,11 @@
                 [routerLink]="item.disabled ? null : item.route"
                 routerLinkActive="active-item"
                 [class.nav-disabled]="item.disabled"
-                [nzTooltipTitle]="item.disabled ? 'Sắp ra mắt' : (isCollapsed() ? item.label : '')"
+                [nzTooltipTitle]="item.disabled ? 'Sắp ra mắt' : (!isMobile() && isCollapsed() ? item.label : '')"
                 nzTooltipPlacement="right" nz-tooltip>
               <span nz-icon [nzType]="item.icon"></span>
               <span class="nav-label">{{ item.label }}</span>
-              @if (item.disabled && !isCollapsed()) {
+              @if (item.disabled && (!isCollapsed() || isMobile())) {
                 <span class="nav-soon-badge">Sắp ra mắt</span>
               }
             </li>
@@ -43,12 +62,13 @@
         style="background: var(--color-accent); flex-shrink: 0;"
       ></nz-avatar>
 
-      <div class="user-info">
-        <div class="user-name">{{ currentUser?.full_name || 'Hoàng Anh' }}</div>
-        <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
-      </div>
-
-      <span nz-icon nzType="more" class="more-icon"></span>
+      @if (!isCollapsed() || isMobile()) {
+        <div class="user-info">
+          <div class="user-name">{{ currentUser?.full_name || 'Hoàng Anh' }}</div>
+          <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
+        </div>
+        <span nz-icon nzType="more" class="more-icon"></span>
+      }
     </div>
 
     <nz-dropdown-menu #userMenu="nzDropdownMenu">
@@ -75,8 +95,27 @@
 
   </nz-sider>
 
-  <!-- ════ Main ═══════════════════════════════════════════════ -->
+  <!-- ════ Main ═══════════════════════════════════════════════════ -->
   <nz-layout class="main-wrap">
+
+    <!-- Mobile topbar -->
+    @if (isMobile()) {
+      <div class="mobile-topbar">
+        <button class="hamburger-btn" (click)="openMobileMenu()" aria-label="Mở menu">
+          <span nz-icon nzType="menu" nzTheme="outline"></span>
+        </button>
+        <img class="mobile-topbar-logo" src="/logo.png" alt="PTSC" />
+        <div class="mobile-topbar-right">
+          <nz-avatar
+            [nzText]="userInitials"
+            nzSize="small"
+            style="background: var(--color-accent); cursor:pointer;"
+            nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="bottomRight">
+          </nz-avatar>
+        </div>
+      </div>
+    }
+
     <nz-content class="page-content">
       <router-outlet />
     </nz-content>

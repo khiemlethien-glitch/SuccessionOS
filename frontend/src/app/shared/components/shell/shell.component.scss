@@ -1,20 +1,15 @@
 $layout-bg: #f5f5f5;
-$topbar-bg: #233a7a;
 $sidebar-bg: #ffffff;
 $sidebar-border: #eeeff1;
-$sidebar-text: rgba(0, 0, 0, 0.88);
-$sidebar-muted: rgba(0, 0, 0, 0.45);
 $sidebar-hover: rgba(0, 0, 0, 0.02);
-$sidebar-active-bg: rgba(91, 203, 245, 0.08);
 $sidebar-active-text: #233a7a;
 $accent: #233a7a;
-$header-h: 0px;
 
 :host { display: contents; }
 
 .app-layout { min-height: 100vh; }
 
-// ── Sider ────────────────────────────────────────────────────
+// ── Sider — desktop ──────────────────────────────────────────
 .app-sider {
   background: $sidebar-bg !important;
   box-shadow: 1px 0 0 0 $sidebar-border;
@@ -28,7 +23,6 @@ $header-h: 0px;
   ::ng-deep .ant-layout-sider-trigger  { display:none; }
 }
 
-// Compact sidebar container
 .sidebar {
   width: 240px !important;
   min-width: 240px;
@@ -39,6 +33,7 @@ $header-h: 0px;
   height: 100vh;
 }
 
+// ── Logo ─────────────────────────────────────────────────────
 .logo-wrapper {
   padding: 8px 12px 20px;
   flex-shrink: 0;
@@ -52,12 +47,10 @@ $header-h: 0px;
   object-fit: contain;
 }
 
-// Nav scroll area
+// ── Nav scroll area ───────────────────────────────────────────
 .nav-scroll { overflow-y:auto; overflow-x:hidden; padding:0; flex: 1; min-height: 0; }
 .menu-content { flex: 1; overflow-y: auto; min-height: 0; }
 
-// User profile stays pinned at bottom
-.user-profile { flex-shrink: 0; }
 .nav-group-label {
   padding:16px 12px 6px;
   font-size:10px;
@@ -66,11 +59,13 @@ $header-h: 0px;
   text-transform:uppercase;
   color:#9ca3af;
 }
+
 .nav-group {
   background: $sidebar-bg !important;
   border-right:none !important;
   padding:0;
-  ::ng-deep &.ant-menu-light, ::ng-deep &.ant-menu-light .ant-menu-sub { background: $sidebar-bg !important; }
+  ::ng-deep &.ant-menu-light,
+  ::ng-deep &.ant-menu-light .ant-menu-sub { background: $sidebar-bg !important; }
   ::ng-deep .ant-menu-item {
     height:38px !important;
     line-height:38px !important;
@@ -93,7 +88,6 @@ $header-h: 0px;
       .anticon { color:$sidebar-active-text !important; }
       &::after { display:none; }
     }
-    /* Disabled — "Sắp ra mắt" items */
     &.nav-disabled, &.ant-menu-item-disabled {
       color:#cbd5e1 !important;
       cursor:not-allowed !important;
@@ -114,7 +108,7 @@ $header-h: 0px;
   text-transform:uppercase; margin-left:auto; flex-shrink:0;
 }
 
-// User profile dropdown
+// ── User profile ──────────────────────────────────────────────
 .user-profile {
   margin-top: auto;
   padding: 10px 12px;
@@ -125,60 +119,172 @@ $header-h: 0px;
   cursor: pointer;
   border-radius: 8px;
   transition: background 0.15s;
+  flex-shrink: 0;
 
   &:hover { background: #f9fafb; }
 
   .user-info {
     flex: 1;
     min-width: 0;
-
     .user-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--color-text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 13px; font-weight: 600; color: var(--color-text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
     .user-role {
-      font-size: 11px;
-      color: var(--color-text-2);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 11px; color: var(--color-text-2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
   }
-
-  .more-icon {
-    color: var(--color-text-2);
-    font-size: 16px;
-  }
+  .more-icon { color: var(--color-text-2); font-size: 16px; }
 }
 
+// ── Dropdown ──────────────────────────────────────────────────
 ::ng-deep .profile-dropdown {
   min-width: 200px;
   padding: 4px;
-
   .ant-dropdown-menu-item {
     border-radius: 6px;
     font-size: 13px;
     padding: 8px 12px !important;
-
     .anticon { margin-right: 10px; }
   }
-
   .logout-item     { color: #dc2626 !important; }
   .logout-sso-item { color: #9333ea !important; font-size: 13px; }
 }
 
-// ── Header ───────────────────────────────────────────────────
-.main-wrap { background:$layout-bg; }
-.app-header {
-  display:none !important;
+// ── Layout ────────────────────────────────────────────────────
+.main-wrap  { background: $layout-bg; }
+.page-content { padding:24px; min-height:100vh; overflow-y:auto; background:$layout-bg; }
+
+// ── Mobile close button (inside sidebar) ─────────────────────
+.mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 14px;
+  z-index: 10;
+  transition: background .15s;
+  &:hover { background: #e2e8f0; }
 }
 
-// Topbar removed (per design)
+// ── Mobile backdrop ───────────────────────────────────────────
+.mobile-backdrop {
+  display: none;
+}
 
-// ── Content ──────────────────────────────────────────────────
-.page-content { padding:24px; min-height:100vh; overflow-y:auto; background:$layout-bg; }
+// ── Mobile topbar ─────────────────────────────────────────────
+.mobile-topbar {
+  display: none;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MOBILE — ≤768px
+// ══════════════════════════════════════════════════════════════
+@media (max-width: 768px) {
+
+  // Backdrop
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+  // Sidebar: off-screen by default, slides in when open
+  .app-sider.is-mobile {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh !important;
+    max-height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1),
+                box-shadow .25s ease;
+    box-shadow: none;
+
+    &.mobile-open {
+      transform: translateX(0);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, .18);
+    }
+
+    // Force full width & no collapse on mobile
+    &, ::ng-deep .ant-layout-sider {
+      width: 260px !important;
+      min-width: 260px !important;
+      max-width: 260px !important;
+    }
+  }
+
+  .mobile-close-btn { display: flex; }
+
+  // Logo: make room for the close button
+  .logo-wrapper { padding-right: 48px; }
+
+  // Main: full width, add topbar offset
+  .main-wrap { width: 100%; }
+
+  .page-content {
+    padding: 16px;
+    min-height: calc(100vh - 52px);
+  }
+
+  // Mobile topbar
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 52px;
+    padding: 0 16px;
+    background: #ffffff;
+    border-bottom: 1px solid $sidebar-border;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-shrink: 0;
+  }
+
+  .hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    color: #374151;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: background .15s, border-color .15s;
+    &:hover { background: #f9fafb; border-color: #d1d5db; }
+    &:active { background: #f3f4f6; }
+  }
+
+  .mobile-topbar-logo {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
+    flex: 1;
+  }
+
+  .mobile-topbar-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+}

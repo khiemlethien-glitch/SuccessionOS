@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject, signal, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
@@ -7,7 +7,8 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
-import { Router } from '@angular/router';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { filter, Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 
 interface NavItem { label: string; icon: string; route: string; disabled?: boolean; requiredRole?: string; }
@@ -17,15 +18,19 @@ interface NavGroup { label: string; items: NavItem[]; }
   selector: 'app-shell',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
-    NzLayoutModule, NzMenuModule, NzIconModule, NzAvatarModule, NzTooltipModule, NzDropDownModule],
+    NzLayoutModule, NzMenuModule, NzIconModule, NzAvatarModule,
+    NzTooltipModule, NzDropDownModule, NzButtonModule],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit, OnDestroy {
   isCollapsed = signal(false);
+  isMobile    = signal(false);
+  mobileOpen  = signal(false);
 
-  private router = inject(Router);
+  private router      = inject(Router);
   private authService = inject(AuthService);
+  private routerSub?: Subscription;
 
   navGroups: NavGroup[] = [
     { label: 'QUẢN LÝ NHÂN TÀI', items: [
@@ -49,15 +54,33 @@ export class ShellComponent {
     ]},
   ];
 
-  toggle(): void { this.isCollapsed.set(!this.isCollapsed()); }
+  constructor() { this.checkMobile(); }
+
+  ngOnInit(): void {
+    // Auto-close mobile drawer on navigation
+    this.routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => this.mobileOpen.set(false));
+  }
+
+  ngOnDestroy(): void { this.routerSub?.unsubscribe(); }
+
+  @HostListener('window:resize')
+  checkMobile(): void {
+    const mobile = window.innerWidth <= 768;
+    this.isMobile.set(mobile);
+    if (!mobile) this.mobileOpen.set(false);
+  }
+
+  openMobileMenu():  void { this.mobileOpen.set(true); }
+  closeMobileMenu(): void { this.mobileOpen.set(false); }
+  toggle():          void { this.isCollapsed.set(!this.isCollapsed()); }
 
   canSee(item: NavItem): boolean {
     return !item.requiredRole || this.authService.hasRole(item.requiredRole);
   }
 
-  get currentUser() {
-    return this.authService.currentUser();
-  }
+  get currentUser() { return this.authService.currentUser(); }
 
   get userInitials(): string {
     const name = this.currentUser?.full_name || '';
@@ -70,7 +93,7 @@ export class ShellComponent {
       .toUpperCase() || 'U';
   }
 
-  goToProfile(): void { this.router.navigate(['/profile']); }
+  goToProfile(): void  { this.router.navigate(['/profile']); }
   goToSettings(): void { this.router.navigate(['/settings']); }
 
   async logoutLocal(): Promise<void> {
@@ -81,9 +104,5 @@ export class ShellComponent {
   async logoutSSO(): Promise<void> {
     await this.authService.logout();
     this.router.navigate(['/login']);
-  }
-
-  async logout(): Promise<void> {
-    await this.logoutLocal();
   }
 }
