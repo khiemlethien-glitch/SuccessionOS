@@ -309,9 +309,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (profile) {
       return profile.entries.map(e => ({
         label:  e.label,
-        actual: e.actual ?? 0,
+        actual: e.actual as number | null,
         target: e.target,
-        delta:  e.delta  ?? 0,
+        delta:  e.delta  as number | null,
       }));
     }
     const t = this.talent();
@@ -328,8 +328,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     return values.map(v => ({ ...v, delta: v.actual - v.target }));
   });
 
-  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta >= 0).length);
-  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta < 0).length);
+  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta != null && e.delta >= 0).length);
+  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta != null && e.delta < 0).length);
   /** Tổng độ lệch tuyệt đối (Σ|delta|) — chỉ số GAP chung để so giữa các talent. */
   radarTotalGap = computed(() => this.radarProfile()?.total_gap_abs ?? 0);
   /** Trung bình gap có dấu (Σdelta / 5). Âm = tổng thể dưới chuẩn, dương = vượt chuẩn. */
@@ -344,7 +344,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   radarActualPath = computed(() =>
     this.radarEntries().map((e, i) => {
-      const p = this.radarPoint(i, e.actual);
+      const p = this.radarPoint(i, e.actual ?? 0);
       return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`;
     }).join(' ') + ' Z'
   );

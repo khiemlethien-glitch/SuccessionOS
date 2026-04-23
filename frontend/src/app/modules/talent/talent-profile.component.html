@@ -171,9 +171,13 @@
           @for (e of radarEntries(); track e.label) {
             <div class="rs-col">
               <div class="rs-label">{{ e.label }}</div>
-              <div class="rs-value">{{ e.actual }}</div>
-              <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-down]="e.delta < 0">
-                {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
+              <div class="rs-value">{{ e.actual != null ? e.actual : '—' }}</div>
+              <div class="rs-delta" [class.rs-up]="e.delta != null && e.delta >= 0" [class.rs-down]="e.delta != null && e.delta < 0">
+                @if (e.delta != null) {
+                  {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
+                } @else {
+                  —
+                }
               </div>
             </div>
           }
