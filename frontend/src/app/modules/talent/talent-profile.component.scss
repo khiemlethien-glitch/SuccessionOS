@@ -508,6 +508,46 @@
 
 .a360-card > .a360-block:last-child { padding-bottom:18px; }
 
+/* 360° header sync tag */
+.a360-sync-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:11px; font-weight:600; padding:3px 10px; border-radius:999px;
+  background:rgba(79,70,229,.08); color:#4f46e5; border:1px solid #c7d2fe;
+  margin-left:auto; flex-shrink:0;
+  [nz-icon] { font-size:11px; }
+}
+
+/* 360° external score view */
+.a360-ext-view { padding-bottom:8px; }
+.a360-ext-hero {
+  display:flex; justify-content:space-between; align-items:center;
+  gap:16px; padding:18px 22px; background:#fafbfc; flex-wrap:wrap;
+}
+.a360-ext-label { font-size:12px; color:#9ca3af; margin-bottom:4px; }
+.a360-ext-val   { font-size:40px; font-weight:800; color:#4f46e5; line-height:1; }
+.a360-ext-max   { font-size:16px; font-weight:500; color:#9ca3af; margin-left:4px; }
+.a360-ext-meta  { text-align:right; }
+.a360-ext-cycle {
+  font-size:13px; color:#6b7280;
+  strong { color:#111827; font-weight:700; }
+}
+.a360-ext-note  { font-size:11px; color:#9ca3af; margin-top:4px; font-style:italic; }
+
+/* 360° waiting / empty state */
+.a360-wait-state {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:36px 24px; text-align:center;
+}
+.a360-wait-ico {
+  width:56px; height:56px; border-radius:16px;
+  background:linear-gradient(135deg,#eef2ff,#f5f3ff);
+  border:1px solid #c7d2fe;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; color:#818cf8; margin-bottom:4px;
+}
+.a360-wait-title { font-size:15px; font-weight:700; color:#374151; margin:0; }
+.a360-wait-desc  { font-size:13px; color:#9ca3af; max-width:360px; margin:0; }
+
 /* ══ Review grid (Đánh giá + Dự án + Thống kê + IDP) ══ */
 .review-grid     {
   display:grid; grid-template-columns:1.5fr 1fr; gap:16px;
@@ -581,9 +621,36 @@
 /* --- Info cards (Dự án / Thống kê) --- */
 .info-card       {
   background:#fff; border:1px solid #f1f3f5; border-radius:14px;
-  padding:20px 22px; box-shadow:0 1px 3px rgba(0,0,0,.04);
+  padding:20px 22px; box-shadow:0 1px 3px rgba(0,0,0,.04); overflow:hidden;
 }
 .info-title      { margin:0 0 14px; font-size:14px; font-weight:700; color:#1e1b4b; }
+
+/* Colored header bar (Project / KT cards) */
+.chb {
+  display:flex; align-items:center; gap:10px;
+  margin:-20px -22px 16px; padding:13px 20px;
+  border-radius:14px 14px 0 0;
+}
+.chb-blue   { background:linear-gradient(90deg,#eff6ff,#f0f9ff); border-bottom:1px solid #bfdbfe; }
+.chb-indigo { background:linear-gradient(90deg,#eef2ff,#f5f3ff); border-bottom:1px solid #c7d2fe; }
+.chb-ico {
+  font-size:15px; flex-shrink:0;
+  .chb-blue &   { color:#3b82f6; }
+  .chb-indigo & { color:#4f46e5; }
+}
+.chb-title {
+  flex:1; margin:0; font-size:14px; font-weight:700;
+  .chb-blue &   { color:#1d4ed8; }
+  .chb-indigo & { color:#4f46e5; }
+}
+.chb-edit-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:8px;
+  border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.5);
+  cursor:pointer; font-size:12px; transition:all .15s ease; flex-shrink:0;
+  .chb-blue &   { color:#3b82f6; &:hover { background:#3b82f6; color:#fff; border-color:#3b82f6; } }
+  .chb-indigo & { color:#4f46e5; &:hover { background:#4f46e5; color:#fff; border-color:#4f46e5; } }
+}
 
 .info-project    { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
 .ip-name         { font-size:14px; font-weight:600; color:#111827; line-height:1.4; }
@@ -657,7 +724,7 @@
 /* ══ Chuyển giao Tri thức ══ */
 .kt-card         {
   background:#fff; border:1px solid #f1f3f5; border-radius:14px;
-  padding:20px 22px; box-shadow:0 1px 3px rgba(0,0,0,.04);
+  padding:20px 22px; box-shadow:0 1px 3px rgba(0,0,0,.04); overflow:hidden;
 }
 .kt-head         {
   display:flex; justify-content:space-between; align-items:flex-start;

@@ -442,6 +442,28 @@ export class AdminComponent implements OnInit {
     else    this.msg.error('Lưu thất bại, vui lòng thử lại');
   }
 
+  // ── API Integration config (360°) ─────────────────────────────────────────
+  apiBaseUrl = signal('https://api.successionos.vn/api/v1');
+
+  readonly apiPayloadExample = `{
+  "employee_id": "E001",
+  "cycle_id":    "2025-Annual",
+  "score_360":   82.5,
+  "criteria": [
+    { "label": "Lãnh đạo",    "score": 4.2 },
+    { "label": "Giao tiếp",   "score": 4.5 },
+    { "label": "Kỹ năng làm việc nhóm", "score": 3.9 }
+  ]
+}`;
+
+  copyApiEndpoint(): void {
+    const url = `${this.apiBaseUrl()}/external/360-scores`;
+    navigator.clipboard.writeText(url).then(
+      () => this.msg.success('Đã sao chép endpoint'),
+      () => this.msg.error('Không sao chép được')
+    );
+  }
+
   constructor(
     private api: ApiService,
     private msg: NzMessageService,

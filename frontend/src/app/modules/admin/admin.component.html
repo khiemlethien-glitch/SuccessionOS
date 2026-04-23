@@ -311,6 +311,51 @@
           <span nz-icon nzType="save"></span> Lưu cấu hình
         </button>
       </div>
+
+      <!-- API Integration config -->
+      <h3 class="panel-title weight-title">Cấu hình API tích hợp 360°</h3>
+      <p class="panel-sub">
+        Hệ thống đánh giá 360° bên ngoài gọi API này để đẩy kết quả vào SuccessionOS.
+        Dữ liệu tự động hiển thị trong hồ sơ nhân viên — không cần nhập tay.
+      </p>
+
+      <div class="api-cfg-card">
+        <div class="api-cfg-row">
+          <div class="api-cfg-label">
+            <span nz-icon nzType="api" class="api-cfg-ico"></span>
+            Endpoint nhận điểm 360°
+          </div>
+          <div class="api-cfg-endpoint">
+            <code class="api-cfg-code">POST {{ apiBaseUrl() }}/external/360-scores</code>
+            <button nz-button nzSize="small" (click)="copyApiEndpoint()" title="Sao chép">
+              <span nz-icon nzType="copy"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="api-cfg-row">
+          <div class="api-cfg-label">
+            <span nz-icon nzType="file-text" class="api-cfg-ico"></span>
+            Request body (JSON)
+          </div>
+          <pre class="api-cfg-pre">{{ apiPayloadExample }}</pre>
+        </div>
+
+        <div class="api-cfg-row">
+          <div class="api-cfg-label">
+            <span nz-icon nzType="key" class="api-cfg-ico"></span>
+            Xác thực
+          </div>
+          <div class="api-cfg-val">
+            Header <code>X-Api-Key: &lt;api_key&gt;</code> — cấp qua Admin → Người dùng
+          </div>
+        </div>
+
+        <div class="api-cfg-note">
+          <span nz-icon nzType="info-circle"></span>
+          Tài liệu chi tiết: <code>docs/api-360-contract.md</code> trong source code.
+        </div>
+      </div>
     </div>
   }
 
