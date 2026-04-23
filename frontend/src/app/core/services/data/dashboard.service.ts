@@ -35,6 +35,24 @@ export class DashboardService {
     return data ?? [];
   }
 
+  async getPositionStats() {
+    const base = () => this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('is_active', true);
+    const [total, critical, highRisk, noSuccessor, hasSuccessor] = await Promise.all([
+      base(),
+      base().eq('critical_level', 'Critical'),
+      base().eq('risk_level', 'High'),
+      base().eq('successor_count', 0),
+      base().gt('successor_count', 0),
+    ]);
+    return {
+      total:          total.count       ?? 0,
+      critical:       critical.count    ?? 0,
+      highRisk:       highRisk.count    ?? 0,
+      noSuccessor:    noSuccessor.count ?? 0,
+      hasSuccessor:   hasSuccessor.count ?? 0,
+    };
+  }
+
   async getDepartments() {
     const { data, error } = await this.sb
       .from('departments')

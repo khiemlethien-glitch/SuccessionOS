@@ -5,10 +5,6 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { DashboardService } from '../../core/services/data/dashboard.service';
-import { EmployeeService } from '../../core/services/data/employee.service';
-import { KeyPositionService } from '../../core/services/data/key-position.service';
-import { Talent, IdpPlan, KeyPosition } from '../../core/models/models';
-import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,122 +15,37 @@ import { AvatarComponent } from '../../shared/components/avatar/avatar.component
     NzIconModule,
     NzCardModule,
     NzAvatarModule,
-    AvatarComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
   private dashboardSvc = inject(DashboardService);
-  private employeeSvc = inject(EmployeeService);
-  private positionSvc = inject(KeyPositionService);
 
   isLoading = signal(false);
 
-  talents = signal<Talent[]>([]);
-  idps    = signal<IdpPlan[]>([]);
-  positions = signal<KeyPosition[]>([]);
+  // ─── Talent KPIs (from direct DB count queries) ────────────────────────────
+  totalTalents    = signal(0);
+  tierCounts      = signal({ core: 0, potential: 0, successor: 0 });
+  highRiskCount   = signal(0);
+  topRiskAlerts   = signal<any[]>([]);
 
-  readonly totalTalents = computed(() => this.talents().length);
-  readonly totalPositions = computed(() => this.positions().length);
+  // ─── Position KPIs (from direct DB count queries) ──────────────────────────
+  totalPositions          = signal(0);
+  criticalPositionsCount  = signal(0);
+  highRiskPositionsCount  = signal(0);
+  positionsNoSuccessor    = signal(0);
+  positionsWithSuccessors = signal(0);
 
-  readonly tierCounts = computed(() => {
-    const acc = { core: 0, potential: 0, successor: 0 };
-    for (const t of this.talents()) {
-      if (t.talent_tier === 'Nòng cốt') acc.core++;
-      else if (t.talent_tier === 'Tiềm năng') acc.potential++;
-      else acc.successor++;
-    }
-    return acc;
-  });
+  // ─── IDP KPIs (placeholder — idp_plans require RLS fix) ───────────────────
+  activeIdpGoalsCount = signal(0);
+  avgIdpProgress      = signal(0);
 
-  readonly positionsWithSuccessors = computed(() => this.positions().filter(p => p.successor_count > 0).length);
-  readonly positionsNoSuccessor = computed(() => this.positions().filter(p => p.successor_count === 0).length);
-  readonly criticalPositionsCount = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
-  readonly highRiskPositionsCount = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
-
-  // High risk threshold aligned with RiskBadge: >=60.
-  readonly highRiskTalents = computed(() =>
-    [...this.talents()].filter(t => (t.risk_score ?? 0) >= 60).sort((a, b) => (b.risk_score ?? 0) - (a.risk_score ?? 0))
-  );
-  readonly highRiskCount = computed(() => this.highRiskTalents().length);
-  readonly topRiskNow = computed(() => this.highRiskTalents().slice(0, 3));
   readonly highRiskPct = computed(() => {
     const total = this.totalTalents();
     if (!total) return 0;
     return Math.round((this.highRiskCount() / total) * 1000) / 10;
   });
-
-  readonly activeIdps = computed(() => this.idps().filter(i => i.status === 'Active'));
-  readonly activeIdpGoalsCount = computed(() => this.activeIdps().reduce((s, p) => s + (p.goals?.length ?? 0), 0));
-  readonly avgIdpProgress = computed(() => {
-    const list = this.activeIdps();
-    if (!list.length) return 0;
-    return Math.round(list.reduce((s, p) => s + (p.overall_progress ?? 0), 0) / list.length);
-  });
-
-  today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
-
-  async ngOnInit(): Promise<void> {
-    this.isLoading.set(true);
-    const [empRes, positions] = await Promise.all([
-      this.employeeSvc.getAll(),
-      this.positionSvc.getAll(),
-    ]);
-    this.talents.set(empRes.data);
-    this.positions.set(positions as any);
-    this.isLoading.set(false);
-  }
-
-  positionBadge(p: KeyPosition): { label: 'Manager' | 'Lead' | 'Chuyên gia' | 'Nhân viên'; cls: string } {
-    const t = (p.title ?? '').toLowerCase();
-    if (t.includes('trưởng') || t.includes('lead')) return { label: 'Lead', cls: 'b-lead' };
-    if (t.includes('điều phối') || t.includes('chuyên gia')) return { label: 'Chuyên gia', cls: 'b-expert' };
-    if (t.includes('kế toán') || t.includes('nhân viên')) return { label: 'Nhân viên', cls: 'b-staff' };
-    return { label: 'Manager', cls: 'b-manager' };
-  }
-
-  readinessLabel(p: KeyPosition): 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm' | 'Đang tuyển dụng' {
-    if ((p.ready_now_count ?? 0) > 0) return 'Sẵn sàng ngay';
-    if ((p.successor_count ?? 0) > 0) return '1-2 năm';
-    return 'Đang tuyển dụng';
-  }
-
-  readinessTone(p: KeyPosition): 'good' | 'warn' | 'bad' {
-    const r = this.readinessLabel(p);
-    if (r === 'Sẵn sàng ngay') return 'good';
-    if (r === '1-2 năm') return 'warn';
-    return 'bad';
-  }
-
-  riskReason(t: Talent): string {
-    if ((t.risk_score ?? 0) >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
-    if ((t.risk_score ?? 0) >= 70) return 'Hiệu suất giảm sút';
-    return 'Cần theo dõi nguy cơ nghỉ việc';
-  }
-
-  riskPill(t: Talent): { text: string; cls: string } {
-    if ((t.risk_score ?? 0) >= 60) return { text: 'Rủi ro cao', cls: 'pill-risk-high' };
-    if ((t.risk_score ?? 0) >= 30) return { text: 'Rủi ro trung bình', cls: 'pill-risk-med' };
-    return { text: 'Rủi ro thấp', cls: 'pill-risk-low' };
-  }
-
-  getInitials(name: string): string {
-    return (name ?? '')
-      .trim()
-      .split(/\s+/)
-      .slice(-2)
-      .map(w => w[0])
-      .join('')
-      .toUpperCase();
-  }
-
-  avatarColor(name: string): string {
-    const palette = ['#14B8A6', '#6366F1', '#F97316', '#22C55E', '#0EA5E9', '#A855F7'];
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    return palette[h % palette.length];
-  }
 
   readonly unassignedCount = computed(() => {
     const { core, potential, successor } = this.tierCounts();
@@ -171,15 +82,55 @@ export class DashboardComponent implements OnInit {
     });
   });
 
+  today = new Date().toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  async ngOnInit(): Promise<void> {
+    this.isLoading.set(true);
+    const [kpi, alerts, posStats] = await Promise.all([
+      this.dashboardSvc.getKpi(),
+      this.dashboardSvc.getRiskAlerts(3),
+      this.dashboardSvc.getPositionStats(),
+    ]);
+
+    this.totalTalents.set(kpi.totalTalents);
+    this.tierCounts.set({ core: kpi.coreCount, potential: kpi.potentialCount, successor: kpi.successorCount });
+    this.highRiskCount.set(kpi.highRiskCount);
+    this.topRiskAlerts.set(alerts);
+
+    this.totalPositions.set(posStats.total);
+    this.criticalPositionsCount.set(posStats.critical);
+    this.highRiskPositionsCount.set(posStats.highRisk);
+    this.positionsNoSuccessor.set(posStats.noSuccessor);
+    this.positionsWithSuccessors.set(posStats.hasSuccessor);
+
+    this.isLoading.set(false);
+  }
+
+  riskReason(t: any): string {
+    if ((t.risk_score ?? 0) >= 80) return 'Sắp nghỉ hưu, thiếu người kế nhiệm';
+    if ((t.risk_score ?? 0) >= 70) return 'Hiệu suất giảm sút';
+    return 'Cần theo dõi nguy cơ nghỉ việc';
+  }
+
+  getInitials(name: string): string {
+    return (name ?? '')
+      .trim()
+      .split(/\s+/)
+      .slice(-2)
+      .map((w: string) => w[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  avatarColor(name: string): string {
+    const palette = ['#14B8A6', '#6366F1', '#F97316', '#22C55E', '#0EA5E9', '#A855F7'];
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return palette[h % palette.length];
+  }
+
   pct(n: number, total: number): number {
     if (!total) return 0;
     return Math.round((n / total) * 100);
-  }
-
-  holderTenure(p: KeyPosition): string {
-    const id = (p.id ?? '').replace(/\D/g, '');
-    const n = Number(id || 0);
-    const years = (n % 4) + 2;
-    return `Giữ vị trí ${years} năm`;
   }
 }
