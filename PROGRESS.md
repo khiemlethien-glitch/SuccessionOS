@@ -1,7 +1,33 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (BA_BACKEND_SPEC.md full rewrite — reflect toàn bộ thay đổi buổi sáng)
+> Cập nhật lần cuối: 2026-04-23 17:30 (perf — server-side pagination + skeleton loading)
+
+---
+
+## ⚡ Performance — Server-side pagination + Skeleton loading (2026-04-23) — build ✅
+
+### talent-list: Server-side pagination
+- Trước: `getAll()` load toàn bộ 500+ nhân viên → lọc/sort client-side
+- Sau: `getPaginated()` dùng Supabase `range(from, to)` + `count: 'exact'`
+- 50 records/page; nhấn sang trang mới load tiếp
+- Debounced search (350ms); filter, sort, search đều reset về page 1
+- Filter phòng ban load từ `getDeptOptions()` (cached SWR)
+- `NzPaginationModule` ở cuối bảng với quick jumper
+
+### talent-profile: Skeleton loading
+- Trước: full-page spinner — đợi toàn bộ `Promise.all` (talent + allTalents + cycles + successors)
+- Sau: load `talent` trước → hero renders ngay (< 200ms); secondary data load song song sau
+- Shimmer skeleton (CSS animation) cho: hero card, charts row, assessment card
+- `cyclesLoading` signal: khi `false` → assessment card hiện thật
+- Radar chart render ngay từ `talent.competencies` (không cần chờ radarProfile)
+
+### Files thay đổi
+- `core/services/data/employee.service.ts` — thêm `getPaginated()`, `getDeptOptions()`
+- `modules/talent/talent-list.component.{ts,html}` — rewrite server-side
+- `modules/talent/talent-profile.component.{ts,html,scss}` — skeleton loading
+
+Build: ✅ commit `fc63ee2` pushed
 
 ---
 
