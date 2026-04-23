@@ -549,16 +549,17 @@
   </ng-container>
 </nz-drawer>
 
-<!-- ══ Modal: Box detail ══════════════════════════════════════ -->
-<nz-modal
+<!-- ══ Drawer: Box detail (35% từ phải) ════════════════════════ -->
+<nz-drawer
   [nzVisible]="boxModalOpen()"
-  (nzOnCancel)="closeBoxModal()"
-  [nzFooter]="null"
-  [nzWidth]="600"
-  nzCentered
-  [nzTitle]="boxModalTitle"
+  (nzOnClose)="closeBoxModal()"
+  nzPlacement="right"
+  nzWidth="35%"
+  [nzTitle]="boxDrawerTitle"
+  [nzClosable]="true"
+  nzWrapClassName="box-detail-drawer"
 >
-  <ng-template #boxModalTitle>
+  <ng-template #boxDrawerTitle>
     @if (activeBox(); as box) {
       <div class="bm-title-row">
         <span class="bm-num" [ngClass]="'tone-' + box.tone">{{ box.num }}</span>
@@ -570,7 +571,7 @@
     }
   </ng-template>
 
-  <ng-container *nzModalContent>
+  <ng-container *nzDrawerContent>
     @if (activeBox(); as box) {
 
       <!-- ═══ Box 9: Ngôi sao tương lai — Vinh danh ═══ -->
@@ -693,7 +694,7 @@
 
     }
   </ng-container>
-</nz-modal>
+</nz-drawer>
 
 <!-- ══ Drawer: Preview hồ sơ nhân tài (chạm sidebar) ═══════ -->
 <nz-drawer

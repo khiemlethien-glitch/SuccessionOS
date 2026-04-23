@@ -1334,3 +1334,9 @@
   padding: 32px 0; color: #94a3b8; font-size: 13px;
   .anticon { font-size: 28px; }
 }
+
+::ng-deep .box-detail-drawer {
+  .ant-drawer-body { padding: 0 24px 24px; overflow-y: auto; }
+  .ant-drawer-header { border-bottom: 1px solid #f1f5f9; padding: 16px 24px; }
+  .ant-drawer-mask { background: rgba(15,23,42,.2); backdrop-filter: blur(2px); }
+}
