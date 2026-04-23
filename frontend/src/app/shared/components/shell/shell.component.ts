@@ -1,6 +1,6 @@
-import { Component, inject, signal, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, HostListener, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -30,6 +30,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   private router      = inject(Router);
   private authService = inject(AuthService);
+  private platformId  = inject(PLATFORM_ID);
   private routerSub?: Subscription;
 
   navGroups: NavGroup[] = [
@@ -54,7 +55,10 @@ export class ShellComponent implements OnInit, OnDestroy {
     ]},
   ];
 
-  constructor() { this.checkMobile(); }
+  constructor() {
+    // Guard: window không tồn tại trong SSR (Node.js)
+    if (isPlatformBrowser(this.platformId)) this.checkMobile();
+  }
 
   ngOnInit(): void {
     // Auto-close mobile drawer on navigation
@@ -67,6 +71,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   @HostListener('window:resize')
   checkMobile(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
     const mobile = window.innerWidth <= 768;
     this.isMobile.set(mobile);
     if (!mobile) this.mobileOpen.set(false);
