@@ -60,9 +60,6 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   externalScore       = signal<ComputedScore | null>(null);
   externalScoreLoaded = signal<boolean | null>(null);
 
-  // ─── Raw extras (training_hours, last_promotion_year, …) ─────────────────
-  extrasRaw = signal<any>(null);
-
   // ─── Profile section signals (mỗi section fetch riêng) ───────────────────
   extrasRaw            = signal<EmployeeExtras | null>(null);
   assessment360Data    = signal<Assessment360 | null>(null);
@@ -745,7 +742,6 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.extrasSvc.getByEmployee(id).then(extras => {
       this.extrasRaw.set(extras);
       if (extras) {
-        this.extrasRaw.set(extras);
         const p    = extrasToProject(extras);
         const kt   = extrasToKt(extras);
         const a360 = extrasTo360(extras);
