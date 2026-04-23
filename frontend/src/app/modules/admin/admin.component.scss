@@ -450,3 +450,42 @@
 }
 .cdk-drag-preview { box-shadow:0 8px 24px rgba(0,0,0,.15); }
 .cdk-drag-placeholder { opacity:.3; }
+
+/* ══ API Integration config card ══ */
+.api-cfg-card {
+  background:#fafbfc; border:1px solid #e5e7eb; border-radius:12px;
+  overflow:hidden; margin-top:16px;
+}
+.api-cfg-row {
+  display:grid; grid-template-columns:220px 1fr; align-items:start;
+  gap:16px; padding:14px 18px; border-bottom:1px solid #f3f4f6;
+  &:last-child { border-bottom:none; }
+  @media(max-width:768px) { grid-template-columns:1fr; }
+}
+.api-cfg-label {
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; font-weight:600; color:#374151; padding-top:2px;
+}
+.api-cfg-ico  { color:#4f46e5; font-size:14px; }
+.api-cfg-endpoint {
+  display:flex; align-items:center; gap:10px;
+}
+.api-cfg-code {
+  flex:1; font-size:12px; font-family:monospace;
+  background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px;
+  padding:6px 12px; color:#1e1b4b; word-break:break-all;
+}
+.api-cfg-val {
+  font-size:13px; color:#4b5563;
+  code { font-family:monospace; font-size:12px; background:#f1f5f9; padding:2px 6px; border-radius:4px; color:#1e1b4b; }
+}
+.api-cfg-pre {
+  font-size:12px; font-family:monospace;
+  background:#1e1b4b; color:#c4b5fd; border-radius:8px;
+  padding:12px 16px; margin:0; overflow-x:auto; line-height:1.6;
+}
+.api-cfg-note {
+  padding:10px 18px; background:#eff6ff; border-top:1px solid #bfdbfe;
+  font-size:12px; color:#1d4ed8; display:flex; align-items:center; gap:8px;
+  code { font-family:monospace; font-size:11px; }
+}

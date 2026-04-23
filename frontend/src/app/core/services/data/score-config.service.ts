@@ -15,6 +15,7 @@ export interface ScoreWeightConfig {
 }
 
 export interface ComputedScore {
+  cycle_id: string;
   assessment_score: number | null;
   score_360: number | null;
   total_score: number | null;
@@ -80,7 +81,7 @@ export class ScoreConfigService {
           + score_360 * weights.weight_360 / 100) * 10) / 10
       : null;
 
-    return { assessment_score, score_360, total_score };
+    return { cycle_id: cycleId, assessment_score, score_360, total_score };
   }
 
   async getLatestScoreForEmployee(employeeId: string): Promise<ComputedScore | null> {

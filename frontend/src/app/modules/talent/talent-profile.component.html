@@ -343,129 +343,75 @@
 
     <!-- ══ Kết quả đánh giá 360° ══ -->
     <div class="a360-card">
-      <div class="a360-head-row">
-        <button type="button" class="a360-head" (click)="assessment360Expanded.set(!assessment360Expanded())">
-          <span nz-icon nzType="bar-chart" nzTheme="outline" class="a360-ico"></span>
-          <span class="a360-title">Kết quả đánh giá 360°</span>
-          @if (assessment360Data(); as d) {
-            <span class="a360-head-meta">{{ d.benchmark }} điểm · {{ d.period }}</span>
-            <span class="a360-badge">{{ d.benchmark }} điểm · {{ d.period }}</span>
-          }
-          <span nz-icon [nzType]="assessment360Expanded() ? 'arrow-up' : 'arrow-down'" class="a360-toggle"></span>
-        </button>
-        @if (!a360EditMode()) {
-          <button type="button" class="edit-btn edit-btn-a360" (click)="open360Edit()" title="Chỉnh sửa">
-            <span nz-icon nzType="edit"></span>
-          </button>
+      <button type="button" class="a360-head" (click)="assessment360Expanded.set(!assessment360Expanded())">
+        <span nz-icon nzType="bar-chart" nzTheme="outline" class="a360-ico"></span>
+        <span class="a360-title">Kết quả đánh giá 360°</span>
+        @if (externalScore()?.score_360 != null) {
+          <span class="a360-badge">{{ externalScore()!.score_360 }} / 100</span>
         }
-      </div>
+        <span class="a360-sync-tag"><span nz-icon nzType="api"></span> Tự động đồng bộ</span>
+        <span nz-icon [nzType]="assessment360Expanded() ? 'arrow-up' : 'arrow-down'" class="a360-toggle"></span>
+      </button>
 
-      @if (a360EditMode()) {
-        <div class="edit-form" style="margin-top:14px">
-          <div class="ef-2col">
-            <div class="ef-row"><label>Điểm tổng hợp (0–5)</label>
-              <input nz-input type="number" min="0" max="5" step="0.01"
-                [ngModel]="a360Draft().overall"
-                (ngModelChange)="a360Draft.update(d=>({...d,overall:+$event}))" />
-            </div>
-            <div class="ef-row"><label>Benchmark</label>
-              <input nz-input type="number" min="1" max="10" step="0.5"
-                [ngModel]="a360Draft().benchmark"
-                (ngModelChange)="a360Draft.update(d=>({...d,benchmark:+$event}))" />
-            </div>
-          </div>
-          <div class="ef-row"><label>Chu kỳ đánh giá</label>
-            <input nz-input [ngModel]="a360Draft().period" (ngModelChange)="a360Draft.update(d=>({...d,period:$event}))" placeholder="2024-Annual"/>
-          </div>
-          <div class="ef-row ef-col"><label>Điểm mạnh <span class="ef-hint">(mỗi dòng một ý)</span></label>
-            <textarea nz-input rows="3" [ngModel]="a360Draft().strengths_raw" (ngModelChange)="a360Draft.update(d=>({...d,strengths_raw:$event}))"></textarea>
-          </div>
-          <div class="ef-row ef-col"><label>Cần phát triển <span class="ef-hint">(mỗi dòng một ý)</span></label>
-            <textarea nz-input rows="3" [ngModel]="a360Draft().needs_dev_raw" (ngModelChange)="a360Draft.update(d=>({...d,needs_dev_raw:$event}))"></textarea>
-          </div>
-          <div class="ef-row ef-col"><label>Nhận xét quản lý</label>
-            <textarea nz-input rows="3" [ngModel]="a360Draft().manager_note" (ngModelChange)="a360Draft.update(d=>({...d,manager_note:$event}))"></textarea>
-          </div>
-          <div class="ef-actions">
-            <button nz-button nzType="primary" nzSize="small" [nzLoading]="a360Saving()" (click)="save360()">Lưu</button>
-            <button nz-button nzSize="small" (click)="a360EditMode.set(false)">Hủy</button>
-          </div>
-        </div>
-      } @else if (assessment360Data(); as d) {
-        @if (assessment360Expanded()) {
-          <div class="a360-summary">
-            <div class="a360-overall">
-              <div class="a360-overall-label">Điểm tổng hợp — {{ d.period }}</div>
-              <div class="a360-overall-value">{{ d.overall }}</div>
-            </div>
-            <div class="a360-sources">
-              <div class="a360-sources-label">Nguồn đánh giá</div>
-              <div class="a360-sources-chips">
-                @for (s of d.sources; track s.label) {
-                  <span class="a360-chip">{{ s.label }} {{ s.pct }}%</span>
-                }
+      @if (assessment360Expanded()) {
+        @if (externalScore()?.score_360 != null) {
+          <div class="a360-ext-view">
+            <div class="a360-ext-hero">
+              <div>
+                <div class="a360-ext-label">Điểm 360° từ hệ thống tích hợp</div>
+                <div class="a360-ext-val">{{ externalScore()!.score_360 }}<span class="a360-ext-max">/100</span></div>
+              </div>
+              <div class="a360-ext-meta">
+                <div class="a360-ext-cycle">Chu kỳ: <strong>{{ externalScore()!.cycle_id }}</strong></div>
+                <div class="a360-ext-note">Cập nhật tự động — không chỉnh sửa thủ công</div>
               </div>
             </div>
-          </div>
 
-          @if (d.criteria.length) {
-            <div class="a360-section-title">CHI TIẾT {{ d.criteria.length }} TIÊU CHÍ</div>
-            <ul class="a360-criteria">
-              @for (c of d.criteria; track c.label) {
-                <li class="a360-crit">
-                  <span class="a360-dot"></span>
-                  <span class="a360-crit-label">{{ c.label }}</span>
-                  <span class="a360-crit-score">{{ c.score }}</span>
-                  <div class="a360-crit-bar">
-                    <div class="a360-crit-fill" [style.width.%]="(c.score / 5) * 100"></div>
+            @if (assessment360Data(); as d) {
+              @if (d.criteria.length) {
+                <div class="a360-section-title">TIÊU CHÍ ĐÁNH GIÁ</div>
+                <ul class="a360-criteria">
+                  @for (c of d.criteria; track c.label) {
+                    <li class="a360-crit">
+                      <span class="a360-dot"></span>
+                      <span class="a360-crit-label">{{ c.label }}</span>
+                      <span class="a360-crit-score">{{ c.score }}</span>
+                      <div class="a360-crit-bar">
+                        <div class="a360-crit-fill" [style.width.%]="(c.score / 5) * 100"></div>
+                      </div>
+                      <span class="a360-crit-max">/{{ d.benchmark }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+              @if (d.strengths.length || d.needs_dev.length || d.manager_note) {
+                <div class="a360-section-title a360-mt">NHẬN XÉT</div>
+                @if (d.strengths.length) {
+                  <div class="a360-block">
+                    <div class="a360-block-title">Điểm mạnh</div>
+                    @for (s of d.strengths; track s) { <div class="a360-line">{{ s }}</div> }
                   </div>
-                  <span class="a360-crit-max">/{{ d.benchmark }}</span>
-                </li>
+                }
+                @if (d.needs_dev.length) {
+                  <div class="a360-block">
+                    <div class="a360-block-title">Cần phát triển</div>
+                    @for (s of d.needs_dev; track s) { <div class="a360-line">{{ s }}</div> }
+                  </div>
+                }
+                @if (d.manager_note) {
+                  <div class="a360-block">
+                    <div class="a360-block-title">Nhận xét quản lý</div>
+                    <div class="a360-quote">"{{ d.manager_note }}"</div>
+                  </div>
+                }
               }
-            </ul>
-          }
-
-          @if (d.strengths.length || d.needs_dev.length || d.manager_note) {
-            <div class="a360-section-title a360-mt">NHẬN XÉT</div>
-            @if (d.strengths.length) {
-              <div class="a360-block">
-                <div class="a360-block-title">Điểm mạnh</div>
-                @for (s of d.strengths; track s) { <div class="a360-line">{{ s }}</div> }
-              </div>
             }
-            @if (d.needs_dev.length) {
-              <div class="a360-block">
-                <div class="a360-block-title">Cần phát triển</div>
-                @for (s of d.needs_dev; track s) { <div class="a360-line">{{ s }}</div> }
-              </div>
-            }
-            @if (d.manager_note) {
-              <div class="a360-block">
-                <div class="a360-block-title">Nhận xét quản lý</div>
-                <div class="a360-quote">"{{ d.manager_note }}"</div>
-              </div>
-            }
-          }
-
-          <div class="a360-block">
-            <div class="a360-block-title">Điểm thành phần (0–100)</div>
-            <div class="a360-components">
-              @for (c of componentScores(); track c.label; let last = $last) {
-                <span class="a360-comp">{{ c.label }} <strong>{{ c.value }}</strong></span>
-                @if (!last) { <span class="a360-sep">·</span> }
-              }
-            </div>
           </div>
-        }
-      } @else {
-        @if (assessment360Expanded()) {
-          <div class="section-empty">
-            <span nz-icon nzType="bar-chart" nzTheme="outline" class="section-empty-icon"></span>
-            <p class="section-empty-title">Chưa có dữ liệu đánh giá 360°</p>
-            <p class="section-empty-desc">Nhập kết quả đánh giá từ nguồn ngoài cho nhân viên này</p>
-            <button nz-button nzType="dashed" (click)="open360Edit()">
-              <span nz-icon nzType="plus"></span> Nhập dữ liệu
-            </button>
+        } @else {
+          <div class="a360-wait-state">
+            <div class="a360-wait-ico"><span nz-icon nzType="api" nzTheme="outline"></span></div>
+            <div class="a360-wait-title">Chờ đồng bộ từ hệ thống 360°</div>
+            <div class="a360-wait-desc">Dữ liệu tự động cập nhật khi hệ thống đánh giá tích hợp đẩy kết quả. Cấu hình API endpoint trong trang Admin → Cấu hình.</div>
           </div>
         }
       }
@@ -593,10 +539,11 @@
 
         <!-- Dự án hiện tại -->
         <div class="info-card">
-          <div class="section-header">
-            <h3 class="info-title">Dự án hiện tại</h3>
+          <div class="chb chb-blue">
+            <span nz-icon nzType="project" class="chb-ico"></span>
+            <h3 class="chb-title">Dự án hiện tại</h3>
             @if (!projectEditMode()) {
-              <button type="button" class="edit-btn" (click)="openProjectEdit()" title="Chỉnh sửa">
+              <button type="button" class="chb-edit-btn" (click)="openProjectEdit()" title="Chỉnh sửa">
                 <span nz-icon nzType="edit"></span>
               </button>
             }
@@ -633,14 +580,7 @@
               <div class="ir"><span class="ir-label">Trạng thái:</span> <span class="ir-status">{{ p.status }}</span></div>
             </div>
           } @else {
-            <div class="section-empty">
-              <span nz-icon nzType="project" nzTheme="outline" class="section-empty-icon"></span>
-              <p class="section-empty-title">Chưa có dự án hiện tại</p>
-              <p class="section-empty-desc">Thêm thông tin dự án đang tham gia của nhân viên</p>
-              <button nz-button nzType="dashed" (click)="openProjectEdit()">
-                <span nz-icon nzType="plus"></span> Nhập dữ liệu
-              </button>
-            </div>
+            <p class="empty-section">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openProjectEdit()">Nhập ngay</button></p>
           }
         </div>
 
@@ -672,10 +612,11 @@
 
     <!-- ══ Chuyển giao Tri thức ══ -->
     <div class="kt-card">
-      <div class="section-header">
-        <h3 class="kt-title" style="margin:0">Chuyển giao Tri thức</h3>
+      <div class="chb chb-indigo">
+        <span nz-icon nzType="swap" class="chb-ico"></span>
+        <h3 class="chb-title">Chuyển giao Tri thức</h3>
         @if (!ktEditMode()) {
-          <button type="button" class="edit-btn" (click)="openKtEdit()" title="Chỉnh sửa">
+          <button type="button" class="chb-edit-btn" (click)="openKtEdit()" title="Chỉnh sửa">
             <span nz-icon nzType="edit"></span>
           </button>
         }
@@ -734,14 +675,7 @@
           }
         </ul>
       } @else {
-        <div class="section-empty">
-          <span nz-icon nzType="share-alt" nzTheme="outline" class="section-empty-icon"></span>
-          <p class="section-empty-title">Chưa có kế hoạch chuyển giao tri thức</p>
-          <p class="section-empty-desc">Xác định người kế thừa và tiến độ chuyển giao cho nhân viên này</p>
-          <button nz-button nzType="dashed" (click)="openKtEdit()">
-            <span nz-icon nzType="plus"></span> Nhập dữ liệu
-          </button>
-        </div>
+        <p class="empty-section" style="margin-top:8px">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openKtEdit()">Nhập ngay</button></p>
       }
     </div>
 
@@ -829,13 +763,9 @@
                 </div>
               </div>
             } @else {
-              <div class="section-empty">
-                <span nz-icon nzType="trophy" nzTheme="outline" class="section-empty-icon"></span>
-                <p class="section-empty-title">Chưa có điểm số cho chu kỳ này</p>
-                <p class="section-empty-desc">Nhập điểm đánh giá năng lực và 360° để tính điểm tổng hợp</p>
-                <button nz-button nzType="dashed" (click)="openScoreEdit()">
-                  <span nz-icon nzType="plus"></span> Nhập điểm
-                </button>
+              <div class="score-empty">
+                <span nz-icon nzType="inbox" nzTheme="outline"></span>
+                <p>Chưa có điểm số cho chu kỳ này.</p>
               </div>
             }
           }
