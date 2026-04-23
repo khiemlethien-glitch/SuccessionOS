@@ -1,7 +1,24 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (AI Career Roadmap — Lộ Trình Phát Triển)
+> Cập nhật lần cuối: 2026-04-23 (BA_BACKEND_SPEC.md full rewrite — reflect toàn bộ thay đổi buổi sáng)
+
+---
+
+## ⚡ BA_BACKEND_SPEC.md — Full rewrite (2026-04-23) ✅
+
+### Cập nhật
+- Tăng từ 844 → ~1100 dòng
+- **Sections mới** trong API Endpoints:
+  - Talent Profile: thêm `employee_extras`, `external_scores`, `score_weight_config`, `career_roadmaps`, `OpenAI GPT-4o` vào bảng API calls
+  - Mô tả cấu trúc layout bottom-row (IDP compact card + Activity timeline) + roadmap-card
+  - Admin: thêm `score_weight_config` + `external_scores` queries
+- **Data Models mới**: `EmployeeExtras`, `ExternalScore`, `ScoreWeightConfig`, `ComputedScore`, `CareerRoadmap`, `SkillGap`, `CourseItem`, `RoadmapPhase`
+- **Section 6 — Services Architecture**: bảng đầy đủ 9 services với file, tables, methods chính
+- **Supabase Schema**: thêm 4 tables mới + bảng migrations đã chạy
+- **Business Logic**: thêm `total_score` formula (weighted), `AI Roadmap confidence`
+- **Checklist BA**: thêm score weight config, career roadmap, bulk generate
+- **Checklist Backend Dev**: thêm 5 migrations cần chạy, `user_profiles` RLS policy, Edge Function TODO
 
 ---
 

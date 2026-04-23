@@ -2,7 +2,7 @@
 
 > Tài liệu này mô tả toàn bộ API, màn hình, bảng data cho BA và backend dev.
 > Generated từ codebase — không chỉnh tay, regenerate khi codebase thay đổi.
-> Cập nhật: 2026-04-23 | Trạng thái: ~98% frontend hoàn thành, Supabase thật đang dùng.
+> Cập nhật: 2026-04-23 | Trạng thái: ~100% frontend hoàn thành, Supabase thật đang dùng, AI Career Roadmap tích hợp OpenAI GPT-4o.
 
 ---
 
@@ -15,7 +15,7 @@
 | `/auth/callback` | callback | `CallbackComponent` | Nhận OAuth callback (Google), lưu session | No |
 | `/dashboard` | dashboard | `DashboardComponent` | Tổng quan KPI: talent counts, risk alerts, position stats | Yes |
 | `/talent` | talent-list | `TalentListComponent` | Danh sách 500 nhân tài: filter, sort, search | Yes |
-| `/talent/:id` | talent-profile | `TalentProfileComponent` | Hồ sơ chi tiết 1 nhân viên: assessment, IDP, radar, network | Yes |
+| `/talent/:id` | talent-profile | `TalentProfileComponent` | Hồ sơ chi tiết 1 nhân viên: assessment, IDP, radar, network, AI roadmap | Yes |
 | `/positions` | positions | `PositionsComponent` | Danh sách vị trí then chốt: CRUD, competency, auto-suggest | Yes |
 | `/succession` | succession | `SuccessionComponent` | 9-Box matrix + Succession Map tree + Talent Preview drawer | Yes |
 | `/idp` | idp | `IdpComponent` | Danh sách IDP: filter, create, edit, approval workflow | Yes |
@@ -24,11 +24,11 @@
 | `/calibration` | calibration | `CalibrationComponent` | Phiên họp calibration: create, lock, export | Yes |
 | `/reports` | reports | `ReportsComponent` | Báo cáo thống kê (chưa kích hoạt) | Yes |
 | `/marketplace` | marketplace | `MarketplaceComponent` | Module marketplace: enable/disable modules | Yes |
-| `/admin` | admin | `AdminComponent` | Admin dashboard: entities, users, settings, audit log | Yes |
+| `/admin` | admin | `AdminComponent` | Admin dashboard: entities, users, settings, audit log, score config | Yes |
 | `/profile` | profile | `ProfileComponent` | Trang cá nhân (coming soon placeholder) | Yes |
 | `/settings` | settings | `SettingsComponent` | Cài đặt (coming soon placeholder) | Yes |
 
-**Auth guard:** `authGuard` bảo vệ tất cả route con bên trong Shell. Redirect về `/login` khi chưa đăng nhập.
+**Auth guard:** `authGuard` bảo vệ tất cả route con bên trong Shell. Hiện tại bypass `return true` để dev không cần đăng nhập — cần bật lại trước go-live.
 
 ---
 
@@ -107,7 +107,18 @@
 
 ### Talent Profile — `/talent/:id`
 
-**Mô tả:** Hồ sơ chi tiết 1 nhân viên gồm: hero card, tabs (Tổng quan, IDP, Đánh giá, Kế thừa), radar chart năng lực, mạng lưới phát triển, risk factors, mentor picker.
+**Mô tả:** Hồ sơ chi tiết 1 nhân viên gồm: hero card, tabs (Tổng quan, IDP, Đánh giá, Kế thừa), radar chart năng lực, mạng lưới phát triển, risk factors, mentor picker, IDP compact card, activity timeline, và **AI Career Roadmap** (Lộ Trình Phát Triển — 2 track Expert / Manager).
+
+**Layout cấu trúc màn hình:**
+```
+hero-card          (avatar, tên, điểm, tier badge)
+tabs               (Tổng quan / IDP / Đánh giá / Kế thừa)
+  └─ Tổng quan: radar chart + network card + risk alert + mentor picker
+bottom-row         (2 cột)
+  ├─ [left]  IDP Compact Card (ring SVG progress + goals list)
+  └─ [right] Activity Timeline (historyLogs signal — static)
+roadmap-card       (CareerRoadmapComponent — 2 tab Expert/Manager)
+```
 
 **API calls:**
 
@@ -120,12 +131,18 @@
 | SELECT | `assessment_summary` | `employee_id=:id, cycle_id=:cycleId` | `overall_score, rating_label, manager_note, strengths[], needs_dev[]` | Card đánh giá năng lực |
 | SELECT | `assessment_criteria` | `is_active=true, order by sort_order` | `id, key, label, description, weight` | Tên tiêu chí cho radar |
 | SELECT | `assessment_display_config` | `id=1` | `criterion_ids` | Chọn 4 tiêu chí hiển thị |
-| SELECT | `idp_plans` | `employee_id=:id, order year desc, limit 1` | `*, goals:idp_goals(*)` | Tab IDP: trạng thái, goals, target position |
+| SELECT | `employee_extras` | `employee_id=:id` | `*` | Current Project, KT Plan, Assessment 360° data |
+| SELECT | `external_scores` | `employee_id=:id, cycle_id=latest` | `assessment_score, score_360` | Điểm tổng hợp có trọng số |
+| SELECT | `score_weight_config` | `id=1` | `assessment_weight, weight_360` | Trọng số tính điểm tổng hợp |
+| SELECT | `career_roadmaps` | `employee_id=:id` | `*` (cả 2 track) | Career Roadmap section |
+| SELECT | `idp_plans` | `employee_id=:id, order year desc, limit 1` | `*, goals:idp_goals(*)` | IDP compact card (left bottom) |
 | SELECT | `succession_plans` | `talent_id=:id, order priority` | `position_id, readiness, priority` | Xem talent là kế thừa cho vị trí nào |
 | SELECT | `key_positions` | `id=plan.position_id` | `title` | Tên vị trí mà talent kế thừa |
 | SELECT | `key_positions` | `current_holder_id=:id, limit 1` | `id` | Tìm vị trí mà talent đang giữ |
 | SELECT | `succession_plans` | `position_id=:positionId, order priority` | `talent_id, readiness, priority` | Lấy danh sách kế thừa cho người giữ vị trí |
 | SELECT | `idp_plans` | `employee_id IN (ids), status='Active'` | `employee_id, overall_progress` | IDP progress của từng successor trong network |
+| POST | `https://api.openai.com/v1/chat/completions` | GPT-4o + employee data | JSON career roadmap | AI generate roadmap (trực tiếp từ frontend) |
+| UPSERT | `career_roadmaps` | `{employee_id, track, ...roadmap_data}` | `*` | Lưu roadmap đã confirm |
 
 **Bảng Supabase:**
 
@@ -137,6 +154,10 @@
 | `assessment_summary` | SELECT | `employee_id`, `cycle_id` |
 | `assessment_criteria` | SELECT | `is_active=true` |
 | `assessment_display_config` | SELECT | `id=1` |
+| `employee_extras` | SELECT, UPSERT | `employee_id=:id` |
+| `external_scores` | SELECT | `employee_id=:id, cycle_id` |
+| `score_weight_config` | SELECT | `id=1` |
+| `career_roadmaps` | SELECT, UPSERT | `employee_id=:id` |
 | `idp_plans` | SELECT (nested join) | `employee_id=:id` |
 | `idp_goals` | SELECT (nested) | `idp_plan_id` |
 | `succession_plans` | SELECT (×3) | `talent_id=:id`, `position_id=:positionId` |
@@ -146,22 +167,34 @@
 - Màn hình load song song nhiều queries để tối ưu tốc độ
 - Radar chart 5 trục: `Kỹ thuật` (technical), `Hiệu suất` (problem_solving), `Hành vi` (communication), `Tiềm năng` (adaptability), `Lãnh đạo` (leadership)
 - Radar ưu tiên data từ `assessment_scores` × cycle đã chọn, fallback về `v_employees.comp_*` khi chưa có assessment
-- **TODO trong code (chưa implement):** `getNetwork()` — mạng lưới theo `mentor_id chain + department peers`
-- **TODO trong code (chưa implement):** `getRiskFactors()` — qua `risk_factors` table chưa tồn tại
-- **TODO trong code:** `PATCH /employees/:id/mentor` — nút gán mentor chỉ update local state, chưa gọi API
-- **TODO trong code:** `/employees/:id/stats` — `trainingHours` và `lastPromotion` hardcode tạm
-- `careerReview`, `currentProject`, `knowledgeTransfer` sections hiện dùng DEFAULT fallback (mock data hardcode trong component), chưa wire backend
-- Timeline hoạt động tĩnh (hardcode), chưa fetch từ backend
+- **Bottom-row (2 cột):**
+  - Trái: IDP Compact Card — SVG circular progress ring, metadata plan, danh sách goals chia theo status
+  - Phải: Activity Timeline — danh sách sự kiện quan trọng (static từ signal `historyLogs()`)
+- **Career Roadmap section:** Component `CareerRoadmapComponent` (standalone) gắn dưới bottom-row
+  - 2 tab: "Chuyên gia Kỹ thuật" và "Nhà Quản Lý"
+  - Trạng thái đã Confirm được load từ `career_roadmaps` khi mount
+  - Bấm "Tạo Lộ Trình AI" → gọi OpenAI GPT-4o → trả về draft (chưa lưu DB)
+  - User có thể edit draft (thêm/xóa strength, challenge, skill gap, course, phase task)
+  - Bấm "Xác Nhận & Lưu" → upsert vào `career_roadmaps`
+  - Admin bulk generate: `bulkGenerate()` trong service — chưa có nút UI trong admin tab
 - Cycle "closed" gần nhất được chọn mặc định; user có thể đổi dropdown
+- `employee_extras` lưu project, KT plan, 360° data vào 1 row duy nhất per employee (upsert)
+- Score tổng hợp = `assessment_score × weight%  + score_360 × weight_360%` — cấu hình trong `score_weight_config`
+- Activity timeline là static (hardcode trong component), chưa fetch từ backend
 
 **Lưu ý cho Backend Dev:**
-- `v_employees` cần: `comp_target_technical, comp_target_leadership, comp_target_communication, comp_target_problem_solving, comp_target_adaptability`
-- `assessment_scores` PK composite: `(employee_id, cycle_id, criterion_id)`
-- `assessment_summary` PK composite: `(employee_id, cycle_id)`
-- `assessment_display_config` là singleton row `id=1`, field `criterion_ids uuid[]`
-- Cần implement API: `GET /employees/:id/career-review`, `GET /employees/:id/current-project`, `GET /employees/:id/knowledge-transfer`
-- Cần implement: `PATCH /employees/:id/mentor` + `DELETE /employees/:id/mentor`
-- Table `risk_factors` chưa có trong schema — cần thiết kế nếu muốn dữ liệu động
+- `assessment_criteria` và `assessment_summary` cần thêm cột `assessment_type text DEFAULT 'kpi'` (migration `20260423_assessment_types.sql`)
+  - `assessment_type = 'kpi'` cho tiêu chí KPI thông thường
+  - `assessment_type = '360'` cho tiêu chí từ hệ thống 360° bên ngoài
+  - `assessment_summary` cần unique index `(employee_id, cycle_id, assessment_type)`
+- `employee_extras`: 1 row per employee, PK = `employee_id` (migration `20260423_employee_extras.sql`)
+- `external_scores`: PK composite `(employee_id, cycle_id)` — nhập thủ công hoặc push từ hệ thống 360° (migration `20260423_scores.sql`)
+- `score_weight_config`: singleton row `id=1`, constraint `assessment_weight + weight_360 = 100`
+- `career_roadmaps`: unique `(employee_id, track)` — upsert khi confirm (migration `20260423_career_roadmaps.sql`)
+- **Cần implement:** `PATCH /employees/:id/mentor` + `DELETE /employees/:id/mentor` (hiện update local only)
+- **Cần implement:** `GET /employees/:id/career-review` (career review section chưa dùng employee_extras)
+- **TODO:** Admin bulk generate career roadmaps cần nút UI trong `/admin`
+- **Production:** Nên chuyển gọi OpenAI sang Supabase Edge Function thay vì gọi trực tiếp từ frontend (key bảo mật)
 
 ---
 
@@ -281,6 +314,7 @@
 - "At Risk Goal": `deadline < today + 14d AND progress < 50%`
 - `approved_by` resolve từ chuỗi: `approved_by_l3_id ?? approved_by_l2_id ?? approved_by_l1_id`
 - IDP đã `Completed` không sửa lại — tạo IDP mới cho năm tiếp theo
+- **IDP Compact Card** trong Talent Profile hiển thị: ring progress SVG, metadata (year/status), goals chia theo "Đang thực hiện" / "Cần bắt đầu"
 
 **Lưu ý cho Backend Dev:**
 - `idp_plans` columns cần: `id, employee_id, year, status, overall_progress, target_position, approved_by_l1_id, approved_by_l2_id, approved_by_l3_id, approved_by_l1_at, approved_by_l2_at, approved_by_l3_at`
@@ -299,7 +333,7 @@
 | Method | Table/View | Params | Response fields | Dùng để làm gì trong UI |
 |---|---|---|---|---|
 | SELECT | `assessment_cycles` | `order sort_order desc` | `id, name, type, start_date, end_date, status` | Dropdown chọn cycle |
-| SELECT | `assessment_criteria` | `is_active=true, order sort_order` | `id, key, label, description, weight, category` | Form nhập điểm |
+| SELECT | `assessment_criteria` | `is_active=true, order sort_order` | `id, key, label, description, weight, category, assessment_type` | Form nhập điểm |
 
 **Bảng Supabase:**
 
@@ -314,11 +348,13 @@
 - Người đánh giá: Quản lý (QL) 50% · Đồng nghiệp (ĐN) 30% · Cấp dưới (CĐ) 20%
 - ĐN/CĐ luôn ẩn danh (chỉ HR thấy raw data)
 - Số rater tối thiểu: ≥1 QL + ≥3 ĐN + ≥2 CĐ
+- `assessment_type`: `'kpi'` = tiêu chí đánh giá năng lực thông thường; `'360'` = tiêu chí từ hệ thống 360° bên ngoài (cần filter rõ ràng khi hiển thị)
 
 **Lưu ý cho Backend Dev:**
 - Cần implement API để nhập scores: `POST /assessment-scores` với `{employee_id, cycle_id, criterion_id, score, rater_id, rater_type}`
 - Formula overall: `(avg(QL) × 0.5) + (avg(ĐN) × 0.3) + (avg(CĐ) × 0.2)`
 - Sau khi đủ raters → trigger tính toán và ghi `assessment_summary`
+- `assessment_criteria.assessment_type` và `assessment_summary.assessment_type` đã thêm qua migration `20260423_assessment_types.sql`
 
 ---
 
@@ -389,7 +425,7 @@
 
 ### Admin — `/admin`
 
-**Mô tả:** Dashboard quản trị 6 tabs: Overview (stats), Data (CRUD entities), Users (quản lý user), Settings (module config + assessment criteria), Audit (log), Assessment config (drag-drop 4 tiêu chí).
+**Mô tả:** Dashboard quản trị gồm các tabs: Overview (stats), Data (CRUD entities), Users (quản lý user), Settings (module config + assessment criteria + **score weight config**), Audit (log), Assessment config (drag-drop 4 tiêu chí).
 
 **API calls:**
 
@@ -400,6 +436,10 @@
 | SELECT | `assessment_criteria` | `is_active=true, order sort_order` | `id, key, label, description, weight` | Drag-drop criteria config |
 | SELECT | `assessment_display_config` | `id=1` | `criterion_ids` | Load 4 tiêu chí đang hiển thị |
 | UPSERT | `assessment_display_config` | `{id:1, criterion_ids: uuid[]}` | — | Lưu cấu hình 4 tiêu chí |
+| SELECT | `score_weight_config` | `id=1` | `assessment_weight, weight_360` | Load trọng số điểm tổng hợp |
+| UPSERT | `score_weight_config` | `{id:1, assessment_weight, weight_360}` | — | Lưu cấu hình trọng số |
+| SELECT | `external_scores` | `cycle_id=:id` | `employee_id, assessment_score, score_360` | Xem điểm theo cycle |
+| UPSERT | `external_scores` | `{employee_id, cycle_id, assessment_score, score_360}` | — | Nhập điểm từng nhân viên |
 | POST (mock) | `employees/sync` | `{}` | `{message, syncedAt}` | VnR Sync |
 
 **Bảng Supabase:**
@@ -410,19 +450,25 @@
 | `audit_logs` | SELECT | `order timestamp desc` |
 | `assessment_criteria` | SELECT | `is_active=true` |
 | `assessment_display_config` | SELECT, UPSERT | `id=1` |
+| `score_weight_config` | SELECT, UPSERT | `id=1` |
+| `external_scores` | SELECT, UPSERT | `cycle_id` |
 
 **Lưu ý cho BA:**
 - **Tab Users**: hiện dùng 6 users hardcode (static, không fetch từ DB) — cần migrate sang `user_profiles` table
 - **Tab Data**: CRUD entities chỉ update local state (in-memory), không gọi backend — cần wire API
+- **Score Weight Config**: cấu hình `assessment_weight` + `weight_360` phải tổng = 100%; constraint DB sẽ reject nếu không
+- **External Scores**: HR có thể nhập điểm từ hệ thống bên ngoài vào `external_scores` per (employee, cycle)
 - **Module Config**: hardcode trong component `moduleConfigs` — cần endpoint `GET/PUT /admin/modules/:key/config`
 - **VnR Sync**: gọi deprecated `ApiService` stub → mock success — cần implement real sync endpoint
-- Chỉ Admin được phép lưu `assessment_display_config`
+- **Bulk Career Roadmap**: chưa có nút UI trong Admin để chạy `bulkGenerate()` — TODO
+- Chỉ Admin được phép lưu `assessment_display_config` và `score_weight_config`
 
 **Lưu ý cho Backend Dev:**
 - Cần bảng `audit_logs`: `id, timestamp, actor, action, entity, entity_id, description, module`
 - Cần bảng `user_profiles`: `id, username, full_name, email, role (Admin|HR Manager|Line Manager|Viewer), status, last_login`
 - Cần implement: `POST /employees/sync` (VnR data sync)
 - RBAC check: `isAdmin()` dựa vào `user_profiles.role`
+- `score_weight_config` singleton — constraint DB đảm bảo tổng = 100, id = 1
 
 ---
 
@@ -581,6 +627,7 @@
 | `category` | `string \| null` | Nhóm tiêu chí |
 | `sort_order` | `number` | Thứ tự hiển thị |
 | `is_active` | `boolean` | Đang dùng hay không |
+| `assessment_type` | `string` | `'kpi'` (mặc định) hoặc `'360'` |
 
 **AssessmentView** (kết quả đánh giá cho 1 employee × 1 cycle):
 
@@ -594,6 +641,7 @@
 | `strengths` | `string[]` | Điểm mạnh |
 | `needs_dev` | `string[]` | Cần phát triển |
 | `items` | `Array<Criterion & {score}>` | 4 tiêu chí được chọn kèm điểm |
+| `assessment_type` | `string` | `'kpi'` hoặc `'360'` |
 
 **RadarEntry** (1 trục trong radar chart):
 
@@ -604,6 +652,140 @@
 | `actual` | `number \| null` | Điểm thực tế (từ assessment_scores) |
 | `target` | `number` | Ngưỡng chuẩn (từ v_employees.comp_target_*) |
 | `delta` | `number \| null` | actual - target (>=0 = vượt chuẩn) |
+
+### EmployeeExtras (từ employee-extras.service.ts)
+
+Bảng `employee_extras` lưu toàn bộ dữ liệu phụ per-employee trong 1 row duy nhất (upsert theo `employee_id`).
+
+**Current Project fields:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `project_name` | `string \| null` | Tên dự án |
+| `project_type` | `string \| null` | Loại dự án |
+| `project_role` | `string \| null` | Vai trò trong dự án |
+| `project_client` | `string \| null` | Khách hàng |
+| `project_value` | `string \| null` | Giá trị hợp đồng |
+| `project_status` | `string \| null` | Trạng thái (active/completed) |
+
+**Knowledge Transfer fields:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `kt_successor` | `string \| null` | Tên người tiếp nhận KT |
+| `kt_successor_role` | `string \| null` | Vai trò người tiếp nhận |
+| `kt_start_date` | `string \| null` | Ngày bắt đầu KT (DATE) |
+| `kt_target_date` | `string \| null` | Ngày hoàn thành KT (DATE) |
+| `kt_overall_progress` | `number \| null` | % tiến độ tổng (0-100) |
+| `kt_items` | `KnowledgeTransferItem[] \| null` | JSONB — danh sách hạng mục KT |
+
+**Assessment 360° fields:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `a360_overall` | `number \| null` | Điểm 360° tổng hợp |
+| `a360_benchmark` | `number \| null` | Điểm benchmark (mặc định 5) |
+| `a360_period` | `string \| null` | Chu kỳ đánh giá |
+| `a360_sources` | `Assessment360Source[] \| null` | JSONB — tỷ lệ nguồn đánh giá |
+| `a360_criteria` | `Assessment360Criteria[] \| null` | JSONB — tiêu chí + điểm |
+| `a360_strengths` | `string[] \| null` | JSONB — điểm mạnh |
+| `a360_needs_dev` | `string[] \| null` | JSONB — cần phát triển |
+| `a360_manager_note` | `string \| null` | Nhận xét quản lý |
+
+**Quick Stats fields:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `training_hours` | `number \| null` | Tổng giờ đào tạo |
+| `last_promotion_year` | `number \| null` | Năm thăng chức gần nhất |
+| `updated_at` | `string` | Timestamp cập nhật |
+
+### ExternalScore & ScoreWeightConfig (từ score-config.service.ts)
+
+**ExternalScore:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `employee_id` | `string` | FK → employees |
+| `cycle_id` | `string` | FK → assessment_cycles |
+| `assessment_score` | `number \| null` | Điểm đánh giá năng lực (nhập thủ công) |
+| `score_360` | `number \| null` | Điểm 360° từ hệ thống ngoài |
+
+**ScoreWeightConfig:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `assessment_weight` | `number` | % trọng số đánh giá năng lực (mặc định 60) |
+| `weight_360` | `number` | % trọng số 360° (mặc định 40) |
+
+**ComputedScore** (tính client-side):
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `cycle_id` | `string` | Cycle tương ứng |
+| `assessment_score` | `number \| null` | Điểm năng lực raw |
+| `score_360` | `number \| null` | Điểm 360° raw |
+| `total_score` | `number \| null` | `assessment × weight% + 360° × weight_360%` |
+
+### Career Roadmap (từ career-roadmap.service.ts)
+
+**CourseItem:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `id` | `string` | Course ID |
+| `name` | `string` | Tên khóa học |
+| `provider` | `string` | Nhà cung cấp (Coursera, LinkedIn, PMI, ...) |
+| `duration` | `string` | Thời lượng (e.g. "6 tuần") |
+| `price` | `string` | Giá (e.g. "$299") |
+| `language` | `string` | Ngôn ngữ |
+| `icon_type` | `string` | `'monitor' \| 'certificate' \| 'book' \| 'video'` |
+| `features` | `string[]` | Tính năng nổi bật |
+
+**SkillGap:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `id` | `string` | Skill gap ID |
+| `skill_name` | `string` | Tên kỹ năng |
+| `category` | `string` | `'Technical' \| 'Leadership' \| 'Communication' \| 'Strategic'` |
+| `current_level` | `number` | Mức hiện tại (1-5) |
+| `required_level` | `number` | Mức yêu cầu (1-5) |
+| `priority` | `string` | `'core' \| 'important' \| 'nice-to-have'` |
+| `rationale` | `string` | Lý do cần kỹ năng này |
+| `courses` | `CourseItem[]` | Danh sách khóa học gợi ý |
+
+**RoadmapPhase:**
+
+| Field | Kiểu | Mô tả |
+|---|---|---|
+| `phase` | `number` | Số giai đoạn (1/2/3) |
+| `title` | `string` | Tên giai đoạn |
+| `months` | `string` | Khoảng thời gian (e.g. "0-6 tháng") |
+| `theme` | `string` | Chủ đề chính |
+| `color` | `string` | `'blue' \| 'green' \| 'yellow'` |
+| `tasks` | `string[]` | Danh sách nhiệm vụ |
+
+**CareerRoadmap:**
+
+| Field | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `id` | `string` | ❌ | UUID (do Supabase sinh) |
+| `employee_id` | `string` | ✅ | FK → employees |
+| `track` | `string` | ✅ | `'expert' \| 'manager'` |
+| `status` | `string` | ✅ | `'confirmed'` |
+| `ai_summary` | `string` | ✅ | Tóm tắt AI 2-3 câu tiếng Việt |
+| `confidence_score` | `number` | ✅ | Độ tự tin AI (0-100) |
+| `estimated_timeline` | `string` | ✅ | Thời gian ước tính (e.g. "18-24 tháng") |
+| `target_position` | `string` | ✅ | Vị trí mục tiêu tiếng Việt |
+| `strengths` | `string[]` | ✅ | JSONB — điểm mạnh |
+| `challenges` | `string[]` | ✅ | JSONB — thách thức |
+| `alternative_path` | `string` | ✅ | Con đường thay thế |
+| `skill_gaps` | `SkillGap[]` | ✅ | JSONB — danh sách kỹ năng cần phát triển |
+| `phases` | `RoadmapPhase[]` | ✅ | JSONB — 3 giai đoạn lộ trình |
+| `generated_at` | `string` | ❌ | ISO timestamp AI generate |
+| `confirmed_at` | `string` | ❌ | ISO timestamp confirm lưu DB |
+| `confirmed_by` | `string` | ❌ | User ID người confirm |
 
 ### MentoringPair
 
@@ -676,9 +858,11 @@
 
 ## 4. SUPABASE SCHEMA SUMMARY
 
+### Tables & Views hiện có
+
 | Table/View | Columns chính | Relations | RLS (hiện tại) | Mô tả |
 |---|---|---|---|---|
-| `employees` | `id, full_name, position, department_id, talent_tier, performance_score, potential_score, risk_score, readiness_level, hire_date, tenure_years, ktp_progress, mentor_id, target_position, risk_score, email, comp_technical, comp_leadership, comp_communication, comp_problem_solving, comp_adaptability, comp_target_*, is_active` | FK → `departments`, `employees` (mentor_id, reports_to_id) | DISABLED (dev) | Bảng chính nhân viên |
+| `employees` | `id, full_name, position, department_id, talent_tier, performance_score, potential_score, risk_score, readiness_level, hire_date, tenure_years, ktp_progress, mentor_id, target_position, email, comp_technical, comp_leadership, comp_communication, comp_problem_solving, comp_adaptability, comp_target_*, is_active` | FK → `departments`, `employees` (mentor_id, reports_to_id) | DISABLED (dev) | Bảng chính nhân viên |
 | `v_employees` | Tất cả cột `employees` + `department_name, department_short, mentor_name` | View từ `employees` JOIN `departments` | READ via view | View để frontend đọc (flat shape) |
 | `v_nine_box` | `id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box (1-9)` | View từ `employees` | READ via view | View compute sẵn 9-box position |
 | `key_positions` | `id, title, department_id, current_holder_id, critical_level, risk_level, required_competencies text[], parent_position_id, successor_count, ready_now_count, is_active` | FK → `departments`, `employees` (holder) | DISABLED (dev) | Vị trí then chốt |
@@ -687,14 +871,28 @@
 | `idp_plans` | `id, employee_id, year, status, overall_progress, target_position, approved_by_l1_id, approved_by_l2_id, approved_by_l3_id, approved_by_l1_at, approved_by_l2_at, approved_by_l3_at` | FK → `employees` | DISABLED (dev) | Kế hoạch IDP |
 | `idp_goals` | `id, idp_plan_id, title, type, category, deadline, status, progress, mentor` | FK → `idp_plans` | — | Mục tiêu trong IDP |
 | `assessment_cycles` | `id, name, type, start_date, end_date, status, sort_order` | — | — | Chu kỳ đánh giá (seed: 5 chu kỳ 2024-2025) |
-| `assessment_criteria` | `id, key, label, description, weight, category, sort_order, is_active` | — | — | Tiêu chí đánh giá (seed: 10 tiêu chí) |
+| `assessment_criteria` | `id, key, label, description, weight, category, sort_order, is_active, assessment_type` | — | — | Tiêu chí đánh giá — **cột `assessment_type` thêm qua migration `20260423_assessment_types.sql`** |
 | `assessment_scores` | `employee_id, cycle_id, criterion_id, score` | FK → `employees`, `assessment_cycles`, `assessment_criteria` | — | Điểm từng tiêu chí |
-| `assessment_summary` | `employee_id, cycle_id, overall_score, rating_label, manager_note, strengths text[], needs_dev text[]` | FK → `employees`, `assessment_cycles` | — | Tổng hợp kết quả đánh giá |
+| `assessment_summary` | `employee_id, cycle_id, overall_score, rating_label, manager_note, strengths text[], needs_dev text[], assessment_type` | FK → `employees`, `assessment_cycles` | — | Tổng hợp kết quả — **unique index `(employee_id, cycle_id, assessment_type)`** |
 | `assessment_display_config` | `id (=1), criterion_ids uuid[], updated_at` | FK → `assessment_criteria` | ADMIN only | Singleton: 4 tiêu chí hiển thị |
+| `employee_extras` | `employee_id (PK), project_*, kt_*, a360_*, training_hours, last_promotion_year, updated_at` | FK → `employees` (employee_id) | anon_all policy | **Mới — migration `20260423_employee_extras.sql`**. 1 row per employee |
+| `external_scores` | `employee_id, cycle_id (composite PK), assessment_score, score_360, criteria_json, updated_at` | FK → `employees`, `assessment_cycles` | anon_all policy | **Mới — migration `20260423_scores.sql`**. Điểm từ hệ thống ngoài |
+| `score_weight_config` | `id (=1), assessment_weight, weight_360, updated_at` | — | anon_all policy | **Mới — migration `20260423_scores.sql`**. Singleton trọng số. Seed: 60/40 |
+| `career_roadmaps` | `id uuid, employee_id, track ('expert'\|'manager'), status, ai_summary, confidence_score, estimated_timeline, target_position, strengths jsonb, challenges jsonb, alternative_path, skill_gaps jsonb, phases jsonb, generated_at, confirmed_at, confirmed_by` | FK → `employees` (employee_id) | DISABLED (dev) | **Mới — migration `20260423_career_roadmaps.sql`**. Unique `(employee_id, track)` |
 | `user_profiles` | `id, role (Admin/HR Manager/Line Manager/Viewer)` | FK → `auth.users` | DISABLED (dev) | Profile người dùng hệ thống |
 | `audit_logs` | `id, timestamp, actor, action, entity, entity_id, description, module` | — | HR+ only | Lịch sử thay đổi |
 
-**Bảng chưa có trong schema (cần tạo):**
+### Migrations đã chạy (supabase/migrations/)
+
+| File | Nội dung |
+|---|---|
+| `20260423_employee_extras.sql` | Tạo bảng `employee_extras` với RLS anon_all |
+| `20260423_scores.sql` | Tạo bảng `external_scores` + `score_weight_config` (seed 60/40) |
+| `20260423_assessment_types.sql` | Thêm cột `assessment_type` vào `assessment_criteria` + `assessment_summary`; tạo unique index |
+| `20260423_career_roadmaps.sql` | Tạo bảng `career_roadmaps` với unique `(employee_id, track)`; disable RLS |
+| `20260423_key_position_hierarchy.sql` | Hỗ trợ hierarchy `parent_position_id` cho org tree |
+
+**Bảng chưa có trong schema (cần tạo sau):**
 
 | Table | Mô tả | Cần cho module |
 |---|---|---|
@@ -703,11 +901,7 @@
 | `calibration_sessions` | Phiên họp calibration | Calibration |
 | `calibration_entries` | Kết quả điều chỉnh per talent per session | Calibration |
 | `risk_factors` | Chi tiết yếu tố rủi ro từng nhân viên | Talent Profile |
-| `employee_career_reviews` | Kết quả đánh giá chu kỳ (career review) | Talent Profile |
-| `employee_projects` | Dự án hiện tại | Talent Profile |
-| `knowledge_transfer_plans` | Kế hoạch chuyển giao kiến thức | Talent Profile |
-| `knowledge_transfer_items` | Từng hạng mục chuyển giao | Talent Profile |
-| `employee_timeline` | Timeline sự kiện quan trọng | Talent Profile |
+| `employee_timeline` | Timeline sự kiện quan trọng (career history) | Talent Profile |
 
 ---
 
@@ -724,11 +918,13 @@
 | `idp overall_progress` | `avg(goal.progress)` cho goals có `status != 'Not Started'` | IDP list, Profile | |
 | `assessment overall` | `(avg(QL) × 0.5) + (avg(ĐN) × 0.3) + (avg(CĐ) × 0.2)` | Assessment, Profile | QL=Quản lý, ĐN=Đồng nghiệp, CĐ=Cấp dưới |
 | `radar delta` | `actual - target` (>=0 = vượt chuẩn, <0 = cần cải thiện) | Talent Profile radar | 5 trục: Kỹ thuật, Hiệu suất, Hành vi, Tiềm năng, Lãnh đạo |
+| `total_score` (tổng hợp) | `assessment_score × (assessment_weight/100) + score_360 × (weight_360/100)` | Score config, Admin | Cấu hình trọng số trong `score_weight_config`; default 60% + 40% |
 | `criticality_score` | `(impact × 0.4) + (replaceability × 0.35) + (knowledgeDepth × 0.25)` | Positions | Chưa implement UI, chỉ trong admin config |
 | `dependency_score` | `1 − (readyNowCount / requiredSuccessors)` | Positions | 0=an toàn, 1=nguy hiểm |
 | `mentoring effectiveness` | `(sessions_completed / sessions_total) × (menteeProgress / 100)` | Mentoring | |
 | `risk vs dept avg` | `round(((talent.risk - avg(dept.risk)) / avg(dept.risk)) × 100)` | Talent Profile alert strip | Tính client-side từ allTalents signal |
 | `unassigned count` | `max(1, round((core + potential + successor) × 0.12))` | Dashboard donut | Ước tính client-side, không có data thật |
+| `AI Roadmap confidence` | Integer 60-95 do GPT-4o trả về | Career Roadmap card | Phản ánh độ tin cậy của gợi ý AI dựa trên data đầu vào |
 
 **9-Box mapping (row=perf tier, col=pot tier):**
 
@@ -746,13 +942,39 @@
 
 ---
 
-## 6. AUTH & PERMISSIONS
+## 6. SERVICES ARCHITECTURE
+
+Tất cả data services inject `SupabaseService` (client wrapper) và `CacheService` (TTL in-memory cache).
+
+| Service | File | Tables/APIs | Methods chính |
+|---|---|---|---|
+| `EmployeeService` | `employee.service.ts` | `v_employees` | `getAll()`, `getById(id)` |
+| `DashboardService` | `dashboard.service.ts` | `v_employees`, `key_positions` | `getKpi()`, `getRiskAlerts()`, `getDepartments()` |
+| `KeyPositionService` | `key-position.service.ts` | `key_positions`, `succession_plans` | `getAll()`, `getById()`, `getSuccessors()`, `getSummary()`, `create()`, `update()`, `delete()` |
+| `SuccessionService` | `succession.service.ts` | `v_nine_box`, `succession_plans`, `key_positions` | `getNineBox()`, `getPlans()` |
+| `IdpService` | `idp.service.ts` | `idp_plans`, `idp_goals` | `getAll()`, `getByEmployee()`, `create()`, `updatePlan()`, `addGoal()`, `updateGoal()` |
+| `AssessmentService` | `assessment.service.ts` | `assessment_cycles`, `assessment_criteria`, `assessment_scores`, `assessment_summary`, `assessment_display_config` | `getCycles()`, `getCriteria()`, `getScores()`, `getSummary()`, `getDisplayConfig()`, `updateDisplayConfig()` |
+| `EmployeeExtrasService` | `employee-extras.service.ts` | `employee_extras` | `getByEmployee(id)`, `save(id, patch)` |
+| `ScoreConfigService` | `score-config.service.ts` | `external_scores`, `score_weight_config` | `getWeightConfig()`, `updateWeightConfig()`, `getScoreForEmployee()`, `getLatestScoreForEmployee()`, `upsertScore()`, `getScoresForCycle()` |
+| `CareerRoadmapService` | `career-roadmap.service.ts` | `career_roadmaps` + OpenAI API | `fetchConfirmed(employeeId)`, `callOpenAI(talent, track)`, `save(roadmap)`, `bulkGenerate(talents, onProgress)` |
+
+**OpenAI integration (CareerRoadmapService):**
+- Model: `gpt-4o`
+- `response_format: { type: 'json_object' }` — bắt buộc trả JSON
+- `temperature: 0.7`, `max_tokens: 4000`
+- Prompt: tiếng Việt, specific to PTSC oil & gas, recommend real courses (Coursera, PMI, LinkedIn Learning, Udemy)
+- Input: `Talent` object (competencies, scores, tier, readiness, department, tenure)
+- Output: `CareerRoadmap` JSON (summary, confidence, phases, skill_gaps với courses)
+
+---
+
+## 7. AUTH & PERMISSIONS
 
 **Auth method:** Supabase Auth — Email/Password + Google OAuth. JWT tự động refresh.
 
 | Role | Quyền xem | Quyền sửa | Màn hình bị giới hạn |
 |---|---|---|---|
-| **Admin** | Toàn bộ | Toàn bộ + assessment display config | Không giới hạn |
+| **Admin** | Toàn bộ | Toàn bộ + assessment display config + score weight config | Không giới hạn |
 | **HR Manager** | Toàn bộ | Tạo/sửa talent, IDP, assessment; không sửa modules/system config | `/admin` tab Settings bị giới hạn |
 | **Line Manager** | Chỉ department mình | Sửa IDP của team, approve bước 1 | `/succession` chỉ thấy dept mình; không thấy toàn org |
 | **Viewer** | Read-only toàn bộ | Không sửa gì | Không có nút Create/Edit |
@@ -760,17 +982,19 @@
 **Hierarchy permission check:** `Viewer < Line Manager < HR Manager < Admin`
 
 **Hiện tại:**
-- `isAdmin()` được dùng để bảo vệ `updateDisplayConfig` trong Admin tab
+- Auth guard bypass `return true` — không cần đăng nhập (dev mode)
+- `isAdmin()` được dùng để bảo vệ `updateDisplayConfig` và `updateWeightConfig` trong Admin tab
 - `isRestrictedView()` dùng để prune org tree trong Succession
 - Chưa có middleware enforce ở các endpoint write khác — cần implement RLS/server-side check
 
 **RLS status:**
-- Tất cả tables quan trọng đã **DISABLE RLS** để dev (không production-safe)
-- Cần bật RLS và viết policies trước khi go-live
+- `employees`, `key_positions`, `succession_plans`, `idp_plans`, `career_roadmaps`: **DISABLE RLS** (dev)
+- `employee_extras`, `external_scores`, `score_weight_config`: RLS enabled với policy `anon_all` (cho phép tất cả — chỉ hợp lệ khi bypass auth)
+- **Cần bật RLS và viết policies trước khi go-live**
 
 ---
 
-## 7. CHECKLIST CHO BA
+## 8. CHECKLIST CHO BA
 
 - [ ] **Confirm field names** với VnR data migration template — đặc biệt: `comp_technical`, `performance_score`, `potential_score`, `risk_score`, `ktp_progress`
 - [ ] **Confirm business rules** với PTSC M&C HR team:
@@ -783,19 +1007,26 @@
 - [ ] **Confirm missing sections** trong Talent Profile: Career Review categories và weights (40/30/20/10) có đúng không?
 - [ ] **Confirm calibration quorum**: ≥3 participants + ≥1 HR — có hợp lệ với quy trình thực tế?
 - [ ] **Xác nhận modules chưa implement** cần ưu tiên nào trước: Mentoring hay Calibration?
+- [ ] **Score weight config**: trọng số 60% KPI + 40% 360° — BA xác nhận con số này với HR?
+- [ ] **Career Roadmap feature**: AI generate roadmap bằng GPT-4o — HR cần review và confirm roadmap trước khi dùng thực tế?
+- [ ] **AI bulk generate**: muốn có nút "Generate All" trong Admin để tạo roadmap cho tất cả 500 nhân viên?
 - [ ] Sign off trước khi backend dev build các table mới (mentoring, calibration, risk_factors, ...)
 
 ---
 
-## 8. CHECKLIST CHO BACKEND DEV
+## 9. CHECKLIST CHO BACKEND DEV
 
 ### Ưu tiên cao (blocking UI hiện tại)
 
+- [ ] **Chạy 5 migrations** trong Supabase SQL Editor (nếu chưa):
+  - [ ] `20260423_employee_extras.sql`
+  - [ ] `20260423_scores.sql`
+  - [ ] `20260423_assessment_types.sql`
+  - [ ] `20260423_career_roadmaps.sql`
+  - [ ] `20260423_key_position_hierarchy.sql`
 - [ ] **Enable RLS** + viết policies cho tất cả tables (hiện đang disabled)
+- [ ] **Fix RLS infinite recursion** trên `user_profiles` — 4 tables bị ảnh hưởng: `employees`, `key_positions`, `succession_plans`, `idp_plans` (query `pg_policies` để tìm policy gây recursion)
 - [ ] **PATCH /employees/:id**: update mentor, target_position (hiện hardcode local)
-- [ ] **GET/POST /employees/:id/career-review**: Career Review section trong Talent Profile
-- [ ] **GET /employees/:id/current-project**: Current Project section trong Talent Profile
-- [ ] **GET /employees/:id/knowledge-transfer**: KTP section trong Talent Profile
 - [ ] **PATCH /idp/:id/approve**: Approval workflow IDP (bước 1/2/3)
 - [ ] **POST /employees/sync**: VnR data sync endpoint
 
@@ -804,14 +1035,15 @@
 - [ ] **Mentoring tables**: `mentoring_pairs`, `mentoring_sessions` + CRUD endpoints
 - [ ] **Calibration tables**: `calibration_sessions`, `calibration_entries` + CRUD endpoints
 - [ ] **GET /calibration-sessions/:id/export**: Export Excel
+- [ ] **Admin bulk career roadmap UI**: Thêm nút trong `/admin` để gọi `CareerRoadmapService.bulkGenerate()`
+- [ ] **Move OpenAI key to Edge Function**: Chuyển gọi OpenAI từ frontend sang Supabase Edge Function (`/functions/v1/generate-roadmap`) để bảo vệ API key
 
 ### Schema bổ sung cần tạo
 
 - [ ] `risk_factors` table: `{id, employee_id, title, detail, severity, source, date}`
 - [ ] `employee_timeline` table: `{id, employee_id, date, event_type, description}`
-- [ ] `employee_projects` table: `{id, employee_id, name, type, role, client, value, status}`
-- [ ] `knowledge_transfer_plans` + `knowledge_transfer_items` tables
-- [ ] `employee_career_reviews` table với categories JSON
+- [ ] `mentoring_pairs` + `mentoring_sessions` tables
+- [ ] `calibration_sessions` + `calibration_entries` tables
 
 ### RLS Policies cần viết
 
@@ -821,6 +1053,10 @@
 - [ ] `idp_plans`: employee xem plan của mình; HR xem tất cả; Line Manager xem team
 - [ ] `audit_logs`: HR+ read; system write only
 - [ ] `assessment_display_config`: authenticated read; Admin write only
+- [ ] `score_weight_config`: authenticated read; Admin write only
+- [ ] `career_roadmaps`: authenticated read; HR+ write; employee read own
+- [ ] `employee_extras`: authenticated read; HR+ write; employee read own
+- [ ] `external_scores`: HR+ read/write; authenticated read
 
 ### Indexes cần có
 
@@ -831,6 +1067,9 @@
 - [ ] `idp_plans (employee_id)` — talent profile IDP lookup
 - [ ] `assessment_scores (employee_id, cycle_id)` — radar chart
 - [ ] `key_positions (current_holder_id)` — succession network
+- [ ] `career_roadmaps (employee_id)` — ✅ đã có trong migration
+- [ ] `assessment_criteria (assessment_type) WHERE is_active=true` — ✅ đã có trong migration
+- [ ] `assessment_summary (employee_id, cycle_id, assessment_type)` — ✅ unique index đã có trong migration
 
 ### Seed data yêu cầu khi test
 
@@ -838,6 +1077,8 @@
 - [ ] ≥40 key_positions với parent_position_id để test org tree
 - [ ] ≥49 succession_plans (đã có)
 - [ ] Assessment data cho ít nhất E001 qua tất cả 5 cycles
+- [ ] Ít nhất 1 row trong `employee_extras` cho E001 (để test Project / KT / 360° tabs)
+- [ ] Ít nhất 1 row trong `external_scores` cho E001 (để test score tổng hợp)
 
 ---
 
