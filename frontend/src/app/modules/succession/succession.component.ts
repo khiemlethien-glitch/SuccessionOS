@@ -10,6 +10,8 @@ import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { KeyPositionService } from '../../core/services/data/key-position.service';
@@ -50,6 +52,7 @@ interface TreeNode {
     CommonModule, FormsModule,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
     NzDrawerModule, NzSliderModule, NzButtonModule, NzSelectModule,
+    NzModalModule, NzTooltipModule,
     AvatarComponent, TalentPreviewDrawerComponent,
   ],
   templateUrl: './succession.component.html',
@@ -470,6 +473,61 @@ export class SuccessionComponent implements OnInit {
     return p[0] === DEFAULT_PERF[0] && p[1] === DEFAULT_PERF[1]
         && q[0] === DEFAULT_POT[0]  && q[1] === DEFAULT_POT[1];
   });
+
+  // ─── Box detail modal ──────────────────────────────
+  activeBox     = signal<BoxDef | null>(null);
+  boxModalOpen  = signal(false);
+
+  /** Boxes where we highlight TOP performers */
+  private TOP_BOXES    = new Set([5, 6, 7]);
+  /** Boxes where we highlight BOTTOM performers (needs attention) */
+  private BOTTOM_BOXES = new Set([1, 2, 4]);
+  /** Special hall-of-fame box */
+  private STAR_BOX     = 9;
+
+  isStarBox(num: number)   { return num === this.STAR_BOX; }
+  isTopBox(num: number)    { return this.TOP_BOXES.has(num); }
+  isBottomBox(num: number) { return this.BOTTOM_BOXES.has(num); }
+
+  private combined(t: Talent) {
+    return ((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2;
+  }
+
+  /** Sorted talents for the active box modal */
+  readonly boxTalentsSorted = computed<Talent[]>(() => {
+    const box = this.activeBox();
+    if (!box) return [];
+    const list = this.talents().filter(t => (t as any).box === box.num);
+    if (this.isBottomBox(box.num)) {
+      return [...list].sort((a, b) => this.combined(a) - this.combined(b));
+    }
+    return [...list].sort((a, b) => this.combined(b) - this.combined(a));
+  });
+
+  /** Top 3 (or bottom 3 for low boxes) */
+  readonly boxHighlighted = computed<Talent[]>(() => this.boxTalentsSorted().slice(0, 3));
+
+  /** Podium order: [2nd, 1st, 3rd] for the star box visual */
+  readonly podiumOrder = computed<(Talent | null)[]>(() => {
+    const h = this.boxHighlighted();
+    return [h[1] ?? null, h[0] ?? null, h[2] ?? null];
+  });
+
+  openBoxModal(box: BoxDef, ev?: Event): void {
+    ev?.stopPropagation();
+    this.activeBox.set(box);
+    this.boxModalOpen.set(true);
+  }
+
+  closeBoxModal(): void {
+    this.boxModalOpen.set(false);
+    this.activeBox.set(null);
+  }
+
+  openTalentFromModal(id: string): void {
+    this.closeBoxModal();
+    this.openTalentPreview(id);
+  }
 
   // ─── Misc ──────────────────────────────────────────
   readinessLabel(r: string): string {
