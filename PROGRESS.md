@@ -1,7 +1,37 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (SWR cache layer — all data services)
+> Cập nhật lần cuối: 2026-04-23 (external scores + admin users from Supabase)
+
+---
+
+## ⚡ External Scores + Admin Users wired (2026-04-23) — commit 28d02d4
+
+### ScoreConfigService (`score-config.service.ts`)
+- `getWeightConfig()` — query singleton `score_weight_config` (id=1), cached
+- `updateWeightConfig()` — upsert, invalidate cache
+- `getLatestScoreForEmployee(empId)` — query `assessment_cycles` (sort_order desc) → `external_scores` → compute `total = assessment_score × w1 + score_360 × w2`
+- `getScoresForCycle(cycleId)` — bulk fetch for cycle
+
+### Talent Profile — "Điểm số" tab
+- Removed all `DEFAULT_360`, `DEFAULT_CAREER_REVIEW`, `DEFAULT_PROJECT`, `DEFAULT_KT` hardcoded constants
+- Signals changed to `null` default: `assessment360Data`, `careerReviewData`, `currentProjectData`, `knowledgeTransferData`
+- New signals: `externalScore`, `externalScoreLoaded` — wired to `scoreSvc.getLatestScoreForEmployee()`
+- a360-card, currentProject, knowledgeTransfer sections wrapped with `@if (signal(); as alias)` — hidden when no data
+- "Đánh giá 360°" tab → "Điểm số" tab: 3 score cards (assessment_score | score_360 | total_score)
+
+### Admin Users tab
+- Hardcoded 6 users replaced with live `user_profiles` query
+- Maps `full_name`, `email`, `role`, `status`, `last_sign_in_at` → `AdminUser`
+
+### Admin Settings — Weight Config
+- Fixed `nzFormatter` binding: attribute string → `[nzFormatter]="pctFormatter"` (arrow fn property)
+
+### IDP nav
+- Disabled in shell `navGroups`: `disabled: true`
+
+Build: ✅ 0 errors (2 SCSS budget warnings — non-blocking)
+Branch: `claude/sleepy-margulis-3c9b5d` pushed to GitHub
 
 ---
 
