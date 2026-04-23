@@ -159,17 +159,33 @@ export class PositionsComponent implements OnInit {
     this.positions.set(positions as any);
     this.plans.set(plans as any);
 
-    // Departments: prefer direct query, fallback to deriving from positions
+    // Departments: prefer departments table → positions fallback → v_employees fallback
     if (!depts.error && depts.data?.length) {
       this.allDepts.set(depts.data as DeptOpt[]);
     } else {
-      // Derive from positions (department_id + name already joined by positionSvc)
+      // Fallback 1: derive from positions already loaded
       const seen = new Map<string, string>();
       for (const p of positions as any[]) {
         if (p.department_id && p.department && p.department !== '—') {
           seen.set(p.department_id, p.department);
         }
       }
+
+      if (seen.size === 0) {
+        // Fallback 2: derive from v_employees (luôn có 500 rows từ VnR)
+        try {
+          const { data: empDepts } = await this.sbSvc.client
+            .from('v_employees')
+            .select('department_id, department_name, department_short')
+            .eq('is_active', true);
+          for (const e of empDepts ?? []) {
+            const id   = e.department_id;
+            const name = e.department_name ?? e.department_short ?? '';
+            if (id && name && name !== '—') seen.set(id, name);
+          }
+        } catch { /* bỏ qua */ }
+      }
+
       this.allDepts.set(
         [...seen.entries()]
           .map(([id, name]) => ({ id, name }))
