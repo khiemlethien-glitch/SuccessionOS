@@ -232,7 +232,7 @@
               </marker>
             </defs>
             <!-- center → target (up) -->
-            <line x1="50" y1="46" x2="50" y2="17" class="edge edge-target" marker-end="url(#arr-up)"/>
+            <line x1="50" y1="46" x2="50" y2="17" class="edge edge-target"/>
             <!-- center → mentor (right) -->
             <line x1="54" y1="50" x2="79" y2="50" class="edge edge-mentor"/>
             <!-- center → KTP disabled (left) -->
@@ -264,9 +264,12 @@
                [class.clickable]="!!mentorTalent()"
                (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
             @if (mentorTalent(); as m) {
-              <div class="node-circle mentor-circle"
-                   nz-tooltip [nzTooltipTitle]="m.full_name + ' · ' + m.position">{{ nameInitials(m.full_name) }}</div>
+              <div class="node-circle mentor-circle">{{ nameInitials(m.full_name) }}</div>
               <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
+              <div class="node-tip">
+                <div class="nt-name">{{ m.full_name }}</div>
+                @if (m.position) { <div class="nt-pos">{{ m.position }}</div> }
+              </div>
             } @else {
               <div class="node-circle mentor-empty">—</div>
               <div class="node-label node-label-right">Mentor</div>
@@ -279,7 +282,8 @@
               <span nz-icon nzType="lock" style="font-size:14px"></span>
             </div>
             <div class="node-label node-label-dis">
-              Tri thức<br><span class="net-soon">Sắp ra mắt</span>
+              <span>Tri thức</span>
+              <span class="net-soon">Sắp ra mắt</span>
             </div>
           </div>
 
@@ -290,9 +294,12 @@
                  [style.left.%]="pos.xPct"
                  [style.top.%]="pos.yPct"
                  (click)="switchCenter(pos.talent_id)">
-              <div class="node-circle succ-circle"
-                   nz-tooltip [nzTooltipTitle]="succNodeTooltip(pos)">{{ nameInitials(pos.talent_name) }}</div>
+              <div class="node-circle succ-circle">{{ nameInitials(pos.talent_name) }}</div>
               <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
+              <div class="node-tip node-tip--below">
+                <div class="nt-name">{{ pos.talent_name }}</div>
+                @if (succNodePosition(pos); as p) { <div class="nt-pos">{{ p }}</div> }
+              </div>
             </div>
             <!-- IDP % midpoint badge -->
             <div class="idp-mid-badge"

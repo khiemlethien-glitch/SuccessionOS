@@ -11,7 +11,6 @@ import { NzTimelineModule } from 'ng-zorro-antd/timeline';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { EmployeeService } from '../../core/services/data/employee.service';
@@ -36,7 +35,7 @@ import {
   selector: 'app-talent-profile',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, NzTabsModule, NzSelectModule, NzProgressModule, NzButtonModule, NzIconModule,
-    NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule, NzTooltipModule],
+    NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule],
   providers: [NzMessageService],
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',
@@ -403,9 +402,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   lastName(name: string): string { return (name ?? '').trim().split(/\s+/).pop() ?? name; }
 
-  succNodeTooltip(node: { talent_id: string; talent_name: string }): string {
-    const t = this.allTalents().find(x => x.id === node.talent_id);
-    return t ? `${t.full_name} · ${t.position}` : node.talent_name;
+  /** Vị trí chức vụ của người kế thừa — dùng trong CSS tooltip */
+  succNodePosition(node: { talent_id: string }): string {
+    return this.allTalents().find(x => x.id === node.talent_id)?.position ?? '';
   }
 
   // Target position: prioritise succession relationship over IDP data
