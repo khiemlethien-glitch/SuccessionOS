@@ -20,6 +20,7 @@ import { SuccessionService } from '../../core/services/data/succession.service';
 import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
 import { EmployeeExtrasService, EmployeeExtras, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { CareerRoadmapComponent } from './career-roadmap/career-roadmap.component';
 import {
   Talent,
   Assessment,
@@ -35,7 +36,7 @@ import {
   selector: 'app-talent-profile',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, NzTabsModule, NzSelectModule, NzProgressModule, NzButtonModule, NzIconModule,
-    NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule],
+    NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule, CareerRoadmapComponent],
   providers: [NzMessageService],
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',

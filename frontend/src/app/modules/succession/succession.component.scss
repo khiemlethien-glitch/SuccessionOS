@@ -535,6 +535,48 @@
   z-index:0;
 }
 
+/* Dept group fallback node */
+.tree-dept-group {
+  border-radius:14px;
+  overflow:hidden;
+  border:1.5px solid #e0e7ff;
+  background: linear-gradient(135deg, #fafbff 0%, #fff 100%);
+}
+.dept-group-header {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 16px;
+  cursor:pointer;
+  transition: background .15s ease;
+  user-select:none;
+  &:hover { background:#f0f4ff; }
+
+  .tr-chevron {
+    font-size:11px; color:#a5b4fc;
+    transition: transform .2s ease;
+    &.is-expanded { transform: rotate(90deg); }
+  }
+  .dg-ico { font-size:16px; color:#6366f1; }
+  .dg-title {
+    flex:1;
+    font-size:14px; font-weight:800; color:#1e1b4b;
+    letter-spacing:-0.01em;
+  }
+  .dg-count {
+    font-size:11.5px; font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+    background:#eef2ff; color:#4338ca;
+  }
+}
+.tree-children-dept {
+  padding:12px 16px;
+  background:#fafbff;
+  border-top:1px solid #e0e7ff;
+  display:flex; flex-direction:column; gap:8px;
+  // No vertical guide line for dept groups — looks cleaner
+  &::before { display:none; }
+}
+
 // Empty state (Line Manager has no visible positions)
 .smap-empty-view {
   display:flex; flex-direction:column; align-items:center; gap:6px;

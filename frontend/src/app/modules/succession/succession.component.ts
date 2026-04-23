@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -78,6 +78,9 @@ export class SuccessionComponent implements OnInit {
   potDraft  = signal<[number, number]>([...DEFAULT_POT]);
 
   showScaleModal = signal(false);
+
+  // ─── Active tab: 0 = 9-Box, 1 = Succession Map ───────────────
+  activeTabIndex = signal(0);
 
   // ─── Succession Map: role-based filter + collapse state ──────
   // Tree-level: which org-tree nodes are expanded (click to drill down)
@@ -203,32 +206,48 @@ export class SuccessionComponent implements OnInit {
 
   isRestrictedView = computed(() => this.currentUser()?.role === 'Line Manager');
 
-  /** Build tree from flat positions[] via parentId + attach successors from matching plan */
+  /** Build tree from flat positions[] via parentId + attach successors from matching plan.
+   *
+   *  Fallback khi parent_position_id chưa được điền (tất cả NULL):
+   *  tự động nhóm theo department — mỗi dept trở thành virtual root node
+   *  để succession map không bị flat hoàn toàn.
+   */
   private buildTree(positions: KeyPosition[], plans: SuccessionPlan[]): TreeNode[] {
     const planByPos = new Map(plans.map(p => [p.position_id, p]));
     const nodeById  = new Map<string, TreeNode>();
     positions.forEach(p => {
       nodeById.set(p.id, {
-        positionId:       p.id,
-        title:            p.title,
-        department:       p.department,
-        current_holder:   p.current_holder,
+        positionId:        p.id,
+        title:             p.title,
+        department:        p.department,
+        current_holder:    p.current_holder,
         current_holder_id: (p as any).current_holder_id ?? null,
-        critical_level:   p.critical_level,
-        successors:       planByPos.get(p.id)?.successors ?? [],
-        children:         [],
-        depth:            0,
+        critical_level:    p.critical_level,
+        successors:        planByPos.get(p.id)?.successors ?? [],
+        children:          [],
+        depth:             0,
       });
     });
+
+    // ── Thử build cây thật từ parent_position_id ──────────────────────
     const roots: TreeNode[] = [];
+    let linkedCount = 0;
     positions.forEach(p => {
       const node = nodeById.get(p.id)!;
       if (p.parent_id && nodeById.has(p.parent_id)) {
         nodeById.get(p.parent_id)!.children.push(node);
+        linkedCount++;
       } else {
         roots.push(node);
       }
     });
+
+    // ── Fallback: nếu không có link nào → nhóm theo department ───────
+    // (xảy ra khi tất cả parent_position_id = NULL)
+    if (linkedCount === 0 && positions.length > 1) {
+      return this.buildDeptGroupTree(positions, nodeById, planByPos);
+    }
+
     // Propagate depth
     const setDepth = (n: TreeNode, d: number) => {
       n.depth = d;
@@ -236,6 +255,43 @@ export class SuccessionComponent implements OnInit {
     };
     roots.forEach(r => setDepth(r, 0));
     return roots;
+  }
+
+  /** Fallback: tạo virtual root node cho mỗi department, position là children.
+   *  Đây là layout tạm dùng đến khi migration SQL điền parent_position_id xong. */
+  private buildDeptGroupTree(
+    positions: KeyPosition[],
+    nodeById: Map<string, TreeNode>,
+    planByPos: Map<string, SuccessionPlan>,
+  ): TreeNode[] {
+    const deptMap = new Map<string, TreeNode>();
+
+    positions.forEach(p => {
+      const deptKey = p.department || 'Khác';
+
+      // Tạo virtual root node cho dept nếu chưa có
+      if (!deptMap.has(deptKey)) {
+        deptMap.set(deptKey, {
+          positionId:        `__dept__${deptKey}`,
+          title:             deptKey,
+          department:        deptKey,
+          current_holder:    '',
+          current_holder_id: null,
+          critical_level:    'Medium',
+          successors:        [],
+          children:          [],
+          depth:             0,
+          isDeptGroup:       true,
+        } as any);
+      }
+
+      const child = nodeById.get(p.id)!;
+      child.depth = 1;
+      deptMap.get(deptKey)!.children.push(child);
+    });
+
+    // Sort dept nodes by number of positions desc (busiest dept first)
+    return [...deptMap.values()].sort((a, b) => b.children.length - a.children.length);
   }
 
   /** Prune tree for Line Manager: keep only nodes matching filter + ancestors of matches */
@@ -336,7 +392,18 @@ export class SuccessionComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private location: Location,
+    private route: ActivatedRoute,
   ) {}
+
+  /** Tìm TreeNode theo positionId trong cây (đệ quy). */
+  private findNode(nodes: TreeNode[], id: string): TreeNode | null {
+    for (const n of nodes) {
+      if (n.positionId === id) return n;
+      const found = this.findNode(n.children, id);
+      if (found) return found;
+    }
+    return null;
+  }
 
   // ── Talent preview drawer (chạm sidebar, URL sync)
   talentPreviewId  = signal<string | null>(null);
@@ -394,6 +461,35 @@ export class SuccessionComponent implements OnInit {
       const positions = await this.positionSvc.getAll();
       this.positions.set(positions as any);
     } catch {}
+
+    // ── Deep-link: ?tab=map&positionId=xxx (từ trang Positions) ──
+    const params = this.route.snapshot.queryParamMap;
+    const tab        = params.get('tab');
+    const positionId = params.get('positionId');
+
+    if (tab === 'map') {
+      this.activeTabIndex.set(1);   // chuyển sang tab Succession Map
+
+      if (positionId) {
+        // Tìm node trong cây đã build và mở drawer
+        const node = this.findNode(this.treeRoots(), positionId);
+        if (node) {
+          // Expand tất cả ancestor để node hiển thị trên màn hình
+          this.expandedNodes.update(s => {
+            const next = new Set(s);
+            next.add(positionId);
+            return next;
+          });
+          this.openPositionDrawer(node);
+
+          // Scroll đến node sau khi Angular render xong
+          setTimeout(() => {
+            const el = document.getElementById(`tree-node-${positionId}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+      }
+    }
   }
 
   // ─── Scoring ───────────────────────────────────────

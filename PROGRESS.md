@@ -1,7 +1,83 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (Direction B — talent profile bottom row redesign)
+> Cập nhật lần cuối: 2026-04-23 (AI Career Roadmap — Lộ Trình Phát Triển)
+
+---
+
+## ⚡ AI Career Roadmap — Lộ Trình Phát Triển (2026-04-23) — build ✅
+
+### Tính năng mới
+- **Section mới** `Lộ Trình Phát Triển` ở cuối trang `/talent/:id`
+- **2 tab**: Chuyên gia (IC track) & Quản Lý (Manager track)
+- **AI generate**: gọi OpenAI GPT-4o với employee data (position, scores, competencies) → trả về JSON có cấu trúc
+- **Flow**: Generate → review/edit → Confirm (save DB) — employee thấy kết quả sau khi confirm
+
+### Nội dung mỗi tab
+1. **AI Summary card**: quote tóm tắt, độ tin cậy AI (0-100), timeline dự kiến, target position, điểm mạnh/thách thức
+2. **Skill gaps**: per-skill với current vs required level (dots), lý do, danh sách khóa học (provider, giá, ngôn ngữ, tính năng)
+3. **Learning phases**: 3 giai đoạn (0-6/6-12/12-18 tháng) với color coding (blue/green/yellow)
+4. **Alternative path**: gợi ý vị trí thay thế
+
+### Edit mode (admin/manager — sau khi generate, trước khi confirm)
+- X button để xoá từng item (strengths, challenges, skill gap, course, phase task)
+- + button để thêm item mới (prompt dialog)
+- "Xác nhận & Lưu" → upsert vào `career_roadmaps` table
+- "Huỷ" → discard draft
+
+### Files mới
+- `supabase/migrations/20260423_career_roadmaps.sql` — cần run trong Supabase SQL Editor
+- `core/services/data/career-roadmap.service.ts` — OpenAI + Supabase CRUD + bulkGenerate()
+- `modules/talent/career-roadmap/career-roadmap.component.{ts,html,scss}` — standalone component
+
+### Environment
+- `environment.ts` & `environment.prod.ts`: thêm `openaiKey` (dev only, TODO: move to Edge Function)
+
+### ⚠️ Cần làm thủ công
+- **Chạy SQL** trong Supabase Dashboard: `supabase/migrations/20260423_career_roadmaps.sql`
+
+### TODO (future)
+- Admin bulk generate button trong admin.component.ts
+- Move OpenAI key to Supabase Edge Function secret (security)
+- Link courses to VnR elearning platform
+
+Build: ✅ 0 errors (2 SCSS budget warnings non-blocking)
+
+---
+
+## ⚡ Succession Map — Org chart hierarchy fix (2026-04-23) — build ✅
+
+### Chẩn đoán
+- `key_positions.parent_position_id` tồn tại nhưng **38/38 rows = NULL** — chưa ai điền
+- `v_employees.reports_to_id` tồn tại và đầy đủ — có thể dùng để suy ra hierarchy
+
+### Giải pháp
+1. **SQL migration** `supabase/migrations/20260423_key_position_hierarchy.sql`:
+   - Recursive CTE duyệt `reports_to_id` chain tối đa 10 bậc
+   - Với mỗi vị trí then chốt, tìm ancestor gần nhất cũng giữ vị trí then chốt khác
+   - UPDATE `parent_position_id` tự động — **chạy 1 lần trong Supabase SQL Editor**
+
+2. **Angular fallback** khi chưa chạy migration:
+   - `buildDeptGroupTree()`: tạo virtual root node theo department
+   - Mỗi dept là collapsible header, các vị trí là children
+   - Tự phát hiện: nếu `linkedCount === 0` → switch sang fallback
+
+3. **Deep-link từ Positions page**:
+   - "Xem kế thừa" trên card: `/succession?tab=map&positionId=P007`
+   - "Quản lý kế thừa" trong drawer: cùng query params
+   - Succession component đọc `ActivatedRoute.snapshot.queryParamMap` trong ngOnInit
+   - Auto switch tab → tìm node → `openPositionDrawer()` → `scrollIntoView()`
+
+### Files thay đổi
+- `supabase/migrations/20260423_key_position_hierarchy.sql` (NEW)
+- `succession.component.ts`: `activeTabIndex`, `findNode()`, `buildDeptGroupTree()`, queryParams ngOnInit
+- `succession.component.html`: `nzSelectedIndex` binding, dept group template, `id="tree-node-{id}"`
+- `succession.component.scss`: `.tree-dept-group`, `.dept-group-header`, `.tree-children-dept`
+- `positions.component.html`: 3 links cập nhật queryParams
+
+### Action cần làm
+- [ ] Chạy SQL migration trong Supabase SQL Editor để populate `parent_position_id`
+- [ ] Verify kết quả bằng SELECT query trong migration file (phần comment)
 
 ---
 

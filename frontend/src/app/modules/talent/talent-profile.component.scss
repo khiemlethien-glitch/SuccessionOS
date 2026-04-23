@@ -1,6 +1,12 @@
 .profile-page { display:flex; flex-direction:column; gap:16px; }
 .loading-wrap { display:flex; justify-content:center; padding:60px; }
 
+/* Career roadmap wrapper card */
+.roadmap-card {
+  background:#fff; border:1px solid #f1f3f5; border-radius:14px;
+  box-shadow:0 1px 3px rgba(0,0,0,.04); overflow:hidden;
+}
+
 /* ---------- Breadcrumb ---------- */
 .crumb       { display:flex; align-items:center; gap:8px; font-size:13px; color:#6b7280; }
 .crumb-link  { color:#6b7280; text-decoration:none; &:hover { color:#4f46e5; } }

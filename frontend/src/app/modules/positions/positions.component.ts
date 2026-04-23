@@ -143,6 +143,13 @@ export class PositionsComponent implements OnInit {
 
   isAdmin = computed(() => this.auth.isAdmin());
 
+  /** Người kế thừa của vị trí đang mở drawer — dùng data đã load sẵn từ plans(). */
+  editingSuccessors = computed(() => {
+    const id = this.editingId();
+    if (!id) return [];
+    return this.getPlan(id)?.successors ?? [];
+  });
+
   constructor(private msg: NzMessageService) {}
 
   async ngOnInit(): Promise<void> {

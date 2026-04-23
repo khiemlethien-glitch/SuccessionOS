@@ -1,0 +1,308 @@
+<div class="cr-wrap">
+
+  <!-- ── Section header ─────────────────────────────────────────────────── -->
+  <div class="cr-section-head">
+    <div class="cr-head-left">
+      <span class="cr-head-spark">✦</span>
+      <div>
+        <h2 class="cr-head-title">Lộ Trình Phát Triển</h2>
+        <div class="cr-head-sub">Phân tích & gợi ý bởi AI · Xác nhận bởi Admin</div>
+      </div>
+    </div>
+    <span class="cr-ai-badge">
+      <span nz-icon nzType="thunderbolt" nzTheme="fill"></span>
+      AI Powered
+    </span>
+  </div>
+
+  <!-- ── Tab bar ─────────────────────────────────────────────────────────── -->
+  <div class="cr-tab-bar">
+    <button class="cr-tab" [class.cr-tab-active]="activeTab() === 'expert'"
+            (click)="activeTab.set('expert')">
+      <span nz-icon nzType="trophy"></span> Chuyên gia
+    </button>
+    <button class="cr-tab" [class.cr-tab-active]="activeTab() === 'manager'"
+            (click)="activeTab.set('manager')">
+      <span nz-icon nzType="team"></span> Quản Lý
+    </button>
+  </div>
+
+  <!-- ── Loading ─────────────────────────────────────────────────────────── -->
+  @if (loadingData()) {
+    <div class="cr-loading"><nz-spin nzSimple></nz-spin></div>
+  } @else {
+    <!-- Expert tab -->
+    @if (activeTab() === 'expert') {
+      <ng-container [ngTemplateOutlet]="trackTpl"
+                    [ngTemplateOutletContext]="{track:'expert'}"></ng-container>
+    }
+    <!-- Manager tab -->
+    @if (activeTab() === 'manager') {
+      <ng-container [ngTemplateOutlet]="trackTpl"
+                    [ngTemplateOutletContext]="{track:'manager'}"></ng-container>
+    }
+  }
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- Track template (reused for both tabs via NgTemplateOutlet)              -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<ng-template #trackTpl let-track="track">
+
+  <!-- Action row -->
+  <div class="cr-action-row">
+    @if (isGenerating(track)) {
+      <div class="cr-generating-state">
+        <nz-spin nzSimple nzSize="small"></nz-spin>
+        <span>AI đang phân tích hồ sơ nhân viên…</span>
+      </div>
+    } @else {
+      <button class="cr-gen-btn" (click)="generate(track)">
+        <span nz-icon nzType="thunderbolt" nzTheme="fill"></span>
+        {{ getDisplay(track) ? 'Tạo lại lộ trình' : 'Tạo Lộ Trình AI' }}
+      </button>
+
+      @if (hasDraft(track)) {
+        <button class="cr-confirm-btn" [disabled]="isSaving(track)" (click)="confirm(track)">
+          @if (isSaving(track)) { <nz-spin nzSimple nzSize="small"></nz-spin> } @else {
+            <span nz-icon nzType="check"></span>
+          }
+          Xác nhận & Lưu
+        </button>
+        <button class="cr-cancel-btn" (click)="cancelDraft(track)">Huỷ</button>
+      }
+
+      @if (isConfirmedOnly(track)) {
+        <span class="cr-confirmed-chip">
+          <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+          Đã xác nhận · {{ fmtDate(getDisplay(track)?.confirmed_at) }}
+        </span>
+      }
+    }
+
+    @if (hasDraft(track)) {
+      <span class="cr-draft-chip">Draft — chưa lưu</span>
+    }
+  </div>
+
+  <!-- ── No data yet ───────────────────────────────────────────────────── -->
+  @if (!getDisplay(track) && !isGenerating(track)) {
+    <div class="cr-empty">
+      <span nz-icon nzType="rocket" class="cr-empty-ico"></span>
+      <p>Chưa có lộ trình {{ track === 'expert' ? 'Chuyên gia' : 'Quản Lý' }} cho nhân viên này.</p>
+      <span class="cr-empty-hint">Nhấn "Tạo Lộ Trình AI" để bắt đầu phân tích.</span>
+    </div>
+  }
+
+  <!-- ── Has data ──────────────────────────────────────────────────────── -->
+  @if (getDisplay(track); as roadmap) {
+
+    <!-- ── 1. AI Summary card ──────────────────────────────────────────── -->
+    <div class="cr-summary-card">
+      <div class="cr-summary-head">
+        <span class="cr-ai-ico">🤖</span>
+        <span class="cr-summary-label">AI Career Path Analysis</span>
+        <span class="cr-ai-generated-chip">AI Generated</span>
+        <span class="cr-analysis-date">Phân tích ngày {{ fmtDate(roadmap.generated_at) }}</span>
+      </div>
+
+      <!-- Quote -->
+      <div class="cr-quote-block">
+        <span class="cr-quote-mark">"</span>
+        <p class="cr-quote-text">{{ roadmap.ai_summary }}</p>
+      </div>
+
+      <!-- Metrics -->
+      <div class="cr-metrics-row">
+        <div class="cr-metric-card">
+          <div class="cr-metric-label">Độ tin cậy AI</div>
+          <div class="cr-metric-val cr-confidence-val">{{ roadmap.confidence_score }}%</div>
+          <div class="cr-confidence-bar">
+            <div class="cr-confidence-fill" [style.width.%]="roadmap.confidence_score"></div>
+          </div>
+        </div>
+        <div class="cr-metric-card cr-metric-card-right">
+          <div class="cr-metric-label">Thời gian dự kiến</div>
+          <div class="cr-metric-val cr-timeline-val">{{ roadmap.estimated_timeline }}</div>
+          <div class="cr-metric-sub">Vị trí mục tiêu: <strong>{{ roadmap.target_position }}</strong></div>
+        </div>
+      </div>
+
+      <!-- Strengths & Challenges -->
+      <div class="cr-sw-grid">
+        <div class="cr-sw-col cr-sw-col-green">
+          <div class="cr-sw-head">
+            <span class="cr-sw-ico cr-sw-ico-green">✓</span>
+            <strong>Điểm mạnh AI ghi nhận</strong>
+          </div>
+          @for (s of roadmap.strengths; track s; let i = $index) {
+            <div class="cr-sw-item">
+              <span class="cr-sw-dot cr-sw-dot-green"></span>
+              <span class="cr-sw-text">{{ s }}</span>
+              @if (hasDraft(track)) {
+                <button class="cr-x" (click)="removeStrength(track, i)" title="Xoá">×</button>
+              }
+            </div>
+          }
+          @if (hasDraft(track)) {
+            <button class="cr-add-inline" (click)="addStrength(track)">+ Thêm</button>
+          }
+        </div>
+        <div class="cr-sw-col cr-sw-col-orange">
+          <div class="cr-sw-head">
+            <span class="cr-sw-ico cr-sw-ico-orange">⚠</span>
+            <strong>Thách thức chính</strong>
+          </div>
+          @for (c of roadmap.challenges; track c; let i = $index) {
+            <div class="cr-sw-item">
+              <span class="cr-sw-dot cr-sw-dot-orange"></span>
+              <span class="cr-sw-text">{{ c }}</span>
+              @if (hasDraft(track)) {
+                <button class="cr-x" (click)="removeChallenge(track, i)" title="Xoá">×</button>
+              }
+            </div>
+          }
+          @if (hasDraft(track)) {
+            <button class="cr-add-inline" (click)="addChallenge(track)">+ Thêm</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 2. Skill Gaps ───────────────────────────────────────────────── -->
+    @if (roadmap.skill_gaps.length) {
+      <div class="cr-skills-wrap">
+        <h3 class="cr-block-title">Kỹ năng cần phát triển</h3>
+
+        @for (gap of roadmap.skill_gaps; track gap.id; let gi = $index) {
+          <div class="cr-skill-card">
+            <!-- Skill header -->
+            <div class="cr-skill-head">
+              <span class="cr-skill-cat">{{ gap.category }}</span>
+              <span class="cr-skill-name">{{ gap.skill_name }}</span>
+              <span class="cr-priority" [class]="'cr-priority-' + gap.priority">
+                {{ priorityLabel(gap.priority) }}
+              </span>
+              @if (hasDraft(track)) {
+                <button class="cr-x cr-x-gap" (click)="removeSkillGap(track, gi)" title="Xoá kỹ năng">×</button>
+              }
+            </div>
+
+            <!-- Level dots -->
+            <div class="cr-level-section">
+              <span class="cr-level-label">Mức độ hiện tại vs Yêu cầu</span>
+              <div class="cr-dots">
+                @for (n of levelDots(5); track n) {
+                  <span class="cr-dot"
+                        [class.cr-dot-current]="n <= gap.current_level"
+                        [class.cr-dot-required]="n > gap.current_level && n <= gap.required_level"></span>
+                }
+              </div>
+              <span class="cr-level-nums">
+                Hiện tại: <strong>{{ gap.current_level }}/5</strong> ·
+                Cần đạt: <strong>{{ gap.required_level }}/5</strong> ·
+                Gap: <strong>{{ gap.required_level - gap.current_level }} bậc</strong>
+              </span>
+            </div>
+
+            <!-- Rationale -->
+            <div class="cr-rationale">
+              <span nz-icon nzType="info-circle"></span>
+              <em>{{ gap.rationale }}</em>
+            </div>
+
+            <!-- Courses -->
+            @if (gap.courses.length) {
+              <div class="cr-courses-wrap">
+                <div class="cr-courses-title">Khóa học / Chứng chỉ bên ngoài:</div>
+                @for (course of gap.courses; track course.id; let ci = $index) {
+                  <div class="cr-course-row">
+                    <div class="cr-course-ico">
+                      <span nz-icon [nzType]="courseIcon(course.icon_type)"></span>
+                    </div>
+                    <div class="cr-course-info">
+                      <div class="cr-course-name">{{ course.name }}</div>
+                      <div class="cr-course-provider">{{ course.provider }}</div>
+                      <div class="cr-course-tags">
+                        @if (course.duration) {
+                          <span class="cr-tag">{{ course.duration }}</span>
+                        }
+                        <span class="cr-tag">
+                          {{ course.language === 'English' ? '🇬🇧' : '🇻🇳' }} {{ course.language }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="cr-course-right">
+                      <div class="cr-course-price">{{ course.price }}</div>
+                      @if (course.features.length) {
+                        <div class="cr-course-feats">⚡ {{ course.features.join(' · ') }}</div>
+                      }
+                    </div>
+                    @if (hasDraft(track)) {
+                      <button class="cr-x" (click)="removeCourse(track, gi, ci)" title="Xoá khoá học">×</button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (hasDraft(track)) {
+              <button class="cr-add-course-btn" (click)="addCourse(track, gi)">
+                <span nz-icon nzType="plus"></span> Thêm khóa học
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── 3. Learning Phases ──────────────────────────────────────────── -->
+    @if (roadmap.phases.length) {
+      <div class="cr-phases-wrap">
+        <h3 class="cr-block-title">Kế hoạch học tập theo giai đoạn</h3>
+        <div class="cr-phases-grid">
+          @for (phase of roadmap.phases; track phase.phase; let pi = $index) {
+            <div class="cr-phase-card" [class]="'cr-phase-' + phase.color">
+              <div class="cr-phase-head">
+                <div class="cr-phase-num">Phase {{ phase.phase }} · {{ phase.months }}</div>
+                <div class="cr-phase-theme">{{ phase.theme }}</div>
+              </div>
+              <div class="cr-phase-tasks">
+                @for (task of phase.tasks; track task; let ti = $index) {
+                  <div class="cr-task">
+                    <span class="cr-task-arrow">→</span>
+                    <span class="cr-task-text">{{ task }}</span>
+                    @if (hasDraft(track)) {
+                      <button class="cr-x cr-x-task" (click)="removeTask(track, pi, ti)" title="Xoá">×</button>
+                    }
+                  </div>
+                }
+              </div>
+              @if (hasDraft(track)) {
+                <button class="cr-add-task-btn" (click)="addTask(track, pi)">
+                  <span nz-icon nzType="plus"></span> Thêm
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── 4. Alternative path ─────────────────────────────────────────── -->
+    @if (roadmap.alternative_path) {
+      <div class="cr-alt-card">
+        <span nz-icon nzType="fork" class="cr-alt-ico"></span>
+        <div class="cr-alt-body">
+          <div class="cr-alt-label">Có thể xem xét thêm:</div>
+          <div class="cr-alt-pos">{{ roadmap.alternative_path }}</div>
+          <div class="cr-alt-desc">
+            Nếu bạn muốn khám phá hướng khác, đây là lựa chọn thay thế phù hợp với profile hiện tại của bạn.
+          </div>
+        </div>
+      </div>
+    }
+
+  } <!-- end @if getDisplay -->
+</ng-template>

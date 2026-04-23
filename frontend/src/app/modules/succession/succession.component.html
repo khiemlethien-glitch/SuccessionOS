@@ -37,7 +37,9 @@
 
   <!-- ══ Tabs + content card ═══════════════════════════ -->
   <div class="succ-card">
-    <nz-tabs nzType="line" class="succ-tabs">
+    <nz-tabs nzType="line" class="succ-tabs"
+             [nzSelectedIndex]="activeTabIndex()"
+             (nzSelectedIndexChange)="activeTabIndex.set($event)">
 
       <!-- ═══ Tab 1: 9-Box ═══════════════════════════════ -->
       <nz-tab nzTitle="9-Box Grid">
@@ -142,7 +144,27 @@
 
           <!-- Recursive template: compact row + gated details -->
           <ng-template #nodeTpl let-node>
-            <div class="tree-node" [style.--depth]="node.depth" [class.tree-root]="node.depth === 0">
+            <div class="tree-node" [style.--depth]="node.depth" [class.tree-root]="node.depth === 0"
+                 [class.tree-dept-group]="node.isDeptGroup"
+                 [id]="'tree-node-' + node.positionId">
+
+              <!-- Dept group virtual header (fallback khi chưa có parent_position_id) -->
+              @if (node.isDeptGroup) {
+                <div class="dept-group-header" (click)="toggleNode(node.positionId)">
+                  <span nz-icon nzType="right" class="tr-chevron"
+                        [class.is-expanded]="isNodeExpanded(node.positionId)"></span>
+                  <span nz-icon nzType="bank" class="dg-ico"></span>
+                  <span class="dg-title">{{ node.title }}</span>
+                  <span class="dg-count">{{ node.children.length }} vị trí</span>
+                </div>
+                @if (isNodeExpanded(node.positionId)) {
+                  <div class="tree-children tree-children-dept">
+                    @for (child of node.children; track child.positionId) {
+                      <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+                    }
+                  </div>
+                }
+              } @else {
 
               <!-- Compact clickable row — always visible -->
               <div
@@ -245,6 +267,8 @@
                     </div>
                   }
                 </div>
+              }
+
               }
             </div>
           </ng-template>
