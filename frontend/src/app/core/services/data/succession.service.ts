@@ -1,16 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
+import { CacheService } from '../cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class SuccessionService {
-  private sb = inject(SupabaseService).client;
+  private sb    = inject(SupabaseService).client;
+  private cache = inject(CacheService);
 
-  /**
-   * DB: succession_plans chứa 1 row/successor — {position_id, talent_id, readiness, priority, gap_score}.
-   * Frontend SuccessionPlan expects: {id, position_id, position_title, department, successors: [...]}.
-   * → Group by position_id + join key_positions + v_employees cho tên.
-   */
   async getPlans(_filter: { position_id?: string } = {}) {
+    const key = `succ:plans:${JSON.stringify(_filter)}`;
+    return this.cache.get(key, () => this._fetchPlans(_filter));
+  }
+
+  private async _fetchPlans(_filter: { position_id?: string }) {
     const [planRes, posRes, empRes, deptRes] = await Promise.all([
       this.sb.from('succession_plans').select('*').order('priority'),
       this.sb.from('key_positions').select('id, title, department_id'),
@@ -23,7 +25,6 @@ export class SuccessionService {
     const empMap  = new Map((empRes.data  ?? []).map(e => [e.id, e.full_name]));
     const deptMap = new Map((deptRes.data ?? []).map(d => [d.id, d.name]));
 
-    // Group successors by position_id
     const grouped = new Map<string, any[]>();
     for (const row of planRes.data ?? []) {
       const list = grouped.get(row.position_id) ?? [];
@@ -50,8 +51,11 @@ export class SuccessionService {
     });
   }
 
-  /** 9-Box từ v_nine_box view — field `box` (1-9) đã compute sẵn. */
   async getNineBox() {
+    return this.cache.get('succ:nine-box', () => this._fetchNineBox());
+  }
+
+  private async _fetchNineBox() {
     const { data, error } = await this.sb
       .from('v_nine_box')
       .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box');
@@ -66,16 +70,25 @@ export class SuccessionService {
       .select()
       .maybeSingle();
     if (error) { console.error('[SuccessionService.upsertPlan]', error); return null; }
+    this.cache.invalidatePrefix('succ:plans:');
+    this.cache.invalidatePrefix('succ:target:');
+    this.cache.invalidatePrefix('succ:holders:');
     return data;
   }
 
   async deletePlan(id: string) {
     const { error } = await this.sb.from('succession_plans').delete().eq('id', id);
-    if (error) console.error('[SuccessionService.deletePlan]', error);
+    if (error) { console.error('[SuccessionService.deletePlan]', error); return; }
+    this.cache.invalidatePrefix('succ:plans:');
+    this.cache.invalidatePrefix('succ:target:');
+    this.cache.invalidatePrefix('succ:holders:');
   }
 
-  /** Nếu employee này là ứng viên kế thừa cho 1 vị trí, trả về title của vị trí đó (highest priority). */
   async getTargetPositionForSuccessor(employeeId: string): Promise<string | null> {
+    return this.cache.get(`succ:target:${employeeId}`, () => this._fetchTargetPosition(employeeId));
+  }
+
+  private async _fetchTargetPosition(employeeId: string): Promise<string | null> {
     const planRes = await this.sb.from('succession_plans')
       .select('position_id, priority')
       .eq('talent_id', employeeId)
@@ -91,11 +104,14 @@ export class SuccessionService {
     return posRes.data?.title ?? null;
   }
 
-  /** Lấy danh sách người kế thừa cho vị trí mà employee đang giữ, kèm IDP progress của từng người. */
   async getSuccessorsForHolder(employeeId: string): Promise<{
     talent_id: string; talent_name: string;
     readiness: string; priority: number; idp_progress: number;
   }[]> {
+    return this.cache.get(`succ:holders:${employeeId}`, () => this._fetchSuccessorsForHolder(employeeId));
+  }
+
+  private async _fetchSuccessorsForHolder(employeeId: string) {
     const posRes = await this.sb.from('key_positions')
       .select('id')
       .eq('current_holder_id', employeeId)

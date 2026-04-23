@@ -1,11 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
+import { CacheService } from '../cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-  private sb = inject(SupabaseService).client;
+  private sb    = inject(SupabaseService).client;
+  private cache = inject(CacheService);
 
   async getKpi() {
+    return this.cache.get('dash:kpi', () => this._fetchKpi());
+  }
+
+  private async _fetchKpi() {
     const active = { is_active: true };
     const [total, core, potential, successor, highRisk] = await Promise.all([
       this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match(active),
@@ -24,6 +30,10 @@ export class DashboardService {
   }
 
   async getRiskAlerts(limit = 5) {
+    return this.cache.get(`dash:risk:${limit}`, () => this._fetchRiskAlerts(limit));
+  }
+
+  private async _fetchRiskAlerts(limit: number) {
     const { data, error } = await this.sb
       .from('v_employees')
       .select('id, full_name, position, department_name, risk_score, risk_reasons')
@@ -36,6 +46,10 @@ export class DashboardService {
   }
 
   async getPositionStats() {
+    return this.cache.get('dash:pos-stats', () => this._fetchPositionStats());
+  }
+
+  private async _fetchPositionStats() {
     const base = () => this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('is_active', true);
     const [total, critical, highRisk, noSuccessor, hasSuccessor] = await Promise.all([
       base(),
@@ -45,15 +59,19 @@ export class DashboardService {
       base().gt('successor_count', 0),
     ]);
     return {
-      total:          total.count       ?? 0,
-      critical:       critical.count    ?? 0,
-      highRisk:       highRisk.count    ?? 0,
-      noSuccessor:    noSuccessor.count ?? 0,
-      hasSuccessor:   hasSuccessor.count ?? 0,
+      total:        total.count        ?? 0,
+      critical:     critical.count     ?? 0,
+      highRisk:     highRisk.count     ?? 0,
+      noSuccessor:  noSuccessor.count  ?? 0,
+      hasSuccessor: hasSuccessor.count ?? 0,
     };
   }
 
   async getDepartments() {
+    return this.cache.get('dash:depts', () => this._fetchDepartments());
+  }
+
+  private async _fetchDepartments() {
     const { data, error } = await this.sb
       .from('departments')
       .select('id, name, parent_id, head_id')

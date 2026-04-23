@@ -1,12 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
+import { CacheService } from '../cache.service';
 import { Talent } from '../../models/models';
 
-/**
- * Reshape Supabase v_employees row → frontend Talent model.
- * v_employees has flat `comp_technical`, `comp_target_technical`, etc.
- * Frontend expects nested `competencies{}` và `competency_targets{}`.
- */
 function mapVEmployee(row: any): Talent {
   return {
     id: row.id,
@@ -49,9 +45,15 @@ function mapVEmployee(row: any): Talent {
 
 @Injectable({ providedIn: 'root' })
 export class EmployeeService {
-  private sb = inject(SupabaseService).client;
+  private sb    = inject(SupabaseService).client;
+  private cache = inject(CacheService);
 
   async getAll(filter: { department?: string; talent_tier?: string; limit?: number } = {}) {
+    const key = `emp:all:${JSON.stringify(filter)}`;
+    return this.cache.get(key, () => this._fetchAll(filter));
+  }
+
+  private async _fetchAll(filter: { department?: string; talent_tier?: string; limit?: number }) {
     let q = this.sb.from('v_employees').select('*', { count: 'exact' }).eq('is_active', true);
     if (filter.department)  q = q.eq('department_id', filter.department);
     if (filter.talent_tier) q = q.eq('talent_tier', filter.talent_tier);
@@ -62,25 +64,28 @@ export class EmployeeService {
   }
 
   async getById(id: string): Promise<Talent | null> {
+    return this.cache.get(`emp:${id}`, () => this._fetchById(id));
+  }
+
+  private async _fetchById(id: string): Promise<Talent | null> {
     const { data, error } = await this.sb.from('v_employees').select('*').eq('id', id).maybeSingle();
     if (error) { console.error('[EmployeeService.getById]', error); return null; }
     return data ? mapVEmployee(data) : null;
   }
 
   async getNetwork(_id: string) {
-    // TODO: Implement via mentor_id chain + department peers. v_employees có mentor_id, reports_to_id.
     return { nodes: [], edges: [] };
   }
 
   async getRiskFactors(_id: string) {
-    // TODO: Implement via risk_factors table (chưa có trong schema hiện tại).
     return [];
   }
 
   async update(id: string, payload: Partial<Talent>) {
-    // Write qua table `employees` (không phải view). Chờ fix RLS user_profiles.
     const { data, error } = await this.sb.from('employees').update(payload).eq('id', id).select().maybeSingle();
     if (error) { console.error('[EmployeeService.update]', error); return null; }
+    this.cache.invalidate(`emp:${id}`);
+    this.cache.invalidatePrefix('emp:all:');
     return data;
   }
 }

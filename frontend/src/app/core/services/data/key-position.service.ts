@@ -1,17 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
+import { CacheService } from '../cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class KeyPositionService {
-  private sb = inject(SupabaseService).client;
+  private sb    = inject(SupabaseService).client;
+  private cache = inject(CacheService);
 
-  /**
-   * DB schema: key_positions{id, title, department_id, current_holder_id, critical_level,
-   * required_competencies[], parent_position_id, successor_count, ready_now_count, risk_level}.
-   * Frontend KeyPosition cần `department` (tên), `current_holder` (tên) → join manually với
-   * departments + v_employees.
-   */
   async getAll(filter: { department?: string; critical_level?: string } = {}) {
+    const key = `kpos:all:${JSON.stringify(filter)}`;
+    return this.cache.get(key, () => this._fetchAll(filter));
+  }
+
+  private async _fetchAll(filter: { department?: string; critical_level?: string }) {
     const [posRes, deptRes, empRes] = await Promise.all([
       this.sb.from('key_positions').select('*').eq('is_active', true),
       this.sb.from('departments').select('id, name'),
@@ -24,10 +25,10 @@ export class KeyPositionService {
 
     let rows = (posRes.data ?? []).map(p => ({
       ...p,
-      department:     deptMap.get(p.department_id)      ?? '—',
-      current_holder: empMap.get(p.current_holder_id)   ?? '—',
+      department:     deptMap.get(p.department_id)    ?? '—',
+      current_holder: empMap.get(p.current_holder_id) ?? '—',
       parent_id:      p.parent_position_id,
-      successors:     [], // populate khi cần join succession_plans
+      successors:     [],
     }));
     if (filter.department)     rows = rows.filter(p => p.department === filter.department);
     if (filter.critical_level) rows = rows.filter(p => p.critical_level === filter.critical_level);
@@ -35,12 +36,20 @@ export class KeyPositionService {
   }
 
   async getById(id: string) {
+    return this.cache.get(`kpos:${id}`, () => this._fetchById(id));
+  }
+
+  private async _fetchById(id: string) {
     const { data, error } = await this.sb.from('key_positions').select('*').eq('id', id).maybeSingle();
     if (error) { console.error('[KeyPositionService.getById]', error); return null; }
     return data;
   }
 
   async getSuccessors(positionId: string) {
+    return this.cache.get(`kpos:successors:${positionId}`, () => this._fetchSuccessors(positionId));
+  }
+
+  private async _fetchSuccessors(positionId: string) {
     const { data, error } = await this.sb
       .from('succession_plans')
       .select('*')
@@ -51,32 +60,44 @@ export class KeyPositionService {
   }
 
   async getSummary() {
+    return this.cache.get('kpos:summary', () => this._fetchSummary());
+  }
+
+  private async _fetchSummary() {
     const [total, critical, noSuccessor] = await Promise.all([
       this.sb.from('key_positions').select('id', { count: 'exact', head: true }),
       this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('critical_level', 'Critical'),
       this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('successor_count', 0),
     ]);
     return {
-      totalPositions:        total.count       ?? 0,
-      criticalCount:         critical.count    ?? 0,
-      positionsNoSuccessor:  noSuccessor.count ?? 0,
+      totalPositions:       total.count      ?? 0,
+      criticalCount:        critical.count   ?? 0,
+      positionsNoSuccessor: noSuccessor.count ?? 0,
     };
   }
 
   async create(payload: any) {
     const { data, error } = await this.sb.from('key_positions').insert(payload).select().maybeSingle();
     if (error) { console.error('[KeyPositionService.create]', error); return null; }
+    this.cache.invalidatePrefix('kpos:');
+    this.cache.invalidate('dash:pos-stats');
     return data;
   }
 
   async update(id: string, payload: any) {
     const { data, error } = await this.sb.from('key_positions').update(payload).eq('id', id).select().maybeSingle();
     if (error) { console.error('[KeyPositionService.update]', error); return null; }
+    this.cache.invalidate(`kpos:${id}`);
+    this.cache.invalidatePrefix('kpos:all:');
+    this.cache.invalidate('kpos:summary');
+    this.cache.invalidate('dash:pos-stats');
     return data;
   }
 
   async delete(id: string) {
     const { error } = await this.sb.from('key_positions').delete().eq('id', id);
-    if (error) console.error('[KeyPositionService.delete]', error);
+    if (error) { console.error('[KeyPositionService.delete]', error); return; }
+    this.cache.invalidatePrefix('kpos:');
+    this.cache.invalidate('dash:pos-stats');
   }
 }

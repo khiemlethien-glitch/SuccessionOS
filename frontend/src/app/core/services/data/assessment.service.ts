@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
+import { CacheService } from '../cache.service';
 
 export interface Cycle {
   id: string;
@@ -56,9 +57,14 @@ export interface RadarProfile {
 
 @Injectable({ providedIn: 'root' })
 export class AssessmentService {
-  private sb = inject(SupabaseService).client;
+  private sb    = inject(SupabaseService).client;
+  private cache = inject(CacheService);
 
   async getCycles(): Promise<Cycle[]> {
+    return this.cache.get('asmnt:cycles', () => this._fetchCycles());
+  }
+
+  private async _fetchCycles(): Promise<Cycle[]> {
     const { data, error } = await this.sb
       .from('assessment_cycles')
       .select('*')
@@ -67,8 +73,11 @@ export class AssessmentService {
     return (data ?? []) as Cycle[];
   }
 
-  /** Master list TẤT CẢ tiêu chí — dùng trong admin drag-drop. */
   async getAllCriteria(): Promise<Criterion[]> {
+    return this.cache.get('asmnt:criteria', () => this._fetchAllCriteria());
+  }
+
+  private async _fetchAllCriteria(): Promise<Criterion[]> {
     const { data, error } = await this.sb
       .from('assessment_criteria')
       .select('*')
@@ -78,8 +87,11 @@ export class AssessmentService {
     return (data ?? []) as Criterion[];
   }
 
-  /** 4 criterion IDs đã chọn hiển thị trong talent profile. */
   async getDisplayConfig(): Promise<string[]> {
+    return this.cache.get('asmnt:display-cfg', () => this._fetchDisplayConfig());
+  }
+
+  private async _fetchDisplayConfig(): Promise<string[]> {
     const { data, error } = await this.sb
       .from('assessment_display_config')
       .select('criterion_ids')
@@ -95,6 +107,8 @@ export class AssessmentService {
       .from('assessment_display_config')
       .upsert({ id: 1, criterion_ids: criterionIds, updated_at: new Date().toISOString() });
     if (error) { console.error('[AssessmentService.updateDisplayConfig]', error); return false; }
+    this.cache.invalidate('asmnt:display-cfg');
+    this.cache.invalidatePrefix('asmnt:score:');
     return true;
   }
 
@@ -103,6 +117,10 @@ export class AssessmentService {
    * Formula: delta = actual - target. Trả kèm aggregate (above/below/total_gap_abs/avg_gap).
    */
   async getRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile> {
+    return this.cache.get(`asmnt:radar:${employeeId}:${cycleId}`, () => this._fetchRadarProfile(employeeId, cycleId));
+  }
+
+  private async _fetchRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile> {
     const RADAR_AXES = [
       { key: 'technical',   label: 'Kỹ thuật',  targetField: 'comp_target_technical'       },
       { key: 'performance', label: 'Hiệu suất', targetField: 'comp_target_problem_solving' },
@@ -152,13 +170,11 @@ export class AssessmentService {
     };
   }
 
-  /**
-   * Fetch assessment cho 1 employee × cycle — bao gồm:
-   *  - 4 tiêu chí được chọn hiển thị (từ display config)
-   *  - Điểm từng tiêu chí (join assessment_scores)
-   *  - Overall + manager_note + strengths + needs_dev (từ assessment_summary)
-   */
   async getAssessment(employeeId: string, cycleId: string): Promise<AssessmentView | null> {
+    return this.cache.get(`asmnt:score:${employeeId}:${cycleId}`, () => this._fetchAssessment(employeeId, cycleId));
+  }
+
+  private async _fetchAssessment(employeeId: string, cycleId: string): Promise<AssessmentView | null> {
     const [displayIds, allCriteria, scoresRes, summaryRes] = await Promise.all([
       this.getDisplayConfig(),
       this.getAllCriteria(),
