@@ -20,6 +20,7 @@ export interface Criterion {
   category: string | null;
   sort_order: number;
   is_active: boolean;
+  assessment_type?: 'kpi' | '360';
 }
 
 export interface AssessmentView {
@@ -32,6 +33,33 @@ export interface AssessmentView {
   needs_dev: string[];
   /** Chỉ 4 (max) criteria đã chọn bởi admin display config, kèm score. */
   items: Array<Criterion & { score: number | null }>;
+}
+
+export interface AssessmentItem {
+  id: string;
+  label: string;
+  description: string | null;
+  weight: number;
+  score: number | null;
+  item_max: number;  // 100 for kpi, 5 for 360° criteria
+}
+
+export interface AssessmentBlock {
+  type: 'kpi' | '360';
+  overall_score: number | null;
+  rating_label: string | null;
+  manager_note: string | null;
+  strengths: string[];
+  needs_dev: string[];
+  items: AssessmentItem[];
+}
+
+export interface AssessmentBlocksView {
+  employee_id: string;
+  cycle_id: string;
+  blocks: AssessmentBlock[];
+  weights: { assessment_weight: number; weight_360: number };
+  combined_total: number | null;
 }
 
 /**
@@ -168,6 +196,82 @@ export class AssessmentService {
       total_gap_abs: Math.round(absSum * 10) / 10,
       avg_gap:       withDelta.length ? Math.round((signedSum / withDelta.length) * 10) / 10 : 0,
     };
+  }
+
+  async getAssessmentBlocks(employeeId: string, cycleId: string): Promise<AssessmentBlocksView> {
+    return this.cache.get(`asmnt:blocks:${employeeId}:${cycleId}`, () =>
+      this._fetchAssessmentBlocks(employeeId, cycleId));
+  }
+
+  private async _fetchAssessmentBlocks(employeeId: string, cycleId: string): Promise<AssessmentBlocksView> {
+    const [allCriteria, scoresRes, summaryRes, extScoreRes, weightRes] = await Promise.all([
+      this.getAllCriteria(),
+      this.sb.from('assessment_scores').select('criterion_id, score')
+        .eq('employee_id', employeeId).eq('cycle_id', cycleId),
+      this.sb.from('assessment_summary').select('*')
+        .eq('employee_id', employeeId).eq('cycle_id', cycleId).maybeSingle(),
+      this.sb.from('external_scores').select('score_360, assessment_score, criteria_json')
+        .eq('employee_id', employeeId).eq('cycle_id', cycleId).maybeSingle(),
+      this.sb.from('score_weight_config').select('assessment_weight, weight_360')
+        .eq('id', 1).maybeSingle(),
+    ]);
+
+    const scoreMap = new Map((scoresRes.data ?? []).map(s => [s.criterion_id, Number(s.score)]));
+    const summary  = summaryRes.data;
+    const ext      = extScoreRes.data;
+    const weights  = {
+      assessment_weight: weightRes.data?.assessment_weight ?? 60,
+      weight_360:        weightRes.data?.weight_360        ?? 40,
+    };
+
+    const blocks: AssessmentBlock[] = [];
+
+    // KPI block — criteria where assessment_type != '360'
+    const kpiCriteria = allCriteria.filter(c => !c.assessment_type || c.assessment_type === 'kpi');
+    const kpiOverall  = ext?.assessment_score ?? summary?.overall_score ?? null;
+    const kpiItems: AssessmentItem[] = kpiCriteria.map(c => ({
+      id: c.id, label: c.label, description: c.description,
+      weight: c.weight, item_max: 100,
+      score: scoreMap.get(c.id) ?? null,
+    }));
+    if (kpiItems.length > 0 || kpiOverall != null) {
+      blocks.push({
+        type: 'kpi',
+        overall_score: kpiOverall,
+        rating_label: summary?.rating_label  ?? null,
+        manager_note: summary?.manager_note  ?? null,
+        strengths:    summary?.strengths     ?? [],
+        needs_dev:    summary?.needs_dev     ?? [],
+        items:        kpiItems,
+      });
+    }
+
+    // 360° block — criteria from external_scores.criteria_json, score from score_360
+    const criteria360 = (ext?.criteria_json ?? []) as Array<{ label: string; score: number }>;
+    if (ext?.score_360 != null || criteria360.length > 0) {
+      blocks.push({
+        type: '360',
+        overall_score: ext?.score_360 ?? null,
+        rating_label: null,
+        manager_note: null,
+        strengths:    [],
+        needs_dev:    [],
+        items: criteria360.map((c, i) => ({
+          id: `360_${i}`, label: c.label, description: null,
+          weight: 0, item_max: 5,
+          score: c.score ?? null,
+        })),
+      });
+    }
+
+    // Combined total
+    const kpi  = blocks.find(b => b.type === 'kpi')?.overall_score;
+    const a360 = blocks.find(b => b.type === '360')?.overall_score;
+    const combined_total = (kpi != null && a360 != null)
+      ? Math.round((kpi * weights.assessment_weight / 100 + a360 * weights.weight_360 / 100) * 10) / 10
+      : null;
+
+    return { employee_id: employeeId, cycle_id: cycleId, blocks, weights, combined_total };
   }
 
   async getAssessment(employeeId: string, cycleId: string): Promise<AssessmentView | null> {

@@ -14,10 +14,10 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { FormsModule } from '@angular/forms';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
-import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
+import { AssessmentService, Cycle, AssessmentView, AssessmentBlock, AssessmentBlocksView, RadarProfile } from '../../core/services/data/assessment.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
-import { EmployeeExtrasService, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
+import { EmployeeExtrasService, EmployeeExtras, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import {
   Talent,
@@ -64,6 +64,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   extrasRaw = signal<any>(null);
 
   // ─── Profile section signals (mỗi section fetch riêng) ───────────────────
+  extrasRaw            = signal<EmployeeExtras | null>(null);
   assessment360Data    = signal<Assessment360 | null>(null);
   careerReviewData     = signal<CareerReview | null>(null);
   currentProjectData   = signal<CurrentProject | null>(null);
@@ -248,10 +249,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   quickStats = computed(() => ({
-    trainingHours:  this.extrasRaw()?.training_hours ?? 0,
-    lastPromotion:  (this.extrasRaw()?.last_promotion_year as number | string) ?? '—',
-    idpProgress:    this.idpProgress(),
-    riskScore:      this.talent()?.risk_score ?? 0,
+    trainingHours: this.extrasRaw()?.training_hours      ?? null,
+    lastPromotion: this.extrasRaw()?.last_promotion_year ?? null,
+    idpProgress:   this.idpProgress(),
+    riskScore:     this.talent()?.risk_score ?? 0,
   }));
 
   // ─── IDP Plan (narrative view cho review card) ─────────────────────────────
@@ -309,9 +310,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (profile) {
       return profile.entries.map(e => ({
         label:  e.label,
-        actual: e.actual as number | null,
+        actual: e.actual,   // keep null — use ?? 0 only in SVG path
         target: e.target,
-        delta:  e.delta  as number | null,
+        delta:  e.delta,    // keep null — guards in template
       }));
     }
     const t = this.talent();
@@ -325,7 +326,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       { label: 'Tiềm năng', actual: t.potential_score ?? 0,    target: tgt.potential },
       { label: 'Lãnh đạo',  actual: c?.leadership ?? 0,        target: tgt.leadership },
     ];
-    return values.map(v => ({ ...v, delta: v.actual - v.target }));
+    return values.map(v => ({ ...v, delta: (v.actual as number | null) != null ? v.actual - v.target : null }));
   });
 
   radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta != null && e.delta >= 0).length);
@@ -440,10 +441,32 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   // ─── Assessment (backend-driven với dropdown cycle) ──────────────────────
-  cycles           = signal<Cycle[]>([]);
-  selectedCycleId  = signal<string | null>(null);
-  assessmentView   = signal<AssessmentView | null>(null);
-  radarProfile     = signal<RadarProfile | null>(null);
+  cycles             = signal<Cycle[]>([]);
+  selectedCycleId    = signal<string | null>(null);
+  assessmentView     = signal<AssessmentView | null>(null);
+  assessmentBlocks   = signal<AssessmentBlocksView | null>(null);
+  radarProfile       = signal<RadarProfile | null>(null);
+  expandedBlocks     = signal(new Set<string>());
+
+  blockVisibleItems(block: AssessmentBlock): AssessmentBlock['items'] {
+    return this.expandedBlocks().has(block.type) ? block.items : block.items.slice(0, 5);
+  }
+
+  isBlockExpanded(type: string): boolean { return this.expandedBlocks().has(type); }
+
+  toggleBlockExpanded(type: string): void {
+    this.expandedBlocks.update(s => {
+      const next = new Set(s);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      return next;
+    });
+  }
+
+  blockWeightLabel(type: string): string {
+    const w = this.assessmentBlocks()?.weights;
+    if (!w) return '';
+    return type === 'kpi' ? `${w.assessment_weight}%` : `${w.weight_360}%`;
+  }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
   private employeeSvc  = inject(EmployeeService);
@@ -464,6 +487,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   ktEditMode = signal(false);
   ktSaving   = signal(false);
   ktDraft    = signal({ successor:'', successor_role:'', start_date:'', target_date:'', overall_progress:0 });
+
+  // Quick stats edit
+  qsEditMode  = signal(false);
+  qsSaving    = signal(false);
+  qsDraft     = signal<{ training_hours: number | null; last_promotion_year: number | null }>({ training_hours: null, last_promotion_year: null });
 
   // 360° edit
   a360EditMode = signal(false);
@@ -540,6 +568,32 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       });
       this.ktEditMode.set(false);
       this.msg.success('Đã lưu thông tin chuyển giao tri thức');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  // ─── Quick stats edit helpers ─────────────────────────────────────────────
+  openQsEdit(): void {
+    const e = this.extrasRaw();
+    this.qsDraft.set({ training_hours: e?.training_hours ?? null, last_promotion_year: e?.last_promotion_year ?? null });
+    this.qsEditMode.set(true);
+  }
+
+  async saveQs(): Promise<void> {
+    const id = this.talent()?.id;
+    if (!id) return;
+    this.qsSaving.set(true);
+    const d = this.qsDraft();
+    const ok = await this.extrasSvc.save(id, {
+      training_hours:      d.training_hours,
+      last_promotion_year: d.last_promotion_year,
+    });
+    this.qsSaving.set(false);
+    if (ok) {
+      this.extrasRaw.update(e => e ? { ...e, training_hours: d.training_hours, last_promotion_year: d.last_promotion_year } : e);
+      this.qsEditMode.set(false);
+      this.msg.success('Đã lưu thống kê nhanh');
     } else {
       this.msg.error('Lưu thất bại — xem console');
     }
@@ -687,15 +741,16 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       else this.idpLoaded.set(false);
     } catch { this.idpLoaded.set(false); }
 
-    // Employee extras (project, KT, 360°)
+    // Employee extras (project, KT, 360°, quick stats)
     this.extrasSvc.getByEmployee(id).then(extras => {
+      this.extrasRaw.set(extras);
       if (extras) {
         this.extrasRaw.set(extras);
         const p    = extrasToProject(extras);
         const kt   = extrasToKt(extras);
         const a360 = extrasTo360(extras);
-        if (p)   this.currentProjectData.set(p);
-        if (kt)  this.knowledgeTransferData.set(kt);
+        if (p)    this.currentProjectData.set(p);
+        if (kt)   this.knowledgeTransferData.set(kt);
         if (a360) this.assessment360Data.set(a360);
       }
     });
@@ -717,13 +772,16 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   }
 
   private async loadAssessmentForCycle(employeeId: string, cycleId: string): Promise<void> {
-    const [view, radar] = await Promise.all([
+    const [view, radar, blocks] = await Promise.all([
       this.assessmentSvc.getAssessment(employeeId, cycleId),
       this.assessmentSvc.getRadarProfile(employeeId, cycleId),
+      this.assessmentSvc.getAssessmentBlocks(employeeId, cycleId),
     ]);
     this.assessmentView.set(view);
     this.radarProfile.set(radar);
-    if (view) this.careerReviewLoaded.set(true);
+    this.assessmentBlocks.set(blocks);
+    this.expandedBlocks.set(new Set<string>());
+    if (view || blocks.blocks.length > 0) this.careerReviewLoaded.set(true);
   }
 
   goBack(): void {

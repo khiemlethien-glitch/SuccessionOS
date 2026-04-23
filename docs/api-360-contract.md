@@ -46,17 +46,23 @@ POST /api/v1/external/360-scores
     { "label": "Lãnh đạo",               "score": 4.2 },
     { "label": "Giao tiếp",              "score": 4.5 },
     { "label": "Kỹ năng làm việc nhóm",  "score": 3.9 },
-    { "label": "Tư duy chiến lược",       "score": 4.0 }
+    { "label": "Tư duy chiến lược",       "score": 4.0 },
+    { "label": "Giải quyết vấn đề",       "score": 4.1 },
+    { "label": "Tư duy phân tích",        "score": 3.8 },
+    { "label": "Định hướng kết quả",      "score": 4.3 },
+    { "label": "Quản lý thời gian",       "score": 3.7 }
   ]
 }
 ```
+
+> **Ghi chú:** `criteria` có thể chứa từ 1 đến 15 tiêu chí. Frontend hiển thị 5 tiêu chí đầu và cho phép người dùng mở rộng xem toàn bộ.
 
 | Field        | Kiểu        | Mô tả                                              |
 |--------------|-------------|----------------------------------------------------|
 | employee_id  | string      | Mã nhân viên — khớp với `v_employees.id`           |
 | cycle_id     | string      | Mã chu kỳ — khớp với `assessment_cycles.id`        |
 | score_360    | number(0–100) | Điểm 360° cuối cùng (đã tính trọng số rater)     |
-| criteria     | array       | Tuỳ chọn — danh sách tiêu chí hiển thị trong UI   |
+| criteria     | array       | Tuỳ chọn — danh sách tiêu chí (tối đa 15)         |
 | criteria[].label | string  | Tên tiêu chí                                       |
 | criteria[].score | number(0–5) | Điểm tiêu chí (thang 5)                       |
 
@@ -131,14 +137,51 @@ Nếu `cycle_id` không tồn tại → backend trả `400 Bad Request`.
 
 ---
 
+## Endpoint KPI (POST assessment_score)
+
+Nếu hệ thống KPI cũng push dữ liệu:
+
+```
+POST /api/v1/external/kpi-scores
+```
+
+```json
+{
+  "employee_id": "E001",
+  "cycle_id":    "2025-Annual",
+  "assessment_score": 85.0,
+  "criteria": [
+    { "label": "Hiệu suất công việc",   "score": 87 },
+    { "label": "Chất lượng đầu ra",     "score": 82 },
+    { "label": "Kỹ năng chuyên môn",    "score": 90 }
+  ]
+}
+```
+
+Backend lưu vào `external_scores.assessment_score` và `assessment_criteria` (type='kpi').  
+Frontend tự động hiển thị cột **KPI** bên cạnh cột **360°** trong card Đánh giá năng lực.
+
+---
+
 ## Hiển thị trong Frontend
 
-Sau khi backend lưu thành công:
-- **Tab "Điểm số"** trong hồ sơ nhân viên: hiển thị card "Điểm 360°" với giá trị `score_360`
-- **Card "Kết quả đánh giá 360°"**: hiển thị điểm và các tiêu chí từ `criteria_json`
-- **Badge tổng hợp**: `Điểm tổng hợp = total_score` với nhãn "Tính theo trọng số cấu hình"
+### Logic hiển thị card Đánh giá năng lực
 
-Nếu chưa có dữ liệu → frontend hiển thị trạng thái "Chờ đồng bộ từ hệ thống 360°".
+| Dữ liệu có sẵn | Bố cục |
+|---|---|
+| Chỉ KPI | 1 cột, nhãn "100% trọng số" |
+| Chỉ 360° | 1 cột, nhãn "100% trọng số" |
+| Cả KPI + 360° | 2 cột + hàng "Điểm tổng hợp" ở cuối |
+
+- Hiển thị **5 tiêu chí đầu**, nút "Xem thêm (N)" để mở rộng toàn bộ
+- Điểm KPI hiển thị thang **0–100**, điểm tiêu chí 360° hiển thị thang **0–5**
+- Điểm tổng hợp = `assessment_score × w₁/100 + score_360 × w₂/100` (trọng số từ Admin)
+
+### Các phần khác trong hồ sơ nhân viên
+- **Tab "Điểm số"**: 3 card — Đánh giá năng lực / Điểm 360° / Điểm tổng hợp
+- **Card "Kết quả đánh giá 360°"**: hiển thị `score_360` và toàn bộ `criteria_json`
+
+Nếu chưa có dữ liệu 360° → frontend hiển thị trạng thái "Chờ đồng bộ từ hệ thống 360°".
 
 ---
 

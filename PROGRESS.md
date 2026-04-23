@@ -1,7 +1,58 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (seed strategy decision)
+> Cập nhật lần cuối: 2026-04-23 (wire quickStats từ employee_extras + assessment redesign merged)
+
+---
+
+## ⚡ Quick Stats wired từ DB + edit UI (2026-04-23) — build ✅
+
+### Thay đổi
+- `extrasRaw = signal<EmployeeExtras | null>(null)` — lưu raw extras, set cùng lúc với project/KT/360° load
+- `quickStats` computed: `trainingHours` và `lastPromotion` đọc từ `extrasRaw()` thay vì hardcode 60/2020
+- Null state: hiển thị "— chưa nhập" thay vì số sai
+- Edit UI: Quick Stats card có header bar (chb-slate) + nút bút chì → form nhập `training_hours` + `last_promotion_year` → save to `employee_extras`
+- SCSS: thêm `.chb-slate` variant + `.qs-empty`
+
+Build: ✅ 0 errors
+
+---
+
+## ⚡ Assessment section redesign — 1/2 col blocks + expand (2026-04-23) — build ✅
+
+### Vấn đề được giải quyết
+Data đánh giá từ 2 nguồn (KPI + 360°) cần hiển thị linh hoạt theo số nguồn có sẵn.
+
+### DB migration mới: `supabase/migrations/20260423_assessment_types.sql`
+- `assessment_criteria.assessment_type` TEXT DEFAULT 'kpi' — phân biệt loại tiêu chí
+- `assessment_summary.assessment_type` TEXT DEFAULT 'kpi' — phân biệt summary KPI vs 360°
+
+### AssessmentService — thêm `getAssessmentBlocks()`
+- Trả `AssessmentBlocksView { blocks[], weights, combined_total }`
+- KPI block: criteria từ `assessment_criteria` (type='kpi') + scores từ `assessment_scores`; overall từ `external_scores.assessment_score` hoặc `assessment_summary.overall_score`
+- 360° block: criteria từ `external_scores.criteria_json`; overall từ `external_scores.score_360`
+- `combined_total` tính sẵn từ `score_weight_config`
+
+### UI thay đổi — card "Đánh giá năng lực"
+
+| Dữ liệu | Bố cục |
+|---|---|
+| Chỉ KPI hoặc chỉ 360° | 1 cột, nhãn "100% trọng số" |
+| Cả KPI + 360° | 2 cột + hàng "Điểm tổng hợp" tím ở cuối |
+
+- Hiển thị 5 tiêu chí đầu, nút "Xem thêm (N)" mở rộng toàn bộ
+- Badge loại: **KPI** (xanh dương) / **360°** (tím)
+- Điểm KPI: thang 0–100; tiêu chí 360°: thang 0–5 hiển thị "/5"
+
+### Radar chart — null-safe fix
+- `radarEntries`: giữ `actual`/`delta` là `null` thay vì coerce `?? 0`
+- SVG path: vẫn dùng `actual ?? 0` cho toạ độ
+- Template stats: hiển thị "—" khi null thay vì "0 / +0"
+
+### Docs
+- `docs/api-360-contract.md`: cập nhật criteria 1–15 items, thêm endpoint KPI, bảng logic 1/2 cột
+
+Build: ✅ 0 errors (2 SCSS budget warnings — non-blocking)
 
 ---
 
