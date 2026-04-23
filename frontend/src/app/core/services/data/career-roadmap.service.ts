@@ -161,21 +161,30 @@ export class CareerRoadmapService {
     }
   }
 
-  /** Call OpenAI GPT-4o and return a draft CareerRoadmap (not saved to DB yet) */
+  /**
+   * Call OpenAI GPT-4o via Supabase Edge Function.
+   * The OpenAI API key lives server-side as an Edge Function secret —
+   * it is never included in the browser bundle or visible in DevTools.
+   */
   async callOpenAI(talent: Talent, track: 'expert' | 'manager'): Promise<CareerRoadmap> {
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Get the current session JWT to authenticate against the Edge Function
+    const { data: sessionData } = await this.sb.client.auth.getSession();
+    const token = sessionData.session?.access_token ?? environment.supabase.anonKey;
+
+    const edgeFnUrl = `${environment.supabase.url}/functions/v1/generate-roadmap`;
+
+    const resp = await fetch(edgeFnUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${environment.openaiKey}`,
+        'Authorization': `Bearer ${token}`,
+        'apikey': environment.supabase.anonKey,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: buildUserPrompt(talent, track) },
         ],
-        response_format: { type: 'json_object' },
         temperature: 0.7,
         max_tokens: 4000,
       }),
@@ -183,7 +192,7 @@ export class CareerRoadmapService {
 
     if (!resp.ok) {
       const body = await resp.text();
-      throw new Error(`OpenAI ${resp.status}: ${body}`);
+      throw new Error(`AI service ${resp.status}: ${body}`);
     }
 
     const json = await resp.json();

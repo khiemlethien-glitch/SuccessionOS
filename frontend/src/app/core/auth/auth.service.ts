@@ -22,22 +22,22 @@ export class AuthService {
 
   /**
    * RBAC — phân quyền theo role. Hierarchy: Admin > HR Manager > Line Manager > Viewer.
-   * Hiện tại auth bypass → trả `true` để tất cả user đều được coi là Admin.
-   * Khi gỡ bypass + login thật, sẽ dùng `this.currentUser()?.role === 'Admin'`.
+   * Unauthenticated users have NO privileges — they see nothing and are redirected to /login
+   * by authGuard before they can reach any protected component.
    */
   readonly isAdmin = computed(() => {
     const user = this.currentUser();
-    // Bypass mode: không có login → mặc định Admin để test admin features
-    if (!user) return true;
+    if (!user) return false; // unauthenticated → no admin access
     return user.role === 'Admin';
   });
 
-  readonly hasRole = (role: string) => {
+  readonly hasRole = (role: string): boolean => {
     const user = this.currentUser();
-    if (!user) return true; // bypass
+    if (!user) return false; // unauthenticated → no access
     const hierarchy = ['Viewer', 'Line Manager', 'HR Manager', 'Admin'];
-    const userLevel = hierarchy.indexOf(user.role);
+    const userLevel   = hierarchy.indexOf(user.role);
     const neededLevel = hierarchy.indexOf(role);
+    if (userLevel === -1 || neededLevel === -1) return false;
     return userLevel >= neededLevel;
   };
 

@@ -2,13 +2,11 @@
 
   <!-- ═══ Left hero panel ═══ -->
   <div class="hero-panel">
-    <!-- Decorative blobs -->
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
     <div class="grid-pattern"></div>
 
-    <!-- Top brand -->
     <div class="hero-brand">
       <div class="hero-brand-badge">
         <span nz-icon nzType="cluster"></span>
@@ -19,7 +17,6 @@
       </div>
     </div>
 
-    <!-- Center content -->
     <div class="hero-content">
       <div class="hero-eyebrow">
         <span class="he-dot"></span>
@@ -34,9 +31,21 @@
       <p class="hero-sub">
         Nền tảng toàn diện cho chuỗi phát triển nhân tài, lộ trình kế thừa và IDP — tiên phong trong ngành năng lượng.
       </p>
+
+      <!-- Role matrix preview (hero) -->
+      <div class="hero-roles">
+        @for (acc of demoAccounts; track acc.email) {
+          <div class="hr-row hr-{{ acc.color }}">
+            <span nz-icon [nzType]="acc.icon" class="hr-ico"></span>
+            <div class="hr-body">
+              <div class="hr-name">{{ acc.role }}</div>
+              <div class="hr-perm">{{ acc.perms }}</div>
+            </div>
+          </div>
+        }
+      </div>
     </div>
 
-    <!-- Bottom note -->
     <div class="hero-foot">
       <span>© 2026 PTSC M&C</span>
       <span class="dot">·</span>
@@ -59,15 +68,17 @@
         <p class="form-sub">Đăng nhập vào SuccessionOS để tiếp tục</p>
       </div>
 
-      <!-- Username -->
+      <!-- Email -->
       <div class="field">
         <label class="field-label">Email</label>
         <nz-input-group [nzPrefix]="userIco" class="field-input">
           <input
             nz-input
             placeholder="Email đăng nhập"
+            [disabled]="loading()"
             [ngModel]="email()"
             (ngModelChange)="email.set($event)"
+            (keyup.enter)="login()"
           />
         </nz-input-group>
         <ng-template #userIco><span nz-icon nzType="user" class="pfx-ico"></span></ng-template>
@@ -84,8 +95,10 @@
             nz-input
             [type]="showPassword() ? 'text' : 'password'"
             placeholder="••••••••"
+            [disabled]="loading()"
             [ngModel]="password()"
             (ngModelChange)="password.set($event)"
+            (keyup.enter)="login()"
           />
         </nz-input-group>
         <ng-template #lockIco><span nz-icon nzType="lock" class="pfx-ico"></span></ng-template>
@@ -113,9 +126,14 @@
       }
 
       <!-- Submit -->
-      <button class="btn-submit" (click)="login()">
-        <span>Đăng nhập</span>
-        <span nz-icon nzType="arrow-right" class="btn-submit-ico"></span>
+      <button class="btn-submit" [disabled]="loading()" (click)="login()">
+        @if (loading() && !activeDemo()) {
+          <span nz-icon nzType="loading" class="btn-submit-ico spin"></span>
+          <span>Đang đăng nhập...</span>
+        } @else {
+          <span>Đăng nhập</span>
+          <span nz-icon nzType="arrow-right" class="btn-submit-ico"></span>
+        }
       </button>
 
       <!-- SSO Divider -->
@@ -131,22 +149,47 @@
         <span>Đăng nhập với HRM Pro</span>
       </button>
 
-      <!-- Demo accounts -->
+      <!-- ── Demo accounts ──────────────────────────────────────────────────── -->
       <div class="demo-hint">
-        <div class="dh-title">Tài khoản demo — click để điền</div>
+        <div class="dh-header">
+          <span nz-icon nzType="experiment" class="dh-icon"></span>
+          <span class="dh-title">Tài khoản demo</span>
+          <span class="dh-sub">Click để đăng nhập ngay</span>
+        </div>
+
         <div class="dh-chips">
-          <button type="button" class="dh-chip" (click)="fillDemo('admin', 'admin123')">
-            <strong>admin</strong> / admin123
-          </button>
-          <button type="button" class="dh-chip" (click)="fillDemo('hr.manager', 'hr123')">
-            <strong>hr.manager</strong> / hr123
-          </button>
-          <button type="button" class="dh-chip" (click)="fillDemo('lm.kythuat', 'lm123')">
-            <strong>lm.kythuat</strong> / lm123
-          </button>
-          <button type="button" class="dh-chip" (click)="fillDemo('viewer', 'viewer123')">
-            <strong>viewer</strong> / viewer123
-          </button>
+          @for (acc of demoAccounts; track acc.email) {
+            <button
+              type="button"
+              class="dh-chip dh-chip-{{ acc.color }}"
+              [class.dh-chip-active]="activeDemo() === acc.email"
+              [class.dh-chip-dimmed]="loading() && activeDemo() !== acc.email"
+              [disabled]="loading()"
+              nz-tooltip
+              [nzTooltipTitle]="chipTip"
+              nzTooltipPlacement="top"
+              (click)="loginAs(acc)"
+            >
+              <!-- Spinner or role icon -->
+              @if (activeDemo() === acc.email) {
+                <span nz-icon nzType="loading" class="dh-chip-ico spin"></span>
+              } @else {
+                <span nz-icon [nzType]="acc.icon" class="dh-chip-ico"></span>
+              }
+              <div class="dh-chip-body">
+                <span class="dh-chip-role">{{ acc.label }}</span>
+                <span class="dh-chip-email">{{ acc.username }}</span>
+              </div>
+
+              <ng-template #chipTip>
+                <div class="chip-tip">
+                  <div class="ct-role">{{ acc.role }}</div>
+                  <div class="ct-perm">{{ acc.perms }}</div>
+                  <div class="ct-email">{{ acc.email }}</div>
+                </div>
+              </ng-template>
+            </button>
+          }
         </div>
       </div>
 

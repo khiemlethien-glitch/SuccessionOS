@@ -1,6 +1,21 @@
-import { CanActivateFn } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 
-// TODO BYPASS: Tạm thời allow tất cả routes (chờ Supabase anonKey + RLS policies).
-// Khi bật auth thật: khôi phục logic kiểm tra session (inject AuthService,
-// check isAuthenticatedSnapshot(), redirect /login nếu không có).
-export const authGuard: CanActivateFn = () => true;
+/**
+ * Auth guard — redirects unauthenticated users to /login.
+ *
+ * NOTE for local dev: create a test user in Supabase Auth Dashboard
+ * (Authentication → Users → Invite user) then log in via /login.
+ */
+export const authGuard: CanActivateFn = (_route, state) => {
+  const auth   = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isAuthenticatedSnapshot()) return true;
+
+  // Preserve the intended URL so the login page can redirect back after login
+  return router.createUrlTree(['/login'], {
+    queryParams: { returnUrl: state.url },
+  });
+};
