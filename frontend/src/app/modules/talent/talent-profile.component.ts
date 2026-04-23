@@ -81,7 +81,6 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // ─── Collapse states ──────────────────────────────────────────────────────
   riskExpanded       = signal(true);
-  assessment360Expanded = signal(true);
 
   // ─── Timeline (tĩnh — sẽ fetch từ backend sau) ────────────────────────────
   timeline = [
