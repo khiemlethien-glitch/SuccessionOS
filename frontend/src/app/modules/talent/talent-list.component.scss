@@ -293,3 +293,88 @@
 @media (max-width: 900px) {
   .tb-right { display:none; }
 }
+
+// ── Pagination bar ────────────────────────────────────────────
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 12px 18px;
+  border-top: 1px solid #eef2f7;
+  background: #fafbfc;
+  border-radius: 0 0 16px 16px;
+}
+
+.page-info {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  white-space: nowrap;
+  .page-info-sep { margin: 0 3px; }
+}
+
+// Override Ant Design pagination — pill style, softer
+::ng-deep .pagination-row {
+  .ant-pagination { margin: 0 !important; }
+
+  .ant-pagination-item {
+    min-width: 32px !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    border-radius: 8px !important;
+    border-color: #e5e7eb !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    transition: all .15s ease !important;
+    background: #fff !important;
+    a { color: #6b7280 !important; }
+    &:hover {
+      border-color: #c7d2fe !important;
+      background: #f5f3ff !important;
+      a { color: #4f46e5 !important; }
+    }
+  }
+
+  .ant-pagination-item-active {
+    border-color: #4f46e5 !important;
+    background: #4f46e5 !important;
+    box-shadow: 0 2px 8px rgba(79,70,229,.25) !important;
+    a { color: #fff !important; font-weight: 700 !important; }
+    &:hover { background: #4338ca !important; }
+  }
+
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    min-width: 32px !important;
+    height: 32px !important;
+    line-height: 30px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    transition: all .15s ease !important;
+    .ant-pagination-item-link {
+      border-radius: 8px !important;
+      border: none !important;
+      display: flex; align-items: center; justify-content: center;
+      color: #6b7280 !important;
+    }
+    &:hover {
+      border-color: #c7d2fe !important;
+      background: #f5f3ff !important;
+      .ant-pagination-item-link { color: #4f46e5 !important; }
+    }
+    &.ant-pagination-disabled {
+      opacity: .4 !important;
+      pointer-events: none !important;
+    }
+  }
+
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next {
+    min-width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    .ant-pagination-item-container { color: #9ca3af !important; }
+  }
+}

@@ -195,14 +195,16 @@
     @if (total() > PAGE_SIZE) {
       <div class="pagination-row">
         <span class="page-info">
-          {{ (page() - 1) * PAGE_SIZE + 1 }}–{{ page() * PAGE_SIZE > total() ? total() : page() * PAGE_SIZE }} / {{ total() }} nhân viên
+          {{ (page() - 1) * PAGE_SIZE + 1 }}–{{ page() * PAGE_SIZE > total() ? total() : page() * PAGE_SIZE }}
+          <span class="page-info-sep">của</span>
+          {{ total() }} nhân viên
         </span>
         <nz-pagination
           [nzPageIndex]="page()"
           [nzTotal]="total()"
           [nzPageSize]="PAGE_SIZE"
           [nzShowSizeChanger]="false"
-          [nzShowQuickJumper]="true"
+          [nzShowQuickJumper]="false"
           (nzPageIndexChange)="onPageChange($event)"
         ></nz-pagination>
       </div>
