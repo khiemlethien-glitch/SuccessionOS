@@ -24,39 +24,34 @@
 -- Thay 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' bằng UUID thật từ Auth Dashboard
 -- ─────────────────────────────────────────────────────────────────────────────
 
-INSERT INTO user_profiles (id, email, full_name, role, department_id, avatar_url)
+-- Trước khi chạy: kiểm tra cột thực tế của bảng
+-- SELECT column_name FROM information_schema.columns WHERE table_name = 'user_profiles';
+
+INSERT INTO user_profiles (id, email, full_name, role)
 VALUES
   (
     'aaaaaaaa-0000-0000-0000-000000000001',  -- ← Thay bằng UUID của admin@ptsc.vn
     'admin@ptsc.vn',
     'Nguyễn Quản Trị',
-    'Admin',
-    NULL,
-    NULL
+    'Admin'
   ),
   (
     'aaaaaaaa-0000-0000-0000-000000000002',  -- ← Thay bằng UUID của hr.manager@ptsc.vn
     'hr.manager@ptsc.vn',
     'Trần HR Manager',
-    'HR Manager',
-    NULL,
-    NULL
+    'HR Manager'
   ),
   (
     'aaaaaaaa-0000-0000-0000-000000000003',  -- ← Thay bằng UUID của lm.kythuat@ptsc.vn
     'lm.kythuat@ptsc.vn',
     'Lê Line Manager Kỹ Thuật',
-    'Line Manager',
-    NULL,
-    NULL
+    'Line Manager'
   ),
   (
     'aaaaaaaa-0000-0000-0000-000000000004',  -- ← Thay bằng UUID của viewer@ptsc.vn
     'viewer@ptsc.vn',
     'Phạm Viewer',
-    'Viewer',
-    NULL,
-    NULL
+    'Viewer'
   )
 ON CONFLICT (id) DO UPDATE SET
   full_name = EXCLUDED.full_name,
