@@ -817,13 +817,22 @@
         </nz-tab>
 
         <nz-tab nzTitle="Lịch sử">
-          <nz-timeline class="timeline">
-            @for (item of timeline; track item.date) {
-              <nz-timeline-item [nzColor]="item.color">
-                <span class="tl-date">{{ item.date }}</span> — {{ item.text }}
-              </nz-timeline-item>
-            }
-          </nz-timeline>
+          @if (historyLoading()) {
+            <div style="padding:24px;display:flex;justify-content:center"><nz-spin></nz-spin></div>
+          } @else if (historyLogs().length === 0) {
+            <div class="empty-msg" style="padding:24px 0">
+              <span nz-icon nzType="history" style="font-size:20px;color:#d1d5db;display:block;margin-bottom:8px"></span>
+              Chưa có lịch sử hoạt động nào.
+            </div>
+          } @else {
+            <nz-timeline class="timeline">
+              @for (item of historyLogs(); track item.date + item.text) {
+                <nz-timeline-item [nzColor]="item.color">
+                  <span class="tl-date">{{ item.date }}</span> — {{ item.text }}
+                </nz-timeline-item>
+              }
+            </nz-timeline>
+          }
         </nz-tab>
 
       </nz-tabs>

@@ -12,6 +12,7 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { FormsModule } from '@angular/forms';
+import { SupabaseService } from '../../core/services/supabase.service';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
 import { AssessmentService, Cycle, AssessmentView, AssessmentBlock, AssessmentBlocksView, RadarProfile } from '../../core/services/data/assessment.service';
@@ -82,13 +83,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   // ─── Collapse states ──────────────────────────────────────────────────────
   riskExpanded       = signal(true);
 
-  // ─── Timeline (tĩnh — sẽ fetch từ backend sau) ────────────────────────────
-  timeline = [
-    { date: '04/2026', text: 'Cập nhật hồ sơ nhân tài', color: '#4f46e5' },
-    { date: '03/2026', text: 'Hoàn thành đánh giá 360°', color: '#059669' },
-    { date: '01/2026', text: 'Bắt đầu IDP 2026',         color: '#0891b2' },
-    { date: '12/2025', text: 'Được xác nhận vào Talent Pool', color: '#d97706' },
-  ];
+  // ─── Timeline (dynamic — fetch từ nhiều nguồn theo employee_id) ───────────
+  historyLogs     = signal<{ date: string; text: string; color: string }[]>([]);
+  historyLoading  = signal(false);
 
   assessmentLabels: Record<string, string> = {
     technical: 'Kỹ thuật chuyên môn', leadership: 'Lãnh đạo',
@@ -465,6 +462,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
+  private sbSvc        = inject(SupabaseService);
   private employeeSvc  = inject(EmployeeService);
   private idpSvc       = inject(IdpService);
   private assessmentSvc = inject(AssessmentService);
@@ -755,7 +753,73 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       .then(s => { this.externalScore.set(s); this.externalScoreLoaded.set(true); })
       .catch(() => this.externalScoreLoaded.set(false));
 
+    // History timeline — fire-and-forget (không block loading chính)
+    this.loadHistory(id);
+
     this.loading.set(false);
+  }
+
+  /** Fetch lịch sử hoạt động từ audit_logs + assessment_scores + idp_plans. */
+  private async loadHistory(employeeId: string): Promise<void> {
+    this.historyLoading.set(true);
+    const fmt = (iso: string) => {
+      const d = new Date(iso);
+      return `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+    const events: { date: string; text: string; color: string; _ts: number }[] = [];
+
+    // 1. audit_logs
+    try {
+      const { data: logs } = await this.sbSvc.client
+        .from('audit_logs')
+        .select('timestamp, action, description')
+        .eq('entity_id', employeeId)
+        .order('timestamp', { ascending: false })
+        .limit(20);
+      (logs ?? []).forEach((l: any) => events.push({
+        date: fmt(l.timestamp), text: l.description ?? l.action,
+        color: '#4f46e5', _ts: new Date(l.timestamp).getTime(),
+      }));
+    } catch { /* bỏ qua */ }
+
+    // 2. assessment_scores — lấy cycle đã đánh giá (1 event/cycle)
+    try {
+      const { data: scores } = await this.sbSvc.client
+        .from('assessment_scores')
+        .select('cycle_id, created_at, assessment_cycles(name)')
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false });
+      const seen = new Set<string>();
+      (scores ?? []).forEach((s: any) => {
+        if (seen.has(s.cycle_id)) return;
+        seen.add(s.cycle_id);
+        const cycleName = s.assessment_cycles?.name ?? s.cycle_id;
+        events.push({
+          date: fmt(s.created_at), text: `Đánh giá KPI — ${cycleName}`,
+          color: '#059669', _ts: new Date(s.created_at).getTime(),
+        });
+      });
+    } catch { /* bỏ qua */ }
+
+    // 3. idp_plans
+    try {
+      const { data: idps } = await this.sbSvc.client
+        .from('idp_plans')
+        .select('created_at, status')
+        .eq('employee_id', employeeId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      (idps ?? []).forEach((p: any) => events.push({
+        date: fmt(p.created_at),
+        text: `IDP ${p.status === 'active' ? 'đang thực hiện' : p.status === 'completed' ? 'hoàn thành' : 'tạo mới'}`,
+        color: '#0891b2', _ts: new Date(p.created_at).getTime(),
+      }));
+    } catch { /* bỏ qua */ }
+
+    // Sort mới nhất lên đầu
+    events.sort((a, b) => b._ts - a._ts);
+    this.historyLogs.set(events.map(({ date, text, color }) => ({ date, text, color })));
+    this.historyLoading.set(false);
   }
 
   /** Load scores + summary cho 1 cycle cụ thể — gọi khi user đổi dropdown. */

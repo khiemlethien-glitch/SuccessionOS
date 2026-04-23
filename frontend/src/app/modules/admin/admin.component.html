@@ -34,9 +34,11 @@
     <button type="button" class="tab" [class.active]="activeTab() === 'data'" (click)="setTab('data')">
       <span nz-icon nzType="database"></span> Dữ liệu hệ thống
     </button>
+    @if (isAdmin()) {
     <button type="button" class="tab" [class.active]="activeTab() === 'users'" (click)="setTab('users')">
       <span nz-icon nzType="user"></span> Người dùng
     </button>
+    }
     <button type="button" class="tab" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">
       <span nz-icon nzType="setting"></span> Cấu hình
     </button>
@@ -304,12 +306,16 @@
           @if (weightSum() !== 100) { <span class="wc-hint">— phải bằng 100%</span> }
         </div>
 
+        @if (isAdmin()) {
         <button nz-button nzType="primary" class="btn-navy wc-save"
                 [nzLoading]="weightSaving()"
                 [disabled]="weightSum() !== 100"
                 (click)="saveWeightConfig()">
           <span nz-icon nzType="save"></span> Lưu cấu hình
         </button>
+        } @else {
+        <span style="font-size:12px;color:#9ca3af;font-style:italic">Chỉ Admin được thay đổi trọng số</span>
+        }
       </div>
 
       <!-- API Integration config -->

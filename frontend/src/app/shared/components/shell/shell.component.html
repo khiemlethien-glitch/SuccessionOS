@@ -15,6 +15,7 @@
         }
         <ul nz-menu nzTheme="light" nzMode="inline" class="nav-group">
           @for (item of group.items; track item.route) {
+            @if (canSee(item)) {
             <li nz-menu-item
                 [nzDisabled]="!!item.disabled"
                 [routerLink]="item.disabled ? null : item.route"
@@ -28,6 +29,7 @@
                 <span class="nav-soon-badge">Sắp ra mắt</span>
               }
             </li>
+            } <!-- /canSee -->
           }
         </ul>
       }

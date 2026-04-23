@@ -10,7 +10,7 @@ import { NzDropDownModule } from 'ng-zorro-antd/dropdown';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 
-interface NavItem { label: string; icon: string; route: string; disabled?: boolean; }
+interface NavItem { label: string; icon: string; route: string; disabled?: boolean; requiredRole?: string; }
 interface NavGroup { label: string; items: NavItem[]; }
 
 @Component({
@@ -41,15 +41,19 @@ export class ShellComponent {
       { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration', disabled: true },
     ]},
     { label: 'PHÂN TÍCH', items: [
-      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports',     disabled: true },
+      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports',     disabled: true, requiredRole: 'HR Manager' },
     ]},
     { label: 'HỆ THỐNG', items: [
       { label: 'Marketplace',        icon: 'shop',      route: '/marketplace', disabled: true },
-      { label: 'Quản trị',           icon: 'setting',   route: '/admin' },
+      { label: 'Quản trị',           icon: 'setting',   route: '/admin',       requiredRole: 'Admin' },
     ]},
   ];
 
   toggle(): void { this.isCollapsed.set(!this.isCollapsed()); }
+
+  canSee(item: NavItem): boolean {
+    return !item.requiredRole || this.authService.hasRole(item.requiredRole);
+  }
 
   get currentUser() {
     return this.authService.currentUser();

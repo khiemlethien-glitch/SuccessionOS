@@ -19,6 +19,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { AssessmentService, Criterion } from '../../core/services/data/assessment.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { ScoreConfigService, ScoreWeightConfig } from '../../core/services/data/score-config.service';
 import {
@@ -66,7 +67,8 @@ interface EntityDef {
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
-    NzModalModule, NzInputModule, NzInputNumberModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
+    NzModalModule, NzInputModule, NzInputNumberModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule,
+    HasRoleDirective],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // nz-drawer / nz-modal portal content to the body's cdk-overlay-container

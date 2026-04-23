@@ -1,0 +1,24 @@
+// Sao chép file này thành environment.ts và điền thông tin thật
+// cp environment.ts.example environment.ts
+
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:5000/api/v1',
+  stagingUrl: 'https://api.successionos.vn/api/v1',
+  useMock: true,
+
+  // App origin — dùng cho redirectUri OIDC
+  appUrl: 'http://localhost:4200',
+
+  // OIDC config VnR — nhận từ team VnResource
+  oidc: {
+    issuer:                'https://ba.vnresource.net:1516',
+    clientId:              'hrm_scc_dev',
+    clientSecret:          '<YOUR_CLIENT_SECRET_DEV>',
+    scope:                 'openid profile api',
+    redirectUri:           'http://localhost:4200/auth/callback',
+    postLogoutRedirectUri: 'http://localhost:4200/login',
+    frontChannelLogoutUri: 'http://localhost:4200/logout',
+    silentRefreshUri:      'http://localhost:4200/silent-refresh.html',
+  },
+};
