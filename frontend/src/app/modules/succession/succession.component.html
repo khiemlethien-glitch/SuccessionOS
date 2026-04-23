@@ -316,7 +316,7 @@
               <nz-select class="dc-sel" [ngModel]="densityDeptFilter()"
                          (ngModelChange)="densityDeptFilter.set($event)"
                          nzAllowClear nzPlaceHolder="Tất cả">
-                @for (d of densitySummary().depts; track d) {
+                @for (d of densityDeptOptions(); track d) {
                   <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
                 }
               </nz-select>

@@ -233,6 +233,7 @@ export class SuccessionComponent implements OnInit {
   densityTargetReadyNow = signal(2);   // ngưỡng minimum Ready Now
   densityTargetTotal    = signal(7);   // ngưỡng minimum tổng ứng viên
   densityDeptFilter     = signal('');  // '' = all depts
+  densityDeptOptions    = signal<string[]>([]);   // full dept list from API
 
   // Drill-down drawer
   densityDrawerOpen = signal(false);
@@ -317,8 +318,7 @@ export class SuccessionComponent implements OnInit {
     const benchStrength = totalPos > 0
       ? Math.round(rows.reduce((s, r) => s + Math.min(r.total / Math.max(targetT, 1), 1), 0) / totalPos * 100)
       : 0;
-    const depts = [...new Set(rows.map(r => r.department).filter(Boolean))].sort();
-    return { totalPos, ok, lowWarn, empty, benchStrength, depts };
+    return { totalPos, ok, lowWarn, empty, benchStrength };
   });
 
   // Readiness label helper for density drawer
@@ -591,6 +591,11 @@ export class SuccessionComponent implements OnInit {
     try {
       const positions = await this.positionSvc.getAll();
       this.positions.set(positions as any);
+    } catch {}
+    // Dept list for density filter dropdown
+    try {
+      const depts = await this.employeeSvc.getDeptOptions();
+      this.densityDeptOptions.set(depts.map(d => d.name).sort((a, b) => a.localeCompare(b, 'vi')));
     } catch {}
 
     // ── Deep-link: ?tab=map&positionId=xxx (từ trang Positions) ──
