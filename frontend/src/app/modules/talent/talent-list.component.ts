@@ -10,13 +10,14 @@ import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzPaginationModule } from 'ng-zorro-antd/pagination';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
 
-type SortField = 'overall' | 'performance' | 'potential' | 'risk' | 'name';
-type SortDir = 'desc' | 'asc';
+type SortCol  = 'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
+type SortDir  = 'desc' | 'asc';
 type RiskBand = 'High' | 'Med' | 'Low';
 type ReadinessUi = 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm';
 
@@ -25,83 +26,135 @@ type ReadinessUi = 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm';
   standalone: true,
   imports: [CommonModule, FormsModule, NzTableModule, NzInputModule, NzSelectModule,
     NzButtonModule, NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
-    AvatarComponent, TierBadgeComponent],
+    NzPaginationModule, AvatarComponent, TierBadgeComponent],
   templateUrl: './talent-list.component.html',
   styleUrl: './talent-list.component.scss',
 })
 export class TalentListComponent implements OnInit {
-  all = signal<Talent[]>([]);
-  positions = signal<KeyPosition[]>([]);
-  loading = signal(true);
-  search = signal('');
+  // ─── Page data ────────────────────────────────────────────────────────────
+  rows       = signal<Talent[]>([]);
+  total      = signal(0);
+  loading    = signal(true);
+  fetching   = signal(false);   // spinner nhỏ khi chuyển trang / filter
+
+  // ─── Pagination ────────────────────────────────────────────────────────────
+  readonly PAGE_SIZE = 50;
+  page = signal(1);
+
+  // ─── Filters ───────────────────────────────────────────────────────────────
+  search    = signal('');
+  tier      = signal<TalentTier | null>(null);
+  dept      = signal<string | null>(null);        // department_id
+  readiness = signal<ReadinessUi | null>(null);
+  riskBand  = signal<RiskBand | null>(null);
 
   showFilters = signal(false);
 
-  tier = signal<TalentTier | null>(null);
-  dept = signal<string | null>(null);
-  readiness = signal<ReadinessUi | null>(null);
-  riskBand = signal<RiskBand | null>(null);
-
-  sortField = signal<SortField>('overall');
+  // ─── Sort ──────────────────────────────────────────────────────────────────
+  sortCol = signal<SortCol>('overall_score');
   sortDir = signal<SortDir>('desc');
 
-  tierOptions: TalentTier[] = ['Nòng cốt', 'Tiềm năng', 'Kế thừa'];
+  // ─── Filter options ────────────────────────────────────────────────────────
+  deptOptions   = signal<{ id: string; name: string }[]>([]);
+  tierOptions: TalentTier[]     = ['Nòng cốt', 'Tiềm năng', 'Kế thừa'];
   readinessOptions: ReadinessUi[] = ['Sẵn sàng ngay', '1-2 năm', '3-5 năm'];
-  riskOptions: RiskBand[] = ['High', 'Med', 'Low'];
-  sortOptions: { label: string; value: SortField }[] = [
-    { label: 'Overall Score', value: 'overall' },
-    { label: 'Performance', value: 'performance' },
-    { label: 'Potential', value: 'potential' },
-    { label: 'Risk Score', value: 'risk' },
-    { label: 'Tên', value: 'name' },
+  riskOptions: RiskBand[]       = ['High', 'Med', 'Low'];
+  sortOptions: { label: string; value: SortCol }[] = [
+    { label: 'Overall Score',  value: 'overall_score'     },
+    { label: 'Performance',    value: 'performance_score' },
+    { label: 'Potential',      value: 'potential_score'   },
+    { label: 'Risk Score',     value: 'risk_score'        },
+    { label: 'Tên',            value: 'full_name'         },
   ];
 
-  deptOptions = computed(() =>
-    [...new Set(this.all().map(t => t.department))].sort()
-  );
-
-  readonly totalCount = computed(() => this.all().length);
-  readonly filteredCount = computed(() => this.filtered().length);
-
-  filtered = computed(() => {
-    let list = this.all();
-    const q = this.search().trim().toLowerCase();
-    if (q) list = list.filter(t => t.full_name.toLowerCase().includes(q) || t.position.toLowerCase().includes(q) || t.department.toLowerCase().includes(q));
-    if (this.tier()) list = list.filter(t => t.talent_tier === this.tier());
-    if (this.dept()) list = list.filter(t => t.department === this.dept());
-    if (this.readiness()) list = list.filter(t => this.readinessLabel(t.readiness_level) === this.readiness());
-    if (this.riskBand()) list = list.filter(t => this.riskLabel(t.risk_score ?? 0).band === this.riskBand());
-    list = this.sort(list);
-    return list;
+  // ─── Stats (từ current page) ───────────────────────────────────────────────
+  readonly totalCount    = computed(() => this.total());
+  readonly avgOverall    = computed(() => {
+    const list = this.rows();
+    if (!list.length) return 0;
+    return Math.round(list.reduce((s, t) => s + this.overallScore(t), 0) / list.length);
   });
+  readonly highRiskCount = computed(() => this.rows().filter(t => (t.risk_score ?? 0) >= 60).length);
+
+  // ─── Positions (kept for backward compat, load riêng nếu cần) ─────────────
+  positions = signal<KeyPosition[]>([]);
 
   private employeeSvc = inject(EmployeeService);
+  private _searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private router: Router) {}
 
   async ngOnInit(): Promise<void> {
-    this.loading.set(true);
-    const res = await this.employeeSvc.getAll();
-    this.all.set(res.data);
-    // TODO: positions fetch (chờ fix RLS key_positions)
+    // Load dept options + first page in parallel
+    const [depts] = await Promise.all([
+      this.employeeSvc.getDeptOptions(),
+      this.fetchPage(),
+    ]);
+    this.deptOptions.set(depts);
     this.loading.set(false);
   }
 
-  // ── Held position (current holder of a key position)
-  heldPosition(t: Talent): KeyPosition | null {
-    return this.positions().find(p => p.current_holder === t.full_name) ?? null;
+  // ─── Fetch một page từ server ──────────────────────────────────────────────
+  private async fetchPage(): Promise<void> {
+    this.fetching.set(true);
+    const res = await this.employeeSvc.getPaginated({
+      page:         this.page(),
+      pageSize:     this.PAGE_SIZE,
+      search:       this.search() || undefined,
+      departmentId: this.dept()   || undefined,
+      talentTier:   this.tier()   || undefined,
+      readiness:    this.readinessToDb(this.readiness()),
+      riskBand:     this.riskBand() || undefined,
+      sortCol:      this.sortCol(),
+      sortDir:      this.sortDir(),
+    });
+    this.rows.set(res.data);
+    this.total.set(res.total);
+    this.fetching.set(false);
+    this.loading.set(false);
   }
 
-  // ── Successor of which positions (for Kế thừa tier)
-  successorOf(t: Talent): KeyPosition[] {
-    return this.positions().filter(p => p.successors?.includes(t.id));
+  // ─── Filter / sort triggers → reset về page 1 ─────────────────────────────
+  onSearchChange(val: string): void {
+    this.search.set(val);
+    if (this._searchTimer) clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => { this.page.set(1); this.fetchPage(); }, 350);
   }
 
-  successorTitles(list: KeyPosition[]): string {
-    return list.map(p => p.title).join(' · ');
+  onFilterChange(): void { this.page.set(1); this.fetchPage(); }
+  onSortChange(): void   { this.page.set(1); this.fetchPage(); }
+
+  onPageChange(p: number): void { this.page.set(p); this.fetchPage(); }
+
+  toggleSortDir(): void {
+    this.sortDir.set(this.sortDir() === 'desc' ? 'asc' : 'desc');
+    this.onSortChange();
   }
 
-  // ── Departure reasons (explicit from mock + derived from risk + seniority)
+  reset(): void {
+    this.search.set('');
+    this.tier.set(null);
+    this.dept.set(null);
+    this.readiness.set(null);
+    this.riskBand.set(null);
+    this.sortCol.set('overall_score');
+    this.sortDir.set('desc');
+    this.page.set(1);
+    this.fetchPage();
+  }
+
+  toggleFilters(): void { this.showFilters.set(!this.showFilters()); }
+  closeFilters(): void  { this.showFilters.set(false); }
+
+  // ─── Readiness label ↔ DB value ───────────────────────────────────────────
+  private readinessToDb(ui: ReadinessUi | null): string | undefined {
+    if (ui === 'Sẵn sàng ngay') return 'Ready Now';
+    if (ui === '1-2 năm')       return 'Ready in 1 Year';
+    if (ui === '3-5 năm')       return 'Ready in 2 Years';
+    return undefined;
+  }
+
+  // ── Departure reasons ──────────────────────────────────────────────────────
   departureReasons(t: Talent): string[] {
     if (t.departure_reasons && t.departure_reasons.length) return t.departure_reasons;
     if ((t.risk_score ?? 0) >= 60 && t.years_of_experience >= 20) return ['Sắp nghỉ hưu'];
@@ -132,22 +185,6 @@ export class TalentListComponent implements OnInit {
   }
 
   navigate(t: Talent): void { this.router.navigate(['/talent', t.id]); }
-  reset(): void {
-    this.search.set('');
-    this.tier.set(null);
-    this.dept.set(null);
-    this.readiness.set(null);
-    this.riskBand.set(null);
-    this.sortField.set('overall');
-    this.sortDir.set('desc');
-  }
-
-  toggleFilters(): void { this.showFilters.set(!this.showFilters()); }
-  closeFilters(): void { this.showFilters.set(false); }
-
-  toggleSortDir(): void {
-    this.sortDir.set(this.sortDir() === 'desc' ? 'asc' : 'desc');
-  }
 
   perfStatus(s: number): 'success' | 'normal' | 'exception' {
     return s >= 85 ? 'success' : s < 60 ? 'exception' : 'normal';
@@ -175,28 +212,4 @@ export class TalentListComponent implements OnInit {
     return { band: 'Low', text: `Low • ${score}`, cls: 'risk-low' };
   }
 
-  readonly avgOverall = computed(() => {
-    const list = this.filtered();
-    if (!list.length) return 0;
-    return Math.round(list.reduce((s, t) => s + this.overallScore(t), 0) / list.length);
-  });
-
-  readonly highRiskCount = computed(() => this.filtered().filter(t => (t.risk_score ?? 0) >= 60).length);
-
-  private sort(list: Talent[]): Talent[] {
-    const field = this.sortField();
-    const dir = this.sortDir() === 'desc' ? -1 : 1;
-    const clone = [...list];
-    clone.sort((a, b) => {
-      let av = 0;
-      let bv = 0;
-      if (field === 'overall') { av = this.overallScore(a); bv = this.overallScore(b); }
-      else if (field === 'performance') { av = a.performance_score ?? 0; bv = b.performance_score ?? 0; }
-      else if (field === 'potential') { av = a.potential_score ?? 0; bv = b.potential_score ?? 0; }
-      else if (field === 'risk') { av = a.risk_score ?? 0; bv = b.risk_score ?? 0; }
-      else { return dir * (a.full_name.localeCompare(b.full_name, 'vi')); }
-      return dir * (av - bv);
-    });
-    return clone;
-  }
 }

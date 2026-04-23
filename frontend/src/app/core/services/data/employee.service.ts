@@ -63,6 +63,63 @@ export class EmployeeService {
     return { data: (data ?? []).map(mapVEmployee), total: count ?? 0 };
   }
 
+  // ─── Server-side paginated list (dùng cho talent-list page) ─────────────────
+  async getPaginated(params: {
+    page:        number;
+    pageSize:    number;
+    search?:     string;
+    departmentId?: string;
+    talentTier?: string;
+    readiness?:  string;   // 'Ready Now' | 'Ready in 1 Year' | 'Ready in 2 Years'
+    riskBand?:   'High' | 'Med' | 'Low';
+    sortCol?:    'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
+    sortDir?:    'asc' | 'desc';
+  }): Promise<{ data: Talent[]; total: number }> {
+    const { page, pageSize, search, departmentId, talentTier, readiness, riskBand, sortCol = 'overall_score', sortDir = 'desc' } = params;
+    const from = (page - 1) * pageSize;
+    const to   = from + pageSize - 1;
+
+    let q = this.sb.from('v_employees')
+      .select('*', { count: 'exact' })
+      .eq('is_active', true);
+
+    if (search?.trim()) {
+      const s = search.trim();
+      q = q.or(`full_name.ilike.%${s}%,position.ilike.%${s}%,department_name.ilike.%${s}%`);
+    }
+    if (departmentId) q = q.eq('department_id', departmentId);
+    if (talentTier)   q = q.eq('talent_tier', talentTier);
+    if (readiness)    q = q.eq('readiness_level', readiness);
+    if (riskBand === 'High') q = q.gte('risk_score', 60);
+    if (riskBand === 'Med')  q = q.gte('risk_score', 30).lt('risk_score', 60);
+    if (riskBand === 'Low')  q = q.lt('risk_score', 30);
+
+    q = q.order(sortCol, { ascending: sortDir === 'asc' }).range(from, to);
+
+    const { data, count, error } = await q;
+    if (error) { console.error('[EmployeeService.getPaginated]', error); return { data: [], total: 0 }; }
+    return { data: (data ?? []).map(mapVEmployee), total: count ?? 0 };
+  }
+
+  /** Distinct department list — dùng 1 lần cho filter dropdown */
+  async getDeptOptions(): Promise<{ id: string; name: string }[]> {
+    return this.cache.get('emp:dept-options', async () => {
+      const { data, error } = await this.sb
+        .from('v_employees')
+        .select('department_id, department_name')
+        .eq('is_active', true)
+        .not('department_id', 'is', null);
+      if (error) return [];
+      const seen = new Map<string, string>();
+      for (const r of data ?? []) {
+        if (r.department_id && r.department_name) seen.set(r.department_id, r.department_name);
+      }
+      return [...seen.entries()]
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    }); // cached by SWR (15 min TTL)
+  }
+
   async getById(id: string): Promise<Talent | null> {
     return this.cache.get(`emp:${id}`, () => this._fetchById(id));
   }

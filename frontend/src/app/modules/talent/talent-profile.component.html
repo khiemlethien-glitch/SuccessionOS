@@ -1,7 +1,68 @@
 <div class="profile-page">
+
+  <!-- ══ Hero skeleton (shown while talent data loads) ══ -->
   @if (loading()) {
-    <div class="loading-wrap"><nz-spin nzSimple nzSize="large"></nz-spin></div>
-  } @else if (talent()) {
+    @if (!embedded) {
+      <div class="crumb">
+        <div class="sk-line" style="width:80px;height:14px"></div>
+        <div class="sk-line" style="width:140px;height:14px"></div>
+      </div>
+    }
+    <div class="hero sk-card">
+      <div class="sk-hero-left">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div class="sk-avatar sk-pulse"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+            <div class="sk-line sk-pulse" style="width:70%;height:20px"></div>
+            <div class="sk-line sk-pulse" style="width:50%;height:14px"></div>
+            <div class="sk-line sk-pulse" style="width:40%;height:13px"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+          <div class="sk-line sk-pulse" style="width:100%;height:13px"></div>
+          <div class="sk-line sk-pulse" style="width:100%;height:13px"></div>
+          <div class="sk-line sk-pulse" style="width:80%;height:13px"></div>
+        </div>
+      </div>
+      <div class="sk-hero-center">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <div class="sk-pill sk-pulse"></div>
+          <div class="sk-pill sk-pulse"></div>
+          <div class="sk-pill sk-pulse"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="sk-bar-row sk-pulse"></div>
+          <div class="sk-bar-row sk-pulse"></div>
+          <div class="sk-bar-row sk-pulse"></div>
+          <div class="sk-bar-row sk-pulse"></div>
+        </div>
+      </div>
+      <div class="sk-hero-right">
+        <div class="sk-metric sk-pulse"></div>
+        <div class="sk-metric sk-pulse"></div>
+        <div class="sk-metric sk-pulse"></div>
+        <div class="sk-metric sk-pulse"></div>
+      </div>
+    </div>
+    <!-- Charts row skeleton -->
+    <div class="charts-row">
+      <div class="chart-card sk-card" style="height:320px"><div class="sk-block sk-pulse" style="height:100%"></div></div>
+      <div class="chart-card sk-card" style="height:320px"><div class="sk-block sk-pulse" style="height:100%"></div></div>
+    </div>
+    <!-- Assessment skeleton -->
+    <div class="eval-card eval-standalone sk-card" style="padding:24px">
+      <div class="sk-line sk-pulse" style="width:200px;height:18px;margin-bottom:20px"></div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="sk-line sk-pulse" style="width:100%;height:12px"></div>
+        <div class="sk-line sk-pulse" style="width:90%;height:12px"></div>
+        <div class="sk-line sk-pulse" style="width:95%;height:12px"></div>
+        <div class="sk-line sk-pulse" style="width:85%;height:12px"></div>
+        <div class="sk-line sk-pulse" style="width:80%;height:12px"></div>
+      </div>
+    </div>
+  }
+
+  @if (!loading() && talent()) {
 
     <!-- Breadcrumb (hidden in embedded mode) -->
     @if (!embedded) {
@@ -376,6 +437,19 @@
 
     <!-- ══ Unified Assessment Card (KPI + 360° — flexible 1 or 2 cols) ══ -->
     <div class="eval-card eval-standalone">
+      @if (cyclesLoading()) {
+        <!-- Assessment skeleton while cycles are fetched -->
+        <div class="eval-head">
+          <h3 class="eval-title">Đánh giá năng lực</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0">
+          <div class="sk-line sk-pulse" style="width:100%;height:12px"></div>
+          <div class="sk-line sk-pulse" style="width:88%;height:12px"></div>
+          <div class="sk-line sk-pulse" style="width:94%;height:12px"></div>
+          <div class="sk-line sk-pulse" style="width:76%;height:12px"></div>
+          <div class="sk-line sk-pulse" style="width:90%;height:12px"></div>
+        </div>
+      } @else {
       <div class="eval-head">
         <h3 class="eval-title">Đánh giá năng lực</h3>
         <nz-select
@@ -490,6 +564,7 @@
       } @else {
         <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
       }
+      } <!-- end @else cyclesLoading -->
     </div>
 
     <!-- ══ Bottom row: IDP compact + Activity timeline ══ -->
@@ -628,7 +703,9 @@
       <app-career-roadmap [talent]="talent()"></app-career-roadmap>
     </div>
 
-  } @else {
+  }
+
+  @if (!loading() && !talent()) {
     <p>Không tìm thấy nhân viên.</p>
   }
 

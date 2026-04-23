@@ -17,7 +17,7 @@
           nz-input
           placeholder="Tìm nhân viên..."
           [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
+          (ngModelChange)="onSearchChange($event)"
         />
       </nz-input-group>
       <ng-template #searchIco><span nz-icon nzType="search" class="ico-muted"></span></ng-template>
@@ -28,13 +28,14 @@
       </button>
 
       <div class="sort">
-        <div class="sort-label">Overall Score</div>
-        <nz-select class="sort-select" [ngModel]="sortField()" (ngModelChange)="sortField.set($event)">
+        <nz-select class="sort-select" [ngModel]="sortCol()"
+                   (ngModelChange)="sortCol.set($event); onSortChange()">
           @for (opt of sortOptions; track opt.value) {
             <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
           }
         </nz-select>
-        <button nz-button nzType="text" class="btn-sortdir" (click)="toggleSortDir()" [nzTooltipTitle]="sortDir()==='desc' ? 'Giảm dần' : 'Tăng dần'" nz-tooltip>
+        <button nz-button nzType="text" class="btn-sortdir" (click)="toggleSortDir()"
+                [nzTooltipTitle]="sortDir()==='desc' ? 'Giảm dần' : 'Tăng dần'" nz-tooltip>
           <span nz-icon [nzType]="sortDir()==='desc' ? 'arrow-down' : 'arrow-up'"></span>
         </button>
       </div>
@@ -61,28 +62,34 @@
       <div class="filter-pop">
         <div class="fp-row">
           <div class="fp-label">Tầng</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" [ngModel]="tier()" (ngModelChange)="tier.set($event)">
+          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                     [ngModel]="tier()" (ngModelChange)="tier.set($event); onFilterChange()">
             @for (t of tierOptions; track t) { <nz-option [nzValue]="t" [nzLabel]="t"></nz-option> }
           </nz-select>
         </div>
 
         <div class="fp-row">
           <div class="fp-label">Phòng ban</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" [ngModel]="dept()" (ngModelChange)="dept.set($event)">
-            @for (d of deptOptions(); track d) { <nz-option [nzValue]="d" [nzLabel]="d"></nz-option> }
+          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" nzShowSearch
+                     [ngModel]="dept()" (ngModelChange)="dept.set($event); onFilterChange()">
+            @for (d of deptOptions(); track d.id) {
+              <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
+            }
           </nz-select>
         </div>
 
         <div class="fp-row">
           <div class="fp-label">Readiness</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" [ngModel]="readiness()" (ngModelChange)="readiness.set($event)">
+          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                     [ngModel]="readiness()" (ngModelChange)="readiness.set($event); onFilterChange()">
             @for (r of readinessOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
           </nz-select>
         </div>
 
         <div class="fp-row">
           <div class="fp-label">Rủi ro</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" [ngModel]="riskBand()" (ngModelChange)="riskBand.set($event)">
+          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                     [ngModel]="riskBand()" (ngModelChange)="riskBand.set($event); onFilterChange()">
             @for (r of riskOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
           </nz-select>
         </div>
@@ -97,11 +104,9 @@
 
   <div class="table-card">
     <nz-table
-      #tbl
-      [nzData]="filtered()"
-      [nzLoading]="loading()"
-      [nzPageSize]="10"
-      [nzShowSizeChanger]="false"
+      [nzData]="rows()"
+      [nzLoading]="loading() || fetching()"
+      [nzShowPagination]="false"
       nzTableLayout="auto"
       class="talent-tbl"
     >
@@ -119,35 +124,14 @@
         </tr>
       </thead>
       <tbody>
-        @for (t of tbl.data; track t.id) {
+        @for (t of rows(); track t.id) {
           <tr class="t-row" (click)="navigate(t)">
             <td>
               <div class="emp">
                 <app-avatar [name]="t.full_name" [size]="36"></app-avatar>
                 <div class="emp-meta">
-                  <div class="emp-name">
-                    {{ t.full_name }}
-                    @if (heldPosition(t); as kp) {
-                      <span class="key-badge" nz-tooltip [nzTooltipTitle]="'Đang giữ vị trí then chốt: ' + kp.title">
-                        <span nz-icon nzType="key"></span>
-                      </span>
-                    }
-                  </div>
+                  <div class="emp-name">{{ t.full_name }}</div>
                   <div class="emp-sub">{{ t.position }}</div>
-                  @if (t.talent_tier === 'Kế thừa') {
-                    @let succ = successorOf(t);
-                    @if (succ.length > 0) {
-                      <div class="emp-succ"
-                           nz-tooltip
-                           [nzTooltipTitle]="succ.length > 1 ? successorTitles(succ) : ''">
-                        <span nz-icon nzType="cluster" class="es-ico"></span>
-                        Kế thừa: <strong>{{ succ[0].title }}</strong>
-                        @if (succ.length > 1) {
-                          <span class="es-more">+{{ succ.length - 1 }}</span>
-                        }
-                      </div>
-                    }
-                  }
                 </div>
               </div>
             </td>
@@ -206,5 +190,22 @@
         }
       </tbody>
     </nz-table>
+
+    <!-- Pagination -->
+    @if (total() > PAGE_SIZE) {
+      <div class="pagination-row">
+        <span class="page-info">
+          {{ (page() - 1) * PAGE_SIZE + 1 }}–{{ page() * PAGE_SIZE > total() ? total() : page() * PAGE_SIZE }} / {{ total() }} nhân viên
+        </span>
+        <nz-pagination
+          [nzPageIndex]="page()"
+          [nzTotal]="total()"
+          [nzPageSize]="PAGE_SIZE"
+          [nzShowSizeChanger]="false"
+          [nzShowQuickJumper]="true"
+          (nzPageIndexChange)="onPageChange($event)"
+        ></nz-pagination>
+      </div>
+    }
   </div>
 </div>

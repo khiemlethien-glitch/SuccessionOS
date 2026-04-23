@@ -9,6 +9,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTimelineModule } from 'ng-zorro-antd/timeline';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { FormsModule } from '@angular/forms';
@@ -36,7 +37,7 @@ import {
   selector: 'app-talent-profile',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, NzTabsModule, NzSelectModule, NzProgressModule, NzButtonModule, NzIconModule,
-    NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule, CareerRoadmapComponent],
+    NzTagModule, NzTimelineModule, NzSpinModule, NzSkeletonModule, NzModalModule, NzInputModule, CareerRoadmapComponent],
   providers: [NzMessageService],
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',
@@ -56,7 +57,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   talent     = signal<Talent | null>(null);
   assessment = signal<Assessment | null>(null);   // dùng trong tab "Đánh giá 360°"
   idp        = signal<IdpPlan | null>(null);
-  loading    = signal(true);
+  loading      = signal(true);   // true until talent() is set (hero skeleton)
+  cyclesLoading = signal(true);  // true until cycles + assessment data ready
 
   // ─── External scores (from score-config service) ─────────────────────────
   externalScore       = signal<ComputedScore | null>(null);
@@ -708,20 +710,33 @@ export class TalentProfileComponent implements OnInit, OnChanges {
    */
   private async loadTalentData(id: string): Promise<void> {
     this.loading.set(true);
-    if (!id) { this.loading.set(false); return; }
+    this.cyclesLoading.set(true);
+    if (!id) { this.loading.set(false); this.cyclesLoading.set(false); return; }
 
     this.successorNodes.set([]);
     this.showAllSuccessors.set(false);
     this.successionTargetPosition.set(null);
+    this.talent.set(null);
+    this.idp.set(null);
+    this.cycles.set([]);
+    this.assessmentView.set(null);
+    this.assessmentBlocks.set(null);
+    this.radarProfile.set(null);
 
-    const [talent, all, cycles, successors, succTarget] = await Promise.all([
-      this.employeeSvc.getById(id),
+    // ① Load talent profile first — hero renders immediately after
+    const talent = await this.employeeSvc.getById(id);
+    this.talent.set(talent);
+    this.loading.set(false);   // hero skeleton → real hero
+
+    if (!talent) { this.cyclesLoading.set(false); return; }
+
+    // ② Secondary data in parallel (sections show skeletons until ready)
+    const [all, cycles, successors, succTarget] = await Promise.all([
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
       this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
       this.successionSvc.getTargetPositionForSuccessor(id).catch(() => null),
     ]);
-    this.talent.set(talent);
     this.allTalents.set(all.data);
     this.cycles.set(cycles);
     this.successorNodes.set(successors);
@@ -733,6 +748,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       this.selectedCycleId.set(firstClosed.id);
       await this.loadAssessmentForCycle(id, firstClosed.id);
     }
+    this.cyclesLoading.set(false);  // assessment skeleton → real assessment
 
     // IDP
     try {
@@ -741,7 +757,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       else this.idpLoaded.set(false);
     } catch { this.idpLoaded.set(false); }
 
-    // Employee extras (project, KT, 360°, quick stats)
+    // Employee extras (project, KT, 360°, quick stats) — fire-and-forget
     this.extrasSvc.getByEmployee(id).then(extras => {
       this.extrasRaw.set(extras);
       if (extras) {
@@ -761,8 +777,6 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
     // History timeline — fire-and-forget (không block loading chính)
     this.loadHistory(id);
-
-    this.loading.set(false);
   }
 
   /** Fetch lịch sử hoạt động từ audit_logs + assessment_scores + idp_plans. */
