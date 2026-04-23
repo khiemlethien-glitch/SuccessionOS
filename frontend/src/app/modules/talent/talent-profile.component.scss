@@ -823,6 +823,71 @@
 }
 .ai-empty-icon { font-size: 20px; }
 
+/* ───────────── Shared edit-mode UI ───────────── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 4px;
+}
+.a360-head-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  .a360-head { flex: 1; }
+}
+.edit-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 5px 10px; font-size: 12px; font-weight: 500; color: #6b7280;
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+  &:hover { border-color: #4f46e5; color: #4f46e5; background: #f5f3ff; }
+}
+.edit-btn-a360 { flex-shrink: 0; }
+.link-btn {
+  background: none; border: none; padding: 0;
+  color: #4f46e5; font-size: inherit; cursor: pointer; font-weight: 500;
+  &:hover { text-decoration: underline; }
+}
+.empty-section {
+  color: #9ca3af; font-size: 13px; padding: 10px 0;
+}
+
+/* edit form */
+.edit-form {
+  display: flex; flex-direction: column; gap: 14px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 12px; padding: 18px 20px;
+}
+.ef-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  @media(max-width: 640px) { grid-template-columns: 1fr; }
+}
+.ef-row {
+  display: flex; align-items: center; gap: 12px;
+  label { min-width: 130px; font-size: 13px; font-weight: 500; color: #374151; flex-shrink: 0; }
+  input, .ef-select { flex: 1; font-size: 13px; }
+  &.ef-col { flex-direction: column; align-items: stretch;
+    label { min-width: unset; }
+  }
+}
+.ef-select {
+  border: 1px solid #d9d9d9; border-radius: 6px; padding: 4px 8px;
+  font-size: 13px; outline: none;
+  &:focus { border-color: #4f46e5; }
+}
+.ef-range { flex: 1; accent-color: #4f46e5; }
+.ef-hint { font-size: 11px; color: #9ca3af; margin-left: 4px; }
+.ef-actions {
+  display: flex; gap: 8px; padding-top: 4px;
+}
+
+/* Score tab extras */
+.score-cycle-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 14px; font-size: 13px; color: #6b7280; font-weight: 500;
+}
+.score-cycle-label { flex-shrink: 0; }
+.score-view-header {
+  display: flex; justify-content: flex-end; padding-bottom: 8px;
+}
+.score-edit-form { margin-top: 8px; }
+
 /* ───────────── Score cards (Điểm số tab) ───────────── */
 .score-loading { display:flex; justify-content:center; padding:40px; }
 .score-empty {

@@ -17,6 +17,8 @@ import { IdpService } from '../../core/services/data/idp.service';
 import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
+import { EmployeeExtrasService, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import {
   Talent,
   Assessment,
@@ -33,6 +35,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, NzTabsModule, NzSelectModule, NzProgressModule, NzButtonModule, NzIconModule,
     NzTagModule, NzTimelineModule, NzSpinModule, NzModalModule, NzInputModule],
+  providers: [NzMessageService],
   templateUrl: './talent-profile.component.html',
   styleUrl: './talent-profile.component.scss',
   // Mentor picker modal + dynamic SVG charts don't hydrate cleanly;
@@ -431,6 +434,175 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   private assessmentSvc = inject(AssessmentService);
   private successionSvc = inject(SuccessionService);
   private scoreSvc     = inject(ScoreConfigService);
+  private extrasSvc    = inject(EmployeeExtrasService);
+  private msg          = inject(NzMessageService);
+
+  // ─── Edit modes ───────────────────────────────────────────────────────────
+  // Project edit
+  projectEditMode = signal(false);
+  projectSaving   = signal(false);
+  projectDraft    = signal({ name:'', type:'', role:'', client:'', value:'', status:'active' });
+
+  // KT edit
+  ktEditMode = signal(false);
+  ktSaving   = signal(false);
+  ktDraft    = signal({ successor:'', successor_role:'', start_date:'', target_date:'', overall_progress:0 });
+
+  // 360° edit
+  a360EditMode = signal(false);
+  a360Saving   = signal(false);
+  a360Draft    = signal({ overall:0, benchmark:5, period:'', manager_note:'',
+                          strengths_raw:'', needs_dev_raw:'' });
+
+  // Score edit
+  scoreEditMode = signal(false);
+  scoreSaving   = signal(false);
+  scoreDraft    = signal<{ assessment_score: number|null; score_360: number|null }>(
+    { assessment_score: null, score_360: null }
+  );
+
+  // ─── Project edit helpers ─────────────────────────────────────────────────
+  openProjectEdit(): void {
+    const p = this.currentProjectData();
+    this.projectDraft.set(p
+      ? { name: p.name, type: p.type, role: p.role, client: p.client, value: p.value, status: p.status }
+      : { name:'', type:'', role:'', client:'', value:'', status:'active' }
+    );
+    this.projectEditMode.set(true);
+  }
+
+  async saveProject(): Promise<void> {
+    const id = this.talent()?.id;
+    if (!id) return;
+    this.projectSaving.set(true);
+    const d = this.projectDraft();
+    const ok = await this.extrasSvc.save(id, {
+      project_name: d.name, project_type: d.type, project_role: d.role,
+      project_client: d.client, project_value: d.value, project_status: d.status,
+    });
+    this.projectSaving.set(false);
+    if (ok) {
+      this.currentProjectData.set({ name:d.name, type:d.type, role:d.role, client:d.client, value:d.value, status:d.status });
+      this.projectEditMode.set(false);
+      this.msg.success('Đã lưu dự án hiện tại');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  // ─── KT edit helpers ──────────────────────────────────────────────────────
+  openKtEdit(): void {
+    const kt = this.knowledgeTransferData();
+    this.ktDraft.set(kt
+      ? { successor: kt.successor, successor_role: kt.successor_role,
+          start_date: kt.start_date, target_date: kt.target_date,
+          overall_progress: kt.overall_progress }
+      : { successor:'', successor_role:'', start_date:'', target_date:'', overall_progress:0 }
+    );
+    this.ktEditMode.set(true);
+  }
+
+  async saveKt(): Promise<void> {
+    const id = this.talent()?.id;
+    if (!id) return;
+    this.ktSaving.set(true);
+    const d = this.ktDraft();
+    const ok = await this.extrasSvc.save(id, {
+      kt_successor: d.successor, kt_successor_role: d.successor_role,
+      kt_start_date: d.start_date, kt_target_date: d.target_date,
+      kt_overall_progress: d.overall_progress,
+    });
+    this.ktSaving.set(false);
+    if (ok) {
+      const prev = this.knowledgeTransferData();
+      this.knowledgeTransferData.set({
+        successor: d.successor, successor_role: d.successor_role,
+        start_date: d.start_date, target_date: d.target_date,
+        overall_progress: d.overall_progress,
+        items: prev?.items ?? [],
+      });
+      this.ktEditMode.set(false);
+      this.msg.success('Đã lưu thông tin chuyển giao tri thức');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  // ─── 360° edit helpers ────────────────────────────────────────────────────
+  open360Edit(): void {
+    const d = this.assessment360Data();
+    this.a360Draft.set(d
+      ? { overall: d.overall, benchmark: d.benchmark, period: d.period,
+          manager_note: d.manager_note,
+          strengths_raw: (d.strengths ?? []).join('\n'),
+          needs_dev_raw: (d.needs_dev ?? []).join('\n') }
+      : { overall: 0, benchmark: 5, period: '', manager_note:'', strengths_raw:'', needs_dev_raw:'' }
+    );
+    this.a360EditMode.set(true);
+  }
+
+  async save360(): Promise<void> {
+    const id = this.talent()?.id;
+    if (!id) return;
+    this.a360Saving.set(true);
+    const d = this.a360Draft();
+    const strengths = d.strengths_raw.split('\n').map(s => s.trim()).filter(Boolean);
+    const needs_dev  = d.needs_dev_raw.split('\n').map(s => s.trim()).filter(Boolean);
+    const ok = await this.extrasSvc.save(id, {
+      a360_overall: d.overall, a360_benchmark: d.benchmark, a360_period: d.period,
+      a360_manager_note: d.manager_note,
+      a360_strengths: strengths, a360_needs_dev: needs_dev,
+    });
+    this.a360Saving.set(false);
+    if (ok) {
+      this.assessment360Data.set({
+        overall: d.overall, benchmark: d.benchmark, period: d.period,
+        sources: this.assessment360Data()?.sources ?? [],
+        criteria: this.assessment360Data()?.criteria ?? [],
+        strengths, needs_dev, manager_note: d.manager_note,
+      });
+      this.a360EditMode.set(false);
+      this.msg.success('Đã lưu đánh giá 360°');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  // ─── Score edit helpers ───────────────────────────────────────────────────
+  openScoreEdit(): void {
+    const s = this.externalScore();
+    this.scoreDraft.set({ assessment_score: s?.assessment_score ?? null, score_360: s?.score_360 ?? null });
+    this.scoreEditMode.set(true);
+  }
+
+  async saveScore(): Promise<void> {
+    const id = this.talent()?.id;
+    const cycleId = this.selectedCycleId();
+    if (!id || !cycleId) { this.msg.warning('Chưa chọn chu kỳ đánh giá'); return; }
+    this.scoreSaving.set(true);
+    const d = this.scoreDraft();
+    const ok = await this.scoreSvc.upsertScore(id, cycleId, d.assessment_score, d.score_360);
+    this.scoreSaving.set(false);
+    if (ok) {
+      const s = await this.scoreSvc.getScoreForEmployee(id, cycleId);
+      this.externalScore.set(s);
+      this.externalScoreLoaded.set(true);
+      this.scoreEditMode.set(false);
+      this.msg.success('Đã lưu điểm số');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  setProjectStatus(event: Event): void {
+    const v = (event.target as HTMLSelectElement).value;
+    this.projectDraft.update(d => ({ ...d, status: v }));
+  }
+
+  setKtProgress(event: Event): void {
+    const v = +(event.target as HTMLInputElement).value;
+    this.ktDraft.update(d => ({ ...d, overall_progress: v }));
+  }
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
@@ -497,6 +669,18 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       if (idp) { this.idp.set(idp as any); this.idpLoaded.set(true); }
       else this.idpLoaded.set(false);
     } catch { this.idpLoaded.set(false); }
+
+    // Employee extras (project, KT, 360°)
+    this.extrasSvc.getByEmployee(id).then(extras => {
+      if (extras) {
+        const p    = extrasToProject(extras);
+        const kt   = extrasToKt(extras);
+        const a360 = extrasTo360(extras);
+        if (p)   this.currentProjectData.set(p);
+        if (kt)  this.knowledgeTransferData.set(kt);
+        if (a360) this.assessment360Data.set(a360);
+      }
+    });
 
     // External scores (assessment_score + score_360 → total)
     this.scoreSvc.getLatestScoreForEmployee(id)

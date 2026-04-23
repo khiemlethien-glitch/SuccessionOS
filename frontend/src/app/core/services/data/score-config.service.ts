@@ -98,6 +98,17 @@ export class ScoreConfigService {
     return this._fetchComputedScore(employeeId, cycleRes.data.id);
   }
 
+  async upsertScore(employeeId: string, cycleId: string, assessment_score: number | null, score_360: number | null): Promise<boolean> {
+    const { error } = await this.sb
+      .from('external_scores')
+      .upsert({ employee_id: employeeId, cycle_id: cycleId, assessment_score, score_360 },
+               { onConflict: 'employee_id,cycle_id' });
+    if (error) { console.error('[ScoreConfigService.upsertScore]', error); return false; }
+    this.cache.invalidate(`score:latest:${employeeId}`);
+    this.cache.invalidate(`score:emp:${employeeId}:${cycleId}`);
+    return true;
+  }
+
   async getScoresForCycle(cycleId: string): Promise<ExternalScore[]> {
     return this.cache.get(`score:cycle:${cycleId}`, () => this._fetchCycleScores(cycleId));
   }
