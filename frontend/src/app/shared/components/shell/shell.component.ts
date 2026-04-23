@@ -36,15 +36,15 @@ export class ShellComponent {
     ]},
     { label: 'PHÁT TRIỂN', items: [
       { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp' },
-      { label: 'Đánh giá',           icon: 'star',      route: '/assessment' },
-      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring' },
-      { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration' },
+      { label: 'Đánh giá',           icon: 'star',      route: '/assessment',  disabled: true },
+      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring',   disabled: true },
+      { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration', disabled: true },
     ]},
     { label: 'PHÂN TÍCH', items: [
-      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports' },
+      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports',     disabled: true },
     ]},
     { label: 'HỆ THỐNG', items: [
-      { label: 'Marketplace',        icon: 'shop',      route: '/marketplace' },
+      { label: 'Marketplace',        icon: 'shop',      route: '/marketplace', disabled: true },
       { label: 'Quản trị',           icon: 'setting',   route: '/admin' },
     ]},
   ];
