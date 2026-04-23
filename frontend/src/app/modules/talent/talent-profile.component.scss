@@ -196,8 +196,8 @@
   to   { opacity:1; transform:scale(1); }
 }
 @keyframes pulse-ring {
-  0%   { transform:translate(-50%,-50%) scale(1); opacity:.55; }
-  100% { transform:translate(-50%,-50%) scale(2.6); opacity:0; }
+  0%   { transform:scale(1); opacity:.55; }
+  100% { transform:scale(2.6); opacity:0; }
 }
 @keyframes node-pop {
   0%   { transform:translate(-50%,-50%) scale(0); opacity:0; }
@@ -375,35 +375,32 @@
 .node-label-left  { position:absolute; right:calc(100% + 8px); top:50%; transform:translateY(-50%); }
 .net-above-label  { order:-1; margin-bottom:3px; font-size:10px; color:#818cf8; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
 .net-below-label  { font-size:10px; color:#6b7280; font-weight:600; margin-top:2px; }
-.node-label-dis   { color:#cbd5e1; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.node-label-dis   { color:#cbd5e1; display:flex; flex-direction:column; align-items:center; gap:2px; white-space:normal; text-align:center; max-width:72px; }
 
-/* ── Center node + pulse ─────────────── */
-.center-pulse-ring {
-  position:absolute; transform:translate(-50%,-50%);
-  width:68px; height:68px; border-radius:50%;
-  background:rgba(124,58,237,.25);
-  animation:pulse-ring 2.4s ease-out infinite;
-  pointer-events:none; z-index:1;
-}
-.center-pulse-ring--2 { animation-delay:.8s; background:rgba(99,102,241,.18); }
-
+/* ── Center node + pulse (via ::before / ::after on the circle itself) ── */
 .center-circle {
   width:68px; height:68px; font-size:15px; position:relative; z-index:2;
   background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);
   box-shadow:0 0 0 4px rgba(124,58,237,.2), 0 6px 20px rgba(124,58,237,.4);
-}
-.net-center-name {
-  font-size:11px; font-weight:700; color:#3730a3; margin-top:3px; white-space:nowrap;
+  overflow:visible;
+
+  &::before, &::after {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background:rgba(124,58,237,.25);
+    animation:pulse-ring 2.4s ease-out infinite;
+    pointer-events:none; z-index:-1;
+  }
+  &::after { animation-delay:.8s; background:rgba(99,102,241,.18); }
 }
 
 /* ── Target position chip ────────── */
 .chip-target-pos {
-  display:flex; align-items:center; gap:5px;
-  padding:7px 14px; border-radius:12px;
+  display:flex; align-items:center; gap:7px;
+  padding:9px 18px; border-radius:12px;
   background:linear-gradient(135deg,#312e81,#4f46e5);
-  color:#fff; font-weight:700; font-size:11.5px;
+  color:#fff; font-weight:700; font-size:12px;
   box-shadow:0 4px 14px rgba(49,46,129,.4);
-  max-width:190px;
+  max-width:200px;
   border:1px solid rgba(165,180,252,.3);
   .ctp-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 }

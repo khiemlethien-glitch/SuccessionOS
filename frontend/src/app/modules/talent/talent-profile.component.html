@@ -247,10 +247,7 @@
 
           <!-- ── Center node ────────────────────────────────────── -->
           <div class="node node-center" style="left:50%;top:50%">
-            <div class="center-pulse-ring"></div>
-            <div class="center-pulse-ring center-pulse-ring--2"></div>
             <div class="node-circle center-circle">{{ centerInitials() }}</div>
-            <div class="net-center-name">{{ lastName(talent()?.full_name ?? '') }}</div>
           </div>
 
           <!-- ── Target position (top) ─────────────────────────── -->
@@ -267,7 +264,8 @@
                [class.clickable]="!!mentorTalent()"
                (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
             @if (mentorTalent(); as m) {
-              <div class="node-circle mentor-circle" [title]="m.full_name">{{ nameInitials(m.full_name) }}</div>
+              <div class="node-circle mentor-circle"
+                   nz-tooltip [nzTooltipTitle]="m.full_name + ' · ' + m.position">{{ nameInitials(m.full_name) }}</div>
               <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
             } @else {
               <div class="node-circle mentor-empty">—</div>
@@ -280,9 +278,8 @@
             <div class="node-circle ktp-circle-dis">
               <span nz-icon nzType="lock" style="font-size:14px"></span>
             </div>
-            <div class="node-label node-label-left node-label-dis">
-              Tri thức
-              <span class="net-soon">Sắp ra mắt</span>
+            <div class="node-label node-label-dis">
+              Tri thức<br><span class="net-soon">Sắp ra mắt</span>
             </div>
           </div>
 
@@ -293,7 +290,8 @@
                  [style.left.%]="pos.xPct"
                  [style.top.%]="pos.yPct"
                  (click)="switchCenter(pos.talent_id)">
-              <div class="node-circle succ-circle" [title]="pos.talent_name">{{ nameInitials(pos.talent_name) }}</div>
+              <div class="node-circle succ-circle"
+                   nz-tooltip [nzTooltipTitle]="succNodeTooltip(pos)">{{ nameInitials(pos.talent_name) }}</div>
               <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
             </div>
             <!-- IDP % midpoint badge -->
