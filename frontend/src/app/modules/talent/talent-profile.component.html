@@ -124,25 +124,40 @@
     <div class="charts-row">
 
       <!-- Radar: Hồ sơ năng lực -->
-      <div class="chart-card">
-        <div class="chart-head">
-          <div>
-            <h3 class="chart-title">Hồ sơ năng lực</h3>
-            <p class="chart-sub">
-              GAP tổng <strong>{{ radarTotalGap() }}</strong>
-              · TB <strong [class.rs-up]="radarAvgGap() >= 0" [class.rs-down]="radarAvgGap() < 0">
-                {{ radarAvgGap() >= 0 ? '+' : '' }}{{ radarAvgGap() }}
-              </strong>
-            </p>
+      <div class="chart-card radar-card">
+        <!-- Gradient header band -->
+        <div class="rc-head">
+          <div class="rc-head-left">
+            <span nz-icon nzType="radar-chart" class="rc-ico"></span>
+            <div>
+              <h3 class="chart-title rc-title">Hồ sơ năng lực</h3>
+              <p class="chart-sub rc-sub">
+                GAP tổng <strong>{{ radarTotalGap() }}</strong>
+                &nbsp;·&nbsp; TB
+                <strong [class.rs-up]="radarAvgGap() >= 0" [class.rs-down]="radarAvgGap() < 0">
+                  {{ radarAvgGap() >= 0 ? '+' : '' }}{{ radarAvgGap() }}
+                </strong>
+              </p>
+            </div>
           </div>
-          <div class="chart-badges">
-            <span class="badge badge-good"><span nz-icon nzType="check"></span> {{ radarAbove() }} vượt chuẩn</span>
-            <span class="badge badge-bad"><span nz-icon nzType="close"></span> {{ radarBelow() }} cần cải thiện</span>
+          <div class="rc-badges">
+            <span class="badge badge-good"><span nz-icon nzType="check-circle"></span> {{ radarAbove() }} vượt chuẩn</span>
+            <span class="badge badge-bad"><span nz-icon nzType="warning"></span> {{ radarBelow() }} cần cải thiện</span>
           </div>
         </div>
 
         <div class="radar-wrap">
           <svg viewBox="-40 -18 280 238" class="radar-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="radar-fill-grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.08"/>
+              </radialGradient>
+              <filter id="radar-glow">
+                <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
             <!-- Grid pentagons -->
             @for (g of radarGrid; track $index) {
               <polygon [attr.points]="g" class="radar-grid" />
@@ -153,8 +168,8 @@
             }
             <!-- Target (dashed) -->
             <path [attr.d]="radarTargetPath()" class="radar-target" />
-            <!-- Actual (filled) -->
-            <path [attr.d]="radarActualPath()" class="radar-actual" />
+            <!-- Actual (filled + glow) -->
+            <path [attr.d]="radarActualPath()" class="radar-actual" filter="url(#radar-glow)" />
             <!-- Labels -->
             @for (a of radarAxes(); track a.label) {
               <text [attr.x]="a.lx" [attr.y]="a.ly" [attr.text-anchor]="a.anchor" class="radar-label">{{ a.label }}</text>
@@ -167,11 +182,18 @@
           </div>
         </div>
 
+        <!-- Stats row with mini bars -->
         <div class="radar-stats">
           @for (e of radarEntries(); track e.label) {
             <div class="rs-col">
               <div class="rs-label">{{ e.label }}</div>
               <div class="rs-value">{{ e.actual ?? '—' }}</div>
+              <div class="rs-bar-track">
+                <div class="rs-bar-fill"
+                     [style.width.%]="e.actual ?? 0"
+                     [class.rs-bar-good]="(e.delta ?? -1) >= 0"
+                     [class.rs-bar-bad]="(e.delta ?? 0) < 0"></div>
+              </div>
               @if (e.delta != null) {
                 <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-down]="e.delta < 0">
                   {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
@@ -186,22 +208,22 @@
 
       <!-- Network: Mạng lưới phát triển -->
       <div class="chart-card net-card">
-        <div class="chart-head">
-          <div>
-            <h3 class="chart-title">Mạng lưới phát triển</h3>
-            <p class="chart-sub">Click vào node để xem hồ sơ người đó</p>
+        <div class="net-head">
+          <div class="net-head-left">
+            <span nz-icon nzType="cluster" class="net-head-ico"></span>
+            <div>
+              <h3 class="chart-title rc-title">Mạng lưới phát triển</h3>
+              <p class="chart-sub rc-sub">Click vào node để xem hồ sơ</p>
+            </div>
           </div>
           <div class="net-legend">
-            <span class="lg"><i class="dot dot-target"></i>Vị trí mục tiêu</span>
-            <span class="lg"><i class="dot dot-mentor"></i>Mentor</span>
-            <span class="lg"><i class="dot dot-succ"></i>Kế thừa</span>
-            <span class="lg net-legend-disabled"><i class="dot dot-ktp"></i>Tri thức
-              <span class="net-soon">Sắp ra mắt</span>
-            </span>
+            <span class="net-pill pill-target"><i class="dot dot-target"></i>Mục tiêu</span>
+            <span class="net-pill pill-mentor"><i class="dot dot-mentor"></i>Mentor</span>
+            <span class="net-pill pill-succ"><i class="dot dot-succ"></i>Kế thừa</span>
           </div>
         </div>
 
-        <div class="net-wrap">
+        <div class="net-wrap net-canvas">
           <!-- SVG edge layer -->
           <svg class="net-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
@@ -225,6 +247,8 @@
 
           <!-- ── Center node ────────────────────────────────────── -->
           <div class="node node-center" style="left:50%;top:50%">
+            <div class="center-pulse-ring"></div>
+            <div class="center-pulse-ring center-pulse-ring--2"></div>
             <div class="node-circle center-circle">{{ centerInitials() }}</div>
             <div class="net-center-name">{{ lastName(talent()?.full_name ?? '') }}</div>
           </div>
