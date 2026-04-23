@@ -1,7 +1,44 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (external scores + admin users from Supabase)
+> Cập nhật lần cuối: 2026-04-23 (inline edit toàn bộ sections talent profile)
+
+---
+
+## ✏️ Inline Edit toàn bộ sections talent profile (2026-04-23) — commit 757cb0e
+
+### Vấn đề được giải quyết
+- Mỗi nhân viên là component instance riêng, data load từ DB theo `employee_id`
+- Các section (360°, project, KT) trước đây null vì không có bảng DB → giờ có table + edit UI
+- HR mở profile → nhập/sửa → Lưu → upsert Supabase → không cần vào Supabase dashboard
+
+### SQL migration cần chạy (1 lần)
+File: `supabase/migrations/20260423_employee_extras.sql`
+```sql
+-- Chạy trong Supabase SQL Editor:
+-- Tạo bảng employee_extras với đầy đủ cột + RLS policy anon_all
+```
+
+### EmployeeExtrasService (`employee-extras.service.ts`)
+- `getByEmployee(id)` — cached, query `employee_extras`
+- `save(id, patch)` — upsert `employee_extras`, invalidate cache
+- Helper functions: `extrasToProject()`, `extrasToKt()`, `extrasTo360()`
+
+### ScoreConfigService — thêm `upsertScore()`
+- `upsertScore(employeeId, cycleId, assessment_score, score_360)` — upsert `external_scores`
+
+### Talent Profile — edit mode mỗi section
+| Section | Fields có thể nhập | Save to |
+|---|---|---|
+| Dự án hiện tại | name, type, role, client, value, status | `employee_extras` |
+| Chuyển giao Tri thức | successor, role, dates, progress (slider) | `employee_extras` |
+| Đánh giá 360° | overall, benchmark, period, strengths/needs_dev (textarea), manager_note | `employee_extras` |
+| Điểm số tab | assessment_score, score_360 + cycle selector | `external_scores` |
+
+- Empty state: nút "Nhập ngay"
+- Có data: nút bút chì "Chỉnh sửa"
+- Save thành công: toast NzMessage
+- Build: ✅ 0 errors
 
 ---
 
