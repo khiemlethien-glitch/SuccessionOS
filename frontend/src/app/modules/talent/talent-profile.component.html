@@ -492,379 +492,135 @@
       }
     </div>
 
-    <!-- ══ IDP + Dự án + Thống kê nhanh ══ -->
-    <div class="review-grid">
-      <!-- LEFT COLUMN -->
-      <div class="review-col">
+    <!-- ══ Bottom row: IDP compact + Activity timeline ══ -->
+    <div class="bottom-row">
 
-        <!-- IDP Plan -->
-        <div class="idp-plan-card">
-          <div class="idp-head">
-            <h3 class="idp-title">Kế hoạch Phát triển Cá nhân (IDP)</h3>
-            <span class="idp-status">{{ idpStatus() }}</span>
+      <!-- LEFT: IDP compact card -->
+      <div class="bottom-card idp-compact-card">
+        <div class="bc-head">
+          <span nz-icon nzType="rocket" class="bc-ico"></span>
+          <div class="bc-head-text">
+            <div class="bc-title">Kế hoạch Phát triển Cá nhân</div>
+            <div class="bc-sub">IDP {{ idp()?.year ?? '' }}</div>
           </div>
-
-          <div class="idp-meta">
-            <div>Vị trí mục tiêu: <strong>{{ idpTargetPosition() }}</strong></div>
-            <div class="idp-meta-sub">Duyệt bởi {{ idpApprovedBy() }} · {{ idpApprovedDate() }}</div>
-          </div>
-
-          <div class="idp-progress">
-            <div class="idp-progress-head">
-              <span>Tiến độ tổng thể</span>
-              <strong>{{ idpProgress() }}%</strong>
-            </div>
-            <div class="idp-progress-track">
-              <div class="idp-progress-fill" [style.width.%]="idpProgress()"></div>
-            </div>
-          </div>
-
-          <div class="idp-goals">
-            <div class="ig-col">
-              <div class="ig-head">Mục tiêu 12 tháng</div>
-              @for (g of idpGoals12m(); track g) {
-                <div class="ig-item">
-                  <span nz-icon nzType="arrow-right" class="ig-ico ig-ico-12m"></span>{{ g }}
-                </div>
-              }
-            </div>
-            <div class="ig-col">
-              <div class="ig-head">Mục tiêu 2–3 năm</div>
-              @for (g of idpGoals2to3y(); track g) {
-                <div class="ig-item">
-                  <span nz-icon nzType="aim" class="ig-ico ig-ico-2y"></span>{{ g }}
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div class="review-col">
-
-        <!-- Dự án hiện tại -->
-        <div class="info-card">
-          <div class="chb chb-blue">
-            <span nz-icon nzType="project" class="chb-ico"></span>
-            <h3 class="chb-title">Dự án hiện tại</h3>
-            @if (!projectEditMode()) {
-              <button type="button" class="chb-edit-btn" (click)="openProjectEdit()" title="Chỉnh sửa">
-                <span nz-icon nzType="edit"></span>
-              </button>
-            }
-          </div>
-
-          @if (projectEditMode()) {
-            <div class="edit-form">
-              <div class="ef-row"><label>Tên dự án</label><input nz-input [(ngModel)]="projectDraft().name" (ngModelChange)="projectDraft.update(d=>({...d,name:$event}))" /></div>
-              <div class="ef-row"><label>Loại</label><input nz-input [(ngModel)]="projectDraft().type" (ngModelChange)="projectDraft.update(d=>({...d,type:$event}))" placeholder="EPC, EPCI…"/></div>
-              <div class="ef-row"><label>Vai trò</label><input nz-input [(ngModel)]="projectDraft().role" (ngModelChange)="projectDraft.update(d=>({...d,role:$event}))" /></div>
-              <div class="ef-row"><label>Khách hàng</label><input nz-input [(ngModel)]="projectDraft().client" (ngModelChange)="projectDraft.update(d=>({...d,client:$event}))" /></div>
-              <div class="ef-row"><label>Giá trị HĐ</label><input nz-input [(ngModel)]="projectDraft().value" (ngModelChange)="projectDraft.update(d=>({...d,value:$event}))" placeholder="180M USD"/></div>
-              <div class="ef-row"><label>Trạng thái</label>
-                <select class="ef-select" [value]="projectDraft().status" (change)="setProjectStatus($event)">
-                  <option value="active">Đang thực hiện</option>
-                  <option value="completed">Hoàn thành</option>
-                  <option value="pending">Chưa bắt đầu</option>
-                </select>
-              </div>
-              <div class="ef-actions">
-                <button nz-button nzType="primary" nzSize="small" [nzLoading]="projectSaving()" (click)="saveProject()">Lưu</button>
-                <button nz-button nzSize="small" (click)="projectEditMode.set(false)">Hủy</button>
-              </div>
-            </div>
-          } @else if (currentProjectData(); as p) {
-            <div class="info-project">
-              <div class="ip-name">{{ p.name }}</div>
-              <span class="ip-tag">{{ p.type }}</span>
-            </div>
-            <div class="info-rows">
-              <div class="ir"><span class="ir-label">Vai trò:</span> <strong>{{ p.role }}</strong></div>
-              <div class="ir"><span class="ir-label">Khách hàng:</span> <strong>{{ p.client }}</strong></div>
-              <div class="ir"><span class="ir-label">Giá trị HĐ:</span> <strong>{{ p.value }}</strong></div>
-              <div class="ir"><span class="ir-label">Trạng thái:</span> <span class="ir-status">{{ p.status }}</span></div>
-            </div>
-          } @else {
-            <p class="empty-section">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openProjectEdit()">Nhập ngay</button></p>
+          @if (idp()) {
+            <span class="bc-badge" [class.bc-badge-active]="idp()!.status === 'Active'"
+                                   [class.bc-badge-done]="idp()!.status === 'Completed'">
+              {{ idp()!.status }}
+            </span>
           }
         </div>
 
-        <!-- Thống kê nhanh -->
-        <div class="info-card">
-          <div class="chb chb-slate">
-            <span nz-icon nzType="bar-chart" class="chb-ico"></span>
-            <h3 class="chb-title">Thống kê nhanh</h3>
-            @if (!qsEditMode()) {
-              <button type="button" class="chb-edit-btn" (click)="openQsEdit()" title="Chỉnh sửa">
-                <span nz-icon nzType="edit"></span>
-              </button>
+        @if (idp(); as plan) {
+          <!-- Ring + meta -->
+          <div class="icp-overview">
+            <div class="icp-ring-wrap">
+              <svg class="icp-ring" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e7ff" stroke-width="3.2"/>
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4f46e5" stroke-width="3.2"
+                  [attr.stroke-dasharray]="idpProgress() + ' ' + (100 - idpProgress())"
+                  stroke-dashoffset="25"
+                  stroke-linecap="round"/>
+              </svg>
+              <div class="icp-ring-pct">{{ idpProgress() }}%</div>
+            </div>
+            <div class="icp-meta">
+              <div class="icp-meta-row">
+                <span class="icp-meta-label">Vị trí mục tiêu</span>
+                <span class="icp-meta-val">{{ idpTargetPosition() }}</span>
+              </div>
+              <div class="icp-meta-row">
+                <span class="icp-meta-label">Duyệt bởi</span>
+                <span class="icp-meta-val">{{ idpApprovedBy() }}</span>
+              </div>
+              <div class="icp-meta-row">
+                <span class="icp-meta-label">Ngày duyệt</span>
+                <span class="icp-meta-val">{{ idpApprovedDate() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Goals -->
+          <div class="icp-goals">
+            @if (idpGoals12m().length) {
+              <div class="icg-section">
+                <div class="icg-head">
+                  <span nz-icon nzType="calendar" class="icg-ico icg-ico-12m"></span>
+                  Mục tiêu 12 tháng
+                </div>
+                @for (g of idpGoals12m(); track g) {
+                  <div class="icg-item">
+                    <span class="icg-dot icg-dot-12m"></span>{{ g }}
+                  </div>
+                }
+              </div>
+            }
+            @if (idpGoals2to3y().length) {
+              <div class="icg-section">
+                <div class="icg-head">
+                  <span nz-icon nzType="aim" class="icg-ico icg-ico-2y"></span>
+                  Mục tiêu 2–3 năm
+                </div>
+                @for (g of idpGoals2to3y(); track g) {
+                  <div class="icg-item">
+                    <span class="icg-dot icg-dot-2y"></span>{{ g }}
+                  </div>
+                }
+              </div>
+            }
+            @if (!idpGoals12m().length && !idpGoals2to3y().length) {
+              <div class="bc-empty">
+                <span nz-icon nzType="file-text" class="bc-empty-ico"></span>
+                <p>Chưa có mục tiêu nào được nhập.</p>
+              </div>
             }
           </div>
 
-          @if (qsEditMode()) {
-            <div class="edit-form" style="margin-top:4px">
-              <div class="ef-row">
-                <label>Giờ đào tạo/năm</label>
-                <input nz-input type="number" min="0" step="1"
-                  [ngModel]="qsDraft().training_hours"
-                  (ngModelChange)="qsDraft.update(d=>({...d,training_hours:$event===''||$event==null?null:+$event}))"
-                  placeholder="VD: 80" />
-              </div>
-              <div class="ef-row">
-                <label>Năm thăng chức gần nhất</label>
-                <input nz-input type="number" min="2000" max="2030" step="1"
-                  [ngModel]="qsDraft().last_promotion_year"
-                  (ngModelChange)="qsDraft.update(d=>({...d,last_promotion_year:$event===''||$event==null?null:+$event}))"
-                  placeholder="VD: 2023" />
-              </div>
-              <div class="ef-actions">
-                <button nz-button nzType="primary" nzSize="small" [nzLoading]="qsSaving()" (click)="saveQs()">Lưu</button>
-                <button nz-button nzSize="small" (click)="qsEditMode.set(false)">Hủy</button>
-              </div>
-            </div>
-          } @else {
-            <div class="qs-grid">
-              <div class="qs-cell">
-                <div class="qs-label">Giờ đào tạo/năm</div>
-                <div class="qs-value">
-                  @if (quickStats().trainingHours != null) { {{ quickStats().trainingHours }} giờ }
-                  @else { <span class="qs-empty">— chưa nhập</span> }
-                </div>
-              </div>
-              <div class="qs-cell">
-                <div class="qs-label">Thăng chức gần nhất</div>
-                <div class="qs-value">
-                  @if (quickStats().lastPromotion != null) { {{ quickStats().lastPromotion }} }
-                  @else { <span class="qs-empty">— chưa nhập</span> }
-                </div>
-              </div>
-              <div class="qs-cell">
-                <div class="qs-label">Tiến độ IDP</div>
-                <div class="qs-value">{{ quickStats().idpProgress }}%</div>
-              </div>
-              <div class="qs-cell">
-                <div class="qs-label">Risk Score</div>
-                <div class="qs-value qs-value-risk">{{ quickStats().riskScore }} / 100</div>
-              </div>
-            </div>
-          }
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ══ Chuyển giao Tri thức ══ -->
-    <div class="kt-card">
-      <div class="chb chb-indigo">
-        <span nz-icon nzType="swap" class="chb-ico"></span>
-        <h3 class="chb-title">Chuyển giao Tri thức</h3>
-        @if (!ktEditMode()) {
-          <button type="button" class="chb-edit-btn" (click)="openKtEdit()" title="Chỉnh sửa">
-            <span nz-icon nzType="edit"></span>
-          </button>
+        } @else {
+          <!-- No IDP -->
+          <div class="bc-empty">
+            <span nz-icon nzType="rocket" class="bc-empty-ico"></span>
+            <p>Chưa có kế hoạch IDP nào.</p>
+            <span class="bc-empty-hint">Dữ liệu sẽ được đồng bộ từ module IDP.</span>
+          </div>
         }
       </div>
 
-      @if (ktEditMode()) {
-        <div class="edit-form" style="margin-top:14px">
-          <div class="ef-row"><label>Người kế thừa</label><input nz-input [ngModel]="ktDraft().successor" (ngModelChange)="ktDraft.update(d=>({...d,successor:$event}))" /></div>
-          <div class="ef-row"><label>Chức danh</label><input nz-input [ngModel]="ktDraft().successor_role" (ngModelChange)="ktDraft.update(d=>({...d,successor_role:$event}))" /></div>
-          <div class="ef-row"><label>Ngày bắt đầu</label><input nz-input type="date" [ngModel]="ktDraft().start_date" (ngModelChange)="ktDraft.update(d=>({...d,start_date:$event}))" /></div>
-          <div class="ef-row"><label>Ngày mục tiêu</label><input nz-input type="date" [ngModel]="ktDraft().target_date" (ngModelChange)="ktDraft.update(d=>({...d,target_date:$event}))" /></div>
-          <div class="ef-row">
-            <label>Tiến độ {{ ktDraft().overall_progress }}%</label>
-            <input type="range" min="0" max="100" step="5"
-              [value]="ktDraft().overall_progress"
-              (input)="setKtProgress($event)"
-              class="ef-range" />
-          </div>
-          <div class="ef-actions">
-            <button nz-button nzType="primary" nzSize="small" [nzLoading]="ktSaving()" (click)="saveKt()">Lưu</button>
-            <button nz-button nzSize="small" (click)="ktEditMode.set(false)">Hủy</button>
+      <!-- RIGHT: Activity timeline -->
+      <div class="bottom-card activity-card">
+        <div class="bc-head">
+          <span nz-icon nzType="history" class="bc-ico bc-ico-history"></span>
+          <div class="bc-head-text">
+            <div class="bc-title">Hoạt động gần đây</div>
+            <div class="bc-sub">Lịch sử thay đổi &amp; đánh giá</div>
           </div>
         </div>
-      } @else if (knowledgeTransferData(); as kt) {
-        <div class="kt-head">
-          <div>
-            <p class="kt-sub" style="margin-top:8px">Người kế thừa: <strong>{{ kt.successor }}</strong> · {{ kt.successor_role }}</p>
+
+        @if (historyLoading()) {
+          <div class="bc-loading">
+            <nz-spin nzSimple></nz-spin>
           </div>
-          <div class="kt-progress-wrap">
-            <div class="kt-progress-head">
-              <span>Tiến độ chuyển giao</span>
-              <strong>{{ kt.overall_progress }}%</strong>
-            </div>
-            <div class="kt-progress-track">
-              <div class="kt-progress-fill" [style.width.%]="kt.overall_progress"></div>
-            </div>
-            <div class="kt-dates">{{ kt.start_date }} → {{ kt.target_date }}</div>
+        } @else if (historyLogs().length === 0) {
+          <div class="bc-empty">
+            <span nz-icon nzType="history" class="bc-empty-ico"></span>
+            <p>Chưa có hoạt động nào được ghi nhận.</p>
+            <span class="bc-empty-hint">Lịch sử sẽ xuất hiện sau khi có đánh giá hoặc thay đổi hồ sơ.</span>
           </div>
-        </div>
-        <ul class="kt-list">
-          @for (i of kt.items; track i.title) {
-            <li class="kt-item">
-              <span class="kt-status" [class]="ktStatusColor(i.status)"></span>
-              <div class="kt-text">
-                <div class="kt-item-title">{{ i.title }}</div>
-                <div class="kt-item-meta">
-                  <span class="kt-cat">{{ i.category }}</span>
-                  <span class="kt-item-status">{{ i.status }}</span>
+        } @else {
+          <div class="act-timeline">
+            @for (item of historyLogs(); track item.date + item.text) {
+              <div class="act-item">
+                <span class="act-dot" [style.background]="item.color"></span>
+                <div class="act-body">
+                  <div class="act-text">{{ item.text }}</div>
+                  <div class="act-date">{{ item.date }}</div>
                 </div>
-              </div>
-              <div class="kt-bar">
-                <div class="kt-bar-fill" [class]="ktStatusColor(i.status)" [style.width.%]="i.progress"></div>
-              </div>
-              <span class="kt-pct">{{ i.progress }}%</span>
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="empty-section" style="margin-top:8px">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openKtEdit()">Nhập ngay</button></p>
-      }
-    </div>
-
-    <!-- Tabs (chi tiết) -->
-    <div class="tabs-card">
-      <nz-tabs nzType="line">
-
-        <nz-tab nzTitle="Điểm số">
-          <!-- Cycle selector -->
-          @if (cycles().length) {
-            <div class="score-cycle-row">
-              <span class="score-cycle-label">Chu kỳ:</span>
-              <nz-select [ngModel]="selectedCycleId()" (ngModelChange)="onCycleChange($event)" nzSize="small" style="min-width:180px">
-                @for (c of cycles(); track c.id) {
-                  <nz-option [nzValue]="c.id" [nzLabel]="c.name"></nz-option>
-                }
-              </nz-select>
-            </div>
-          }
-
-          @if (scoreEditMode()) {
-            <!-- Edit mode -->
-            <div class="edit-form score-edit-form">
-              <div class="ef-2col">
-                <div class="ef-row ef-col">
-                  <label>Điểm đánh giá năng lực <span class="ef-hint">(0–100)</span></label>
-                  <input nz-input type="number" min="0" max="100" step="0.1"
-                    [ngModel]="scoreDraft().assessment_score"
-                    (ngModelChange)="scoreDraft.update(d=>({...d,assessment_score:$event===''||$event==null?null:+$event}))"
-                    placeholder="Nhập điểm…" />
-                </div>
-                <div class="ef-row ef-col">
-                  <label>Điểm 360° <span class="ef-hint">(0–100)</span></label>
-                  <input nz-input type="number" min="0" max="100" step="0.1"
-                    [ngModel]="scoreDraft().score_360"
-                    (ngModelChange)="scoreDraft.update(d=>({...d,score_360:$event===''||$event==null?null:+$event}))"
-                    placeholder="Nhập điểm…" />
-                </div>
-              </div>
-              <p class="ef-hint" style="margin-top:4px">Điểm tổng hợp sẽ tự tính theo trọng số cấu hình trong Admin.</p>
-              <div class="ef-actions">
-                <button nz-button nzType="primary" nzSize="small" [nzLoading]="scoreSaving()" (click)="saveScore()">Lưu</button>
-                <button nz-button nzSize="small" (click)="scoreEditMode.set(false)">Hủy</button>
-              </div>
-            </div>
-          } @else if (externalScoreLoaded() === null) {
-            <div class="score-loading"><nz-spin nzSimple></nz-spin></div>
-          } @else {
-            <!-- View mode -->
-            <div class="score-view-header">
-              <button type="button" class="edit-btn" (click)="openScoreEdit()" title="Nhập / chỉnh sửa điểm">
-                <span nz-icon nzType="edit"></span>
-                {{ externalScore() ? 'Chỉnh sửa' : 'Nhập điểm' }}
-              </button>
-            </div>
-            @if (externalScore(); as s) {
-              <div class="score-cards">
-                <div class="score-card score-card-blue">
-                  <span nz-icon nzType="file-done" nzTheme="outline" class="sc-icon"></span>
-                  <div class="sc-body">
-                    <div class="sc-label">Đánh giá năng lực</div>
-                    @if (s.assessment_score != null) {
-                      <div class="sc-value">{{ s.assessment_score }}</div>
-                    } @else { <div class="sc-na">N/A</div> }
-                  </div>
-                </div>
-                <div class="score-card score-card-purple">
-                  <span nz-icon nzType="team" nzTheme="outline" class="sc-icon"></span>
-                  <div class="sc-body">
-                    <div class="sc-label">Điểm 360°</div>
-                    @if (s.score_360 != null) {
-                      <div class="sc-value">{{ s.score_360 }}</div>
-                    } @else { <div class="sc-na">N/A</div> }
-                  </div>
-                </div>
-                <div class="score-card score-card-green">
-                  <span nz-icon nzType="trophy" nzTheme="outline" class="sc-icon"></span>
-                  <div class="sc-body">
-                    <div class="sc-label">Điểm tổng hợp</div>
-                    @if (s.total_score != null) {
-                      <div class="sc-value sc-value-total">{{ s.total_score | number:'1.1-1' }}</div>
-                      <div class="sc-sub">Tính theo trọng số cấu hình</div>
-                    } @else { <div class="sc-na">N/A</div> }
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <div class="score-empty">
-                <span nz-icon nzType="inbox" nzTheme="outline"></span>
-                <p>Chưa có điểm số cho chu kỳ này.</p>
               </div>
             }
-          }
-        </nz-tab>
+          </div>
+        }
+      </div>
 
-        <nz-tab nzTitle="Kế hoạch IDP">
-          @if (idp()) {
-            <div class="idp-header">
-              <span>Năm {{ idp()!.year }}</span>
-              <nz-tag [nzColor]="idp()!.status === 'Completed' ? 'green' : idp()!.status === 'Active' ? 'blue' : 'orange'">
-                {{ idp()!.status }}
-              </nz-tag>
-              <span>Tiến độ tổng: <strong>{{ idp()!.overall_progress }}%</strong></span>
-            </div>
-            <div class="goal-list">
-              @for (g of idp()!.goals; track g.id) {
-                <div class="goal-item">
-                  <div class="goal-title">{{ g.title }}</div>
-                  <div class="goal-meta">
-                    <nz-tag nzColor="blue">{{ g.type }}</nz-tag>
-                    <span class="goal-deadline">{{ g.deadline }}</span>
-                    <nz-tag [nzColor]="g.status === 'Completed' ? 'green' : g.status === 'In Progress' ? 'processing' : 'default'">
-                      {{ g.status }}
-                    </nz-tag>
-                  </div>
-                  <nz-progress [nzPercent]="g.progress" nzSize="small" [nzStrokeColor]="'#4f46e5'"></nz-progress>
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="empty-msg">Chưa có kế hoạch IDP. <button nz-button nzType="link">Tạo IDP mới →</button></p>
-          }
-        </nz-tab>
-
-        <nz-tab nzTitle="Lịch sử">
-          @if (historyLoading()) {
-            <div style="padding:24px;display:flex;justify-content:center"><nz-spin></nz-spin></div>
-          } @else if (historyLogs().length === 0) {
-            <div class="empty-msg" style="padding:24px 0">
-              <span nz-icon nzType="history" style="font-size:20px;color:#d1d5db;display:block;margin-bottom:8px"></span>
-              Chưa có lịch sử hoạt động nào.
-            </div>
-          } @else {
-            <nz-timeline class="timeline">
-              @for (item of historyLogs(); track item.date + item.text) {
-                <nz-timeline-item [nzColor]="item.color">
-                  <span class="tl-date">{{ item.date }}</span> — {{ item.text }}
-                </nz-timeline-item>
-              }
-            </nz-timeline>
-          }
-        </nz-tab>
-
-      </nz-tabs>
     </div>
 
   } @else {

@@ -1,7 +1,22 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (network card 5 UI fixes — pulse ring centering, hover tooltips)
+> Cập nhật lần cuối: 2026-04-23 (Direction B — talent profile bottom row redesign)
+
+---
+
+## ⚡ Direction B — Talent Profile bottom row redesign (2026-04-23) — build ✅
+
+### Thay đổi
+- **Xoá 3 sections rỗng** khỏi `/talent/:id`:
+  - `review-grid` (IDP plan card cũ + Dự án hiện tại + Thống kê nhanh)
+  - `kt-card` (Chuyển giao Tri thức — coming soon)
+  - `tabs-card` (Điểm số | Kế hoạch IDP | Lịch sử tabs)
+- **Thay bằng `bottom-row` 2 cột**:
+  - **Trái — IDP compact card**: SVG circular progress ring (`r=15.9`, stroke-dasharray dynamic binding), meta row (target position / approved by / date), danh sách goals 12m và 2–3y với colored dots. Empty state nếu chưa có IDP.
+  - **Phải — Activity timeline**: Custom timeline dùng `historyLogs()` signal (từ audit_logs/assessments), loading spinner, empty state với hint text.
+- **SCSS**: giảm từ 41.35 kB → 35.07 kB (-6.28 kB) bằng cách xoá ~250 dòng CSS cũ (review-grid, info-card, chb, qs-*, idp-plan-card, ig-*, kt-card, tabs-card, comp-*, score-cards, etc.). Thêm ~100 dòng CSS mới (bc-*, icp-*, icg-*, act-*).
+- Build: ✅ 0 errors (2 SCSS budget warnings non-blocking, 1 unrelated HasRoleDirective warning)
 
 ---
 
