@@ -45,6 +45,29 @@ interface TreeNode {
   depth: number;
 }
 
+interface PositionDensity {
+  positionId:    string;
+  positionTitle: string;
+  department:    string;
+  criticalLevel: string;
+  currentHolder: string;
+  readyNow:      number;
+  ready1Year:    number;
+  ready2Years:   number;
+  total:         number;
+  successors:    { talent_id: string; talent_name: string; readiness: string; priority: number; gap_score?: number }[];
+  tone: 'ok' | 'warn' | 'low' | 'empty';
+}
+
+interface DeptDensity {
+  department:    string;
+  positions:     PositionDensity[];
+  avgReadyNow:   number;
+  avgTotal:      number;
+  positionCount: number;
+  emptyCount:    number;
+}
+
 @Component({
   selector: 'app-succession',
   standalone: true,
@@ -205,6 +228,114 @@ export class SuccessionComponent implements OnInit {
   currentUser = signal<{ role?: string; department?: string; talentId?: string; fullName?: string; name?: string } | null>(null);
 
   isRestrictedView = computed(() => this.currentUser()?.role === 'Line Manager');
+
+  // ─── Density tab: configurable thresholds ─────────────────────────────────
+  densityTargetReadyNow = signal(2);   // ngưỡng minimum Ready Now
+  densityTargetTotal    = signal(7);   // ngưỡng minimum tổng ứng viên
+  densityDeptFilter     = signal('');  // '' = all depts
+
+  // Drill-down drawer
+  densityDrawerOpen = signal(false);
+  densityDrawerPos  = signal<PositionDensity | null>(null);
+
+  openDensityDrawer(pos: PositionDensity, ev?: Event): void {
+    ev?.stopPropagation();
+    this.densityDrawerPos.set(pos);
+    this.densityDrawerOpen.set(true);
+  }
+  closeDensityDrawer(): void { this.densityDrawerOpen.set(false); }
+
+  // Computed: flat list with tone classification
+  positionDensity = computed<PositionDensity[]>(() => {
+    const positions = this.positions() as any[];
+    const plans     = this.plans() as any[];
+    const targetRN  = this.densityTargetReadyNow();
+    const targetT   = this.densityTargetTotal();
+    const planMap   = new Map(plans.map((p: any) => [p.position_id, p]));
+
+    return positions.map((pos: any) => {
+      const plan       = planMap.get(pos.id);
+      const successors = (plan?.successors ?? []) as any[];
+      const readyNow   = successors.filter((s: any) => s.readiness === 'Ready Now').length;
+      const ready1Year = successors.filter((s: any) => s.readiness === 'Ready in 1 Year').length;
+      const ready2Years = successors.filter((s: any) => s.readiness === 'Ready in 2 Years').length;
+      const total      = successors.length;
+
+      let tone: PositionDensity['tone'];
+      if (total === 0)                                      tone = 'empty';
+      else if (readyNow >= targetRN && total >= targetT)    tone = 'ok';
+      else if (readyNow >= targetRN)                        tone = 'warn';
+      else                                                  tone = 'low';
+
+      return {
+        positionId: pos.id,
+        positionTitle: pos.title,
+        department:    pos.department ?? '—',
+        criticalLevel: pos.critical_level ?? '—',
+        currentHolder: pos.current_holder ?? '—',
+        readyNow, ready1Year, ready2Years, total, successors, tone,
+      };
+    });
+  });
+
+  // Grouped + sorted by dept
+  deptDensity = computed<DeptDensity[]>(() => {
+    const rows   = this.positionDensity();
+    const filter = this.densityDeptFilter();
+    const toneOrder: Record<string, number> = { empty: 0, low: 1, warn: 2, ok: 3 };
+    const map = new Map<string, PositionDensity[]>();
+
+    for (const row of rows) {
+      const dept = row.department || 'Khác';
+      if (filter && dept !== filter) continue;
+      const list = map.get(dept) ?? [];
+      list.push(row);
+      map.set(dept, list);
+    }
+
+    return [...map.entries()].map(([department, positions]) => {
+      positions.sort((a, b) => toneOrder[a.tone] - toneOrder[b.tone]);
+      return {
+        department,
+        positions,
+        avgReadyNow:   +(positions.reduce((s, p) => s + p.readyNow, 0) / positions.length).toFixed(1),
+        avgTotal:      +(positions.reduce((s, p) => s + p.total, 0)   / positions.length).toFixed(1),
+        positionCount: positions.length,
+        emptyCount:    positions.filter(p => p.total === 0).length,
+      };
+    }).sort((a, b) => b.emptyCount - a.emptyCount || b.positionCount - a.positionCount);
+  });
+
+  // KPI summary
+  densitySummary = computed(() => {
+    const rows     = this.positionDensity();
+    const targetT  = this.densityTargetTotal();
+    const ok       = rows.filter(r => r.tone === 'ok').length;
+    const empty    = rows.filter(r => r.total === 0).length;
+    const lowWarn  = rows.filter(r => r.tone === 'low' || r.tone === 'warn').length;
+    const totalPos = rows.length;
+    const benchStrength = totalPos > 0
+      ? Math.round(rows.reduce((s, r) => s + Math.min(r.total / Math.max(targetT, 1), 1), 0) / totalPos * 100)
+      : 0;
+    const depts = [...new Set(rows.map(r => r.department).filter(Boolean))].sort();
+    return { totalPos, ok, lowWarn, empty, benchStrength, depts };
+  });
+
+  // Readiness label helper for density drawer
+  densityReadinessLabel(r: string): string {
+    if (r === 'Ready Now')       return 'Sẵn sàng ngay';
+    if (r === 'Ready in 1 Year') return '1–2 năm';
+    return '3–5 năm';
+  }
+
+  densityReadinessClass(r: string): string {
+    if (r === 'Ready Now')       return 'dr-rn';
+    if (r === 'Ready in 1 Year') return 'dr-1y';
+    return 'dr-2y';
+  }
+
+  // Helper: cap a percentage value at 100
+  capAt100(val: number): number { return Math.min(val, 100); }
 
   /** Build tree from flat positions[] via parentId + attach successors from matching plan.
    *

@@ -275,6 +275,144 @@
         </div>
       </nz-tab>
 
+      <!-- ═══ Tab 3: Mật độ kế thừa ═════════════════════ -->
+      <nz-tab nzTitle="Mật độ kế thừa">
+        <div class="density-page">
+
+          <!-- Config bar -->
+          <div class="density-config">
+            <div class="dc-group">
+              <span class="dc-label">Ngưỡng Ready Now</span>
+              <div class="dc-stepper">
+                <button nz-button nzType="text" nzSize="small"
+                        (click)="densityTargetReadyNow.set(densityTargetReadyNow() - 1)"
+                        [disabled]="densityTargetReadyNow() <= 1">
+                  <span nz-icon nzType="minus"></span>
+                </button>
+                <span class="dc-val">{{ densityTargetReadyNow() }}</span>
+                <button nz-button nzType="text" nzSize="small"
+                        (click)="densityTargetReadyNow.set(densityTargetReadyNow() + 1)">
+                  <span nz-icon nzType="plus"></span>
+                </button>
+              </div>
+            </div>
+            <div class="dc-group">
+              <span class="dc-label">Ngưỡng tổng ứng viên</span>
+              <div class="dc-stepper">
+                <button nz-button nzType="text" nzSize="small"
+                        (click)="densityTargetTotal.set(densityTargetTotal() - 1)"
+                        [disabled]="densityTargetTotal() <= 1">
+                  <span nz-icon nzType="minus"></span>
+                </button>
+                <span class="dc-val">{{ densityTargetTotal() }}</span>
+                <button nz-button nzType="text" nzSize="small"
+                        (click)="densityTargetTotal.set(densityTargetTotal() + 1)">
+                  <span nz-icon nzType="plus"></span>
+                </button>
+              </div>
+            </div>
+            <div class="dc-group dc-filter">
+              <span class="dc-label">Phòng ban</span>
+              <nz-select class="dc-sel" [ngModel]="densityDeptFilter()"
+                         (ngModelChange)="densityDeptFilter.set($event)"
+                         nzAllowClear nzPlaceHolder="Tất cả">
+                @for (d of densitySummary().depts; track d) {
+                  <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
+                }
+              </nz-select>
+            </div>
+            <!-- Legend -->
+            <div class="dc-legend">
+              <span class="dc-dot dc-dot-ok"></span>Đạt chuẩn
+              <span class="dc-dot dc-dot-warn"></span>Thiếu tổng
+              <span class="dc-dot dc-dot-low"></span>Thiếu RN
+              <span class="dc-dot dc-dot-empty"></span>Chưa có
+            </div>
+          </div>
+
+          <!-- KPI summary cards -->
+          <div class="density-kpis">
+            <div class="dk-card dk-green">
+              <div class="dk-val">{{ densitySummary().ok }}<span class="dk-of">/{{ densitySummary().totalPos }}</span></div>
+              <div class="dk-label">Đạt chuẩn đầy đủ</div>
+              <span nz-icon nzType="check-circle" class="dk-ico"></span>
+            </div>
+            <div class="dk-card dk-amber">
+              <div class="dk-val">{{ densitySummary().lowWarn }}</div>
+              <div class="dk-label">Thiếu hụt ứng viên</div>
+              <span nz-icon nzType="warning" class="dk-ico"></span>
+            </div>
+            <div class="dk-card dk-red">
+              <div class="dk-val">{{ densitySummary().empty }}</div>
+              <div class="dk-label">Vị trí chưa có kế thừa</div>
+              <span nz-icon nzType="close-circle" class="dk-ico"></span>
+            </div>
+            <div class="dk-card dk-blue">
+              <div class="dk-val">{{ densitySummary().benchStrength }}<span class="dk-pct">%</span></div>
+              <div class="dk-label">Bench Strength</div>
+              <span nz-icon nzType="line-chart" class="dk-ico"></span>
+            </div>
+          </div>
+
+          <!-- Heat map -->
+          <div class="density-map">
+            @for (dg of deptDensity(); track dg.department) {
+              <div class="dm-row">
+                <!-- Dept header cell -->
+                <div class="dm-dept">
+                  <div class="dm-dept-name">{{ dg.department }}</div>
+                  <div class="dm-dept-meta">
+                    <span class="dm-dept-count">{{ dg.positionCount }} vị trí</span>
+                    @if (dg.emptyCount > 0) {
+                      <span class="dm-dept-warn">{{ dg.emptyCount }} trống</span>
+                    }
+                  </div>
+                  <div class="dm-dept-bar-wrap">
+                    <div class="dm-dept-bar" [style.width.%]="capAt100(dg.avgTotal / densityTargetTotal() * 100)"></div>
+                  </div>
+                  <div class="dm-dept-avg">TB: {{ dg.avgTotal }} / {{ densityTargetTotal() }}</div>
+                </div>
+
+                <!-- Position cells -->
+                <div class="dm-cells">
+                  @for (pos of dg.positions; track pos.positionId) {
+                    <button class="dm-cell" [class]="'dm-cell-' + pos.tone"
+                            (click)="openDensityDrawer(pos)"
+                            nz-tooltip [nzTooltipTitle]="pos.positionTitle + ' · ' + pos.currentHolder">
+                      <div class="dmc-title">{{ pos.positionTitle | slice:0:14 }}{{ pos.positionTitle.length > 14 ? '…' : '' }}</div>
+                      <div class="dmc-counts">
+                        <span class="dmc-rn" nz-tooltip nzTooltipTitle="Ready Now">{{ pos.readyNow }}/{{ densityTargetReadyNow() }}</span>
+                        <span class="dmc-sep">·</span>
+                        <span class="dmc-total" nz-tooltip nzTooltipTitle="Tổng ứng viên">{{ pos.total }}/{{ densityTargetTotal() }}</span>
+                      </div>
+                      @if (pos.criticalLevel === 'Critical') {
+                        <span class="dmc-crit" nz-tooltip nzTooltipTitle="Critical position">!</span>
+                      }
+                    </button>
+                  }
+                </div>
+
+                <!-- Avg badge -->
+                <div class="dm-avg-col">
+                  <div class="dm-avg-val" [class.dm-avg-ok]="dg.avgReadyNow >= densityTargetReadyNow()"
+                                          [class.dm-avg-low]="dg.avgReadyNow < densityTargetReadyNow()">
+                    {{ dg.avgReadyNow }}
+                  </div>
+                  <div class="dm-avg-lbl">avg RN</div>
+                </div>
+              </div>
+            }
+            @empty {
+              <div class="density-empty">
+                <span nz-icon nzType="inbox" class="de-ico"></span>
+                <p>Chưa có dữ liệu vị trí then chốt.</p>
+              </div>
+            }
+          </div>
+
+        </div>
+      </nz-tab>
+
     </nz-tabs>
   </div>
 </div>
@@ -716,6 +854,91 @@
         }
       </div>
 
+    }
+  </ng-container>
+</nz-drawer>
+
+<!-- ══ Density drill-down drawer ══════════════════════ -->
+<nz-drawer
+  [nzVisible]="densityDrawerOpen()"
+  (nzOnClose)="closeDensityDrawer()"
+  nzPlacement="right"
+  [nzWidth]="480"
+  [nzTitle]="densityDrawerPos()?.positionTitle ?? 'Chi tiết vị trí'"
+  [nzMask]="true"
+  [nzMaskClosable]="true"
+>
+  <ng-container *nzDrawerContent>
+    @if (densityDrawerPos(); as pos) {
+      <!-- Position meta -->
+      <div class="dd-meta-row">
+        <span class="dd-dept">{{ pos.department }}</span>
+        <span class="dd-crit crit-{{ pos.criticalLevel | lowercase }}">{{ pos.criticalLevel }}</span>
+      </div>
+      <div class="dd-holder">
+        <span nz-icon nzType="user" class="dd-holder-ico"></span>
+        Đương nhiệm: <strong>{{ pos.currentHolder || '—' }}</strong>
+      </div>
+
+      <!-- Coverage summary -->
+      <div class="dd-coverage">
+        <div class="dd-cov-row">
+          <span class="dd-cov-label">Ready Now</span>
+          <div class="dd-cov-bar-wrap">
+            <div class="dd-cov-bar dd-cov-rn"
+                 [style.width.%]="capAt100(pos.readyNow / densityTargetReadyNow() * 100)"></div>
+          </div>
+          <span class="dd-cov-num" [class.dd-num-ok]="pos.readyNow >= densityTargetReadyNow()"
+                                   [class.dd-num-warn]="pos.readyNow < densityTargetReadyNow()">
+            {{ pos.readyNow }} / {{ densityTargetReadyNow() }}
+          </span>
+        </div>
+        <div class="dd-cov-row">
+          <span class="dd-cov-label">Tổng ứng viên</span>
+          <div class="dd-cov-bar-wrap">
+            <div class="dd-cov-bar dd-cov-total"
+                 [style.width.%]="capAt100(pos.total / densityTargetTotal() * 100)"></div>
+          </div>
+          <span class="dd-cov-num" [class.dd-num-ok]="pos.total >= densityTargetTotal()"
+                                   [class.dd-num-warn]="pos.total < densityTargetTotal()">
+            {{ pos.total }} / {{ densityTargetTotal() }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Successor list -->
+      <div class="dd-list-head">
+        <span nz-icon nzType="team"></span>
+        Danh sách ứng viên kế thừa ({{ pos.successors.length }})
+      </div>
+
+      @if (pos.successors.length === 0) {
+        <div class="dd-empty">
+          <span nz-icon nzType="inbox"></span>
+          <p>Vị trí này chưa có ứng viên kế thừa nào.</p>
+        </div>
+      } @else {
+        <div class="dd-list">
+          @for (s of pos.successors; track s.talent_id) {
+            <div class="dd-item" (click)="openTalentPreview(s.talent_id)">
+              <app-avatar [name]="s.talent_name" [size]="36"></app-avatar>
+              <div class="dd-item-body">
+                <div class="dd-item-name">{{ s.talent_name }}</div>
+                <div class="dd-item-meta">
+                  <span class="dd-ready" [class]="densityReadinessClass(s.readiness)">
+                    {{ densityReadinessLabel(s.readiness) }}
+                  </span>
+                  <span class="dd-priority">Ưu tiên #{{ s.priority }}</span>
+                  @if (s.gap_score) {
+                    <span class="dd-gap">GAP {{ s.gap_score }}</span>
+                  }
+                </div>
+              </div>
+              <span nz-icon nzType="right" class="dd-arrow"></span>
+            </div>
+          }
+        </div>
+      }
     }
   </ng-container>
 </nz-drawer>
