@@ -181,82 +181,118 @@
       </div>
 
       <!-- Network: Mạng lưới phát triển -->
-      <div class="chart-card">
+      <div class="chart-card net-card">
         <div class="chart-head">
           <div>
             <h3 class="chart-title">Mạng lưới phát triển</h3>
             <p class="chart-sub">Click vào node để xem hồ sơ người đó</p>
           </div>
           <div class="net-legend">
+            <span class="lg"><i class="dot dot-target"></i>Vị trí mục tiêu</span>
             <span class="lg"><i class="dot dot-mentor"></i>Mentor</span>
-            <span class="lg"><i class="dot dot-target"></i>Mục tiêu</span>
-            <span class="lg"><i class="dot dot-idp"></i>IDP</span>
-            <span class="lg"><i class="dot dot-ktp"></i>KTP</span>
-            <span class="lg"><i class="dot dot-mentee"></i>Mentee</span>
+            <span class="lg"><i class="dot dot-succ"></i>Kế thừa</span>
+            <span class="lg net-legend-disabled"><i class="dot dot-ktp"></i>Tri thức
+              <span class="net-soon">Sắp ra mắt</span>
+            </span>
           </div>
         </div>
 
         <div class="net-wrap">
-          <!-- Edge lines (SVG) -->
+          <!-- SVG edge layer -->
           <svg class="net-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="50" y1="50" x2="62" y2="22" class="edge edge-target" marker-end="url(#arrow-target)" />
-            <line x1="50" y1="50" x2="82" y2="50" class="edge edge-mentor" />
-            <line x1="50" y1="50" x2="18" y2="50" class="edge edge-ktp" />
-            <line x1="50" y1="50" x2="50" y2="72" class="edge edge-idp" />
-            @if (mentees().length > 0) {
-              <line x1="50" y1="72" x2="34" y2="88" class="edge edge-mentee" />
-            }
-            @if (mentees().length > 1) {
-              <line x1="50" y1="72" x2="66" y2="88" class="edge edge-mentee" />
-            }
             <defs>
-              <marker id="arrow-target" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M0,0 L10,5 L0,10 Z" fill="#4f46e5" />
+              <marker id="arr-up" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#4f46e5"/>
               </marker>
             </defs>
+            <!-- center → target (up) -->
+            <line x1="50" y1="46" x2="50" y2="17" class="edge edge-target" marker-end="url(#arr-up)"/>
+            <!-- center → mentor (right) -->
+            <line x1="54" y1="50" x2="79" y2="50" class="edge edge-mentor"/>
+            <!-- center → KTP disabled (left) -->
+            <line x1="46" y1="50" x2="21" y2="50" class="edge edge-disabled"/>
+            <!-- center → each successor -->
+            @for (pos of netLayout().positions; track pos.talent_id) {
+              <line [attr.x1]="50" [attr.y1]="54"
+                    [attr.x2]="pos.xPct" [attr.y2]="pos.yPct"
+                    class="edge edge-succ"/>
+            }
           </svg>
 
-          <div class="node node-center" [style.left.%]="50" [style.top.%]="50">
+          <!-- ── Center node ────────────────────────────────────── -->
+          <div class="node node-center" style="left:50%;top:50%">
             <div class="node-circle center-circle">{{ centerInitials() }}</div>
+            <div class="net-center-name">{{ lastName(talent()?.full_name ?? '') }}</div>
           </div>
 
-          <div class="node node-target" [style.left.%]="62" [style.top.%]="22">
-            <div class="node-chip chip-target">{{ targetInitials() }}</div>
-            <div class="node-label above">Mục tiêu</div>
+          <!-- ── Target position (top) ─────────────────────────── -->
+          <div class="node node-target-pos" style="left:50%;top:10%">
+            <div class="node-label net-above-label">Vị trí mục tiêu</div>
+            <div class="chip-target-pos">
+              <span nz-icon nzType="aim"></span>
+              <span class="ctp-text">{{ idpTargetPosition() !== '—' ? idpTargetPosition() : 'Chưa xác định' }}</span>
+            </div>
           </div>
 
-          <div class="node node-mentor" [style.left.%]="82" [style.top.%]="50"
-               [class.clickable]="mentorTalent()"
+          <!-- ── Mentor (right) ─────────────────────────────────── -->
+          <div class="node node-mentor" style="left:84%;top:50%"
+               [class.clickable]="!!mentorTalent()"
                (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
-            @if (mentorTalent()) {
-              <div class="node-circle mentor-circle">{{ menteeInitials(mentorTalent()!.full_name) }}</div>
+            @if (mentorTalent(); as m) {
+              <div class="node-circle mentor-circle" [title]="m.full_name">{{ nameInitials(m.full_name) }}</div>
+              <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
             } @else {
               <div class="node-circle mentor-empty">—</div>
+              <div class="node-label node-label-right">Mentor</div>
             }
-            <div class="node-label right">Mentor</div>
           </div>
 
-          <div class="node node-ktp" [style.left.%]="18" [style.top.%]="50">
-            <div class="node-circle ktp-circle">KTP</div>
-            <div class="node-label left">Tri thức</div>
-            <div class="node-badge ktp-badge">{{ ktpProgress() }}%</div>
+          <!-- ── KTP left — disabled / coming soon ─────────────── -->
+          <div class="node node-ktp-area" style="left:16%;top:50%">
+            <div class="node-circle ktp-circle-dis">
+              <span nz-icon nzType="lock" style="font-size:14px"></span>
+            </div>
+            <div class="node-label node-label-left node-label-dis">
+              Tri thức
+              <span class="net-soon">Sắp ra mắt</span>
+            </div>
           </div>
 
-          <div class="node node-idp" [style.left.%]="50" [style.top.%]="72">
-            <div class="node-circle idp-circle">IDP</div>
-            <div class="node-badge idp-badge">{{ idpProgress() }}%</div>
-          </div>
-
-          @if (mentees()[0]; as m) {
-            <div class="node node-mentee clickable" [style.left.%]="34" [style.top.%]="88" (click)="switchCenter(m.id)">
-              <div class="node-circle mentee-circle">{{ menteeInitials(m.full_name) }}</div>
-              <div class="node-label below">{{ m.talent_tier }}</div>
+          <!-- ── Successors (bottom fan) ────────────────────────── -->
+          @for (pos of netLayout().positions; track pos.talent_id) {
+            <!-- Successor node -->
+            <div class="node node-succ clickable"
+                 [style.left.%]="pos.xPct"
+                 [style.top.%]="pos.yPct"
+                 (click)="switchCenter(pos.talent_id)">
+              <div class="node-circle succ-circle" [title]="pos.talent_name">{{ nameInitials(pos.talent_name) }}</div>
+              <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
+            </div>
+            <!-- IDP % midpoint badge -->
+            <div class="idp-mid-badge"
+                 [style.left.%]="pos.midX"
+                 [style.top.%]="pos.midY">
+              IDP {{ pos.idp_progress }}%
             </div>
           }
-          @if (mentees()[1]; as m) {
-            <div class="node node-mentee clickable" [style.left.%]="66" [style.top.%]="88" (click)="switchCenter(m.id)">
-              <div class="node-circle mentee-circle mentee-alt">{{ menteeInitials(m.full_name) }}</div>
-              <div class="node-label below">{{ m.talent_tier }}</div>
+
+          <!-- ── View-more button ───────────────────────────────── -->
+          @if (netLayout().showMore) {
+            <div class="node node-more-pos"
+                 [style.left.%]="netLayout().moreXPct"
+                 style="top:82%">
+              <button class="net-more-btn" (click)="showAllSuccessors.set(true)">
+                +{{ hiddenSuccessorCount() }}
+              </button>
+              <div class="node-label net-below-label">Xem thêm</div>
+            </div>
+          }
+
+          <!-- ── Empty successors state ─────────────────────────── -->
+          @if (!successorNodes().length) {
+            <div class="succ-empty-hint" style="left:50%;top:76%">
+              <span nz-icon nzType="team"></span>
+              Chưa có người kế thừa
             </div>
           }
         </div>

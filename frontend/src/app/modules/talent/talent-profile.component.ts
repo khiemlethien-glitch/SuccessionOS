@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
 import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
+import { SuccessionService } from '../../core/services/data/succession.service';
 import {
   Talent,
   Assessment,
@@ -411,24 +412,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   // ─── Network (Mạng lưới phát triển) ───────────────────────────────────────
-  mentees = computed<Talent[]>(() => {
-    const me = this.talent();
-    if (!me) return [];
-    return this.allTalents().filter(t => t.mentor === me.full_name);
-  });
-
   mentorTalent = computed<Talent | null>(() => {
     const me = this.talent();
     if (!me || !me.mentor) return null;
     return this.allTalents().find(t => t.full_name === me.mentor) ?? null;
-  });
-
-  targetInitials = computed(() => {
-    const tp = this.talent()?.target_position;
-    if (!tp) return '—';
-    const parts = tp.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return parts.map((p: string) => p[0]).slice(0, 3).join('').toUpperCase();
   });
 
   centerInitials = computed(() => {
@@ -439,12 +426,45 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     return (parts[0][0] + parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
   });
 
-  menteeInitials(name: string): string {
+  nameInitials(name: string): string {
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '';
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
   }
+
+  /** Alias kept for template compatibility */
+  menteeInitials(name: string): string { return this.nameInitials(name); }
+
+  lastName(name: string): string { return (name ?? '').trim().split(/\s+/).pop() ?? name; }
+
+  // Successors (people who will inherit current person's position)
+  successorNodes = signal<{ talent_id: string; talent_name: string; readiness: string; priority: number; idp_progress: number }[]>([]);
+  showAllSuccessors = signal(false);
+
+  readonly visibleSuccessors = computed(() =>
+    this.showAllSuccessors() ? this.successorNodes() : this.successorNodes().slice(0, 3)
+  );
+  readonly hiddenSuccessorCount = computed(() => Math.max(0, this.successorNodes().length - 3));
+
+  readonly netLayout = computed(() => {
+    const succs = this.visibleSuccessors();
+    const n = succs.length;
+    const showMore = this.hiddenSuccessorCount() > 0 && !this.showAllSuccessors();
+    const totalSlots = Math.max(n + (showMore ? 1 : 0), 1);
+    const yPct = 82;
+
+    const positions = succs.map((s, i) => {
+      const xPct = totalSlots <= 1 ? 50 : 20 + (60 / (totalSlots - 1)) * i;
+      return { ...s, xPct, yPct, midX: (50 + xPct) / 2, midY: (50 + yPct) / 2 };
+    });
+
+    const moreXPct = showMore
+      ? (totalSlots <= 1 ? 80 : 20 + (60 / (totalSlots - 1)) * n)
+      : 80;
+
+    return { positions, moreXPct, showMore };
+  });
 
   // ─── Assessment (backend-driven với dropdown cycle) ──────────────────────
   cycles           = signal<Cycle[]>([]);
@@ -453,9 +473,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   radarProfile     = signal<RadarProfile | null>(null);
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
-  private employeeSvc = inject(EmployeeService);
-  private idpSvc = inject(IdpService);
+  private employeeSvc  = inject(EmployeeService);
+  private idpSvc       = inject(IdpService);
   private assessmentSvc = inject(AssessmentService);
+  private successionSvc = inject(SuccessionService);
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
@@ -492,14 +513,19 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.loading.set(true);
     if (!id) { this.loading.set(false); return; }
 
-    const [talent, all, cycles] = await Promise.all([
+    this.successorNodes.set([]);
+    this.showAllSuccessors.set(false);
+
+    const [talent, all, cycles, successors] = await Promise.all([
       this.employeeSvc.getById(id),
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
+      this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
     ]);
     this.talent.set(talent);
     this.allTalents.set(all.data);
     this.cycles.set(cycles);
+    this.successorNodes.set(successors);
 
     // Pick cycle: ưu tiên cycle 'closed' gần nhất (có data), fallback cycle đầu.
     const firstClosed = cycles.find(c => c.status === 'closed') ?? cycles[0];

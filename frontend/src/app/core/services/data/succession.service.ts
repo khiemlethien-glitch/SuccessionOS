@@ -73,4 +73,39 @@ export class SuccessionService {
     const { error } = await this.sb.from('succession_plans').delete().eq('id', id);
     if (error) console.error('[SuccessionService.deletePlan]', error);
   }
+
+  /** Lấy danh sách người kế thừa cho vị trí mà employee đang giữ, kèm IDP progress của từng người. */
+  async getSuccessorsForHolder(employeeId: string): Promise<{
+    talent_id: string; talent_name: string;
+    readiness: string; priority: number; idp_progress: number;
+  }[]> {
+    const posRes = await this.sb.from('key_positions')
+      .select('id')
+      .eq('current_holder_id', employeeId)
+      .limit(1)
+      .maybeSingle();
+    if (!posRes.data?.id) return [];
+
+    const planRes = await this.sb.from('succession_plans')
+      .select('talent_id, readiness, priority')
+      .eq('position_id', posRes.data.id)
+      .order('priority');
+    if (planRes.error || !planRes.data?.length) return [];
+
+    const ids = planRes.data.map(p => p.talent_id);
+    const [empRes, idpRes] = await Promise.all([
+      this.sb.from('v_employees').select('id, full_name').in('id', ids),
+      this.sb.from('idp_plans').select('employee_id, overall_progress').in('employee_id', ids).eq('status', 'Active'),
+    ]);
+    const empMap = new Map((empRes.data ?? []).map(e => [e.id, e.full_name]));
+    const idpMap = new Map((idpRes.data ?? []).map(i => [i.employee_id, i.overall_progress]));
+
+    return planRes.data.map(p => ({
+      talent_id:    p.talent_id,
+      talent_name:  empMap.get(p.talent_id) ?? '—',
+      readiness:    p.readiness,
+      priority:     p.priority,
+      idp_progress: idpMap.get(p.talent_id) ?? 0,
+    }));
+  }
 }
