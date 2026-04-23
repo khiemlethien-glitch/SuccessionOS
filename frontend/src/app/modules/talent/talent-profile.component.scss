@@ -823,6 +823,23 @@
 }
 .ai-empty-icon { font-size: 20px; }
 
+/* ───────────── Empty state ───────────── */
+.section-empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 32px 24px; text-align: center;
+  border: 1.5px dashed #e2e8f0; border-radius: 12px;
+  background: #fafbfc; margin: 12px 0;
+}
+.section-empty-icon {
+  font-size: 36px; color: #cbd5e1; margin-bottom: 4px;
+}
+.section-empty-title {
+  margin: 0; font-size: 14px; font-weight: 600; color: #374151;
+}
+.section-empty-desc {
+  margin: 0; font-size: 12px; color: #9ca3af; max-width: 280px;
+}
+
 /* ───────────── Shared edit-mode UI ───────────── */
 .section-header {
   display: flex; align-items: center; justify-content: space-between;

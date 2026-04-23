@@ -459,9 +459,14 @@
         }
       } @else {
         @if (assessment360Expanded()) {
-          <p class="empty-section" style="padding:16px 0">
-            Chưa có dữ liệu 360° — <button type="button" class="link-btn" (click)="open360Edit()">Nhập ngay</button>
-          </p>
+          <div class="section-empty">
+            <span nz-icon nzType="bar-chart" nzTheme="outline" class="section-empty-icon"></span>
+            <p class="section-empty-title">Chưa có dữ liệu đánh giá 360°</p>
+            <p class="section-empty-desc">Nhập kết quả đánh giá từ nguồn ngoài cho nhân viên này</p>
+            <button nz-button nzType="dashed" (click)="open360Edit()">
+              <span nz-icon nzType="plus"></span> Nhập dữ liệu
+            </button>
+          </div>
         }
       }
     </div>
@@ -628,7 +633,14 @@
               <div class="ir"><span class="ir-label">Trạng thái:</span> <span class="ir-status">{{ p.status }}</span></div>
             </div>
           } @else {
-            <p class="empty-section">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openProjectEdit()">Nhập ngay</button></p>
+            <div class="section-empty">
+              <span nz-icon nzType="project" nzTheme="outline" class="section-empty-icon"></span>
+              <p class="section-empty-title">Chưa có dự án hiện tại</p>
+              <p class="section-empty-desc">Thêm thông tin dự án đang tham gia của nhân viên</p>
+              <button nz-button nzType="dashed" (click)="openProjectEdit()">
+                <span nz-icon nzType="plus"></span> Nhập dữ liệu
+              </button>
+            </div>
           }
         </div>
 
@@ -722,7 +734,14 @@
           }
         </ul>
       } @else {
-        <p class="empty-section" style="margin-top:8px">Chưa có dữ liệu — <button type="button" class="link-btn" (click)="openKtEdit()">Nhập ngay</button></p>
+        <div class="section-empty">
+          <span nz-icon nzType="share-alt" nzTheme="outline" class="section-empty-icon"></span>
+          <p class="section-empty-title">Chưa có kế hoạch chuyển giao tri thức</p>
+          <p class="section-empty-desc">Xác định người kế thừa và tiến độ chuyển giao cho nhân viên này</p>
+          <button nz-button nzType="dashed" (click)="openKtEdit()">
+            <span nz-icon nzType="plus"></span> Nhập dữ liệu
+          </button>
+        </div>
       }
     </div>
 
@@ -810,9 +829,13 @@
                 </div>
               </div>
             } @else {
-              <div class="score-empty">
-                <span nz-icon nzType="inbox" nzTheme="outline"></span>
-                <p>Chưa có điểm số cho chu kỳ này.</p>
+              <div class="section-empty">
+                <span nz-icon nzType="trophy" nzTheme="outline" class="section-empty-icon"></span>
+                <p class="section-empty-title">Chưa có điểm số cho chu kỳ này</p>
+                <p class="section-empty-desc">Nhập điểm đánh giá năng lực và 360° để tính điểm tổng hợp</p>
+                <button nz-button nzType="dashed" (click)="openScoreEdit()">
+                  <span nz-icon nzType="plus"></span> Nhập điểm
+                </button>
               </div>
             }
           }
