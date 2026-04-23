@@ -1,7 +1,29 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (build fix + positions dept dropdown + target position fix)
+> Cập nhật lần cuối: 2026-04-23 (SWR cache layer — all data services)
+
+---
+
+## ⚡ SWR Cache layer — tất cả data services (2026-04-23)
+
+**`CacheService`** (`frontend/src/app/core/services/cache.service.ts`):
+- **Stale-While-Revalidate**: age < 7 min → trả cache ngay; 7–15 min → trả cache + tự refresh ngầm; > 15 min → fetch mới
+- **In-flight dedup**: nhiều component gọi cùng lúc chỉ tạo 1 HTTP request
+- **Background sweep**: `setInterval` 15 min tự refresh toàn bộ cache đang có
+- **Invalidation**: `invalidate(key)`, `invalidatePrefix(prefix)`, `invalidateAll()` — tự động gọi sau mỗi mutation
+
+Services wired (cache key schema):
+| Service | Read keys | Invalidate khi |
+|---|---|---|
+| EmployeeService | `emp:all:{filter}`, `emp:{id}` | update |
+| DashboardService | `dash:kpi`, `dash:risk:{n}`, `dash:pos-stats`, `dash:depts` | — |
+| KeyPositionService | `kpos:all:{f}`, `kpos:{id}`, `kpos:summary` | create/update/delete |
+| SuccessionService | `succ:plans:{f}`, `succ:nine-box`, `succ:target:{id}`, `succ:holders:{id}` | upsertPlan/deletePlan |
+| IdpService | `idp:all:{f}`, `idp:emp:{id}` | create/update/addGoal/updateGoal |
+| AssessmentService | `asmnt:cycles`, `asmnt:criteria`, `asmnt:display-cfg`, `asmnt:score:{e}:{c}`, `asmnt:radar:{e}:{c}` | updateDisplayConfig |
+
+Build: ✅ 0 errors, 12.4s
 
 ---
 
