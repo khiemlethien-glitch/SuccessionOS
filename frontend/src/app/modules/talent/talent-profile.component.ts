@@ -14,7 +14,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { FormsModule } from '@angular/forms';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
-import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
+import { AssessmentService, Cycle, AssessmentView, AssessmentBlock, AssessmentBlocksView, RadarProfile } from '../../core/services/data/assessment.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
 import { EmployeeExtrasService, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
@@ -292,9 +292,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (profile) {
       return profile.entries.map(e => ({
         label:  e.label,
-        actual: e.actual ?? 0,
+        actual: e.actual,   // keep null — use ?? 0 only in SVG path
         target: e.target,
-        delta:  e.delta  ?? 0,
+        delta:  e.delta,    // keep null — guards in template
       }));
     }
     const t = this.talent();
@@ -308,11 +308,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       { label: 'Tiềm năng', actual: t.potential_score ?? 0,    target: tgt.potential },
       { label: 'Lãnh đạo',  actual: c?.leadership ?? 0,        target: tgt.leadership },
     ];
-    return values.map(v => ({ ...v, delta: v.actual - v.target }));
+    return values.map(v => ({ ...v, delta: (v.actual as number | null) != null ? v.actual - v.target : null }));
   });
 
-  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta >= 0).length);
-  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta < 0).length);
+  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta != null && e.delta >= 0).length);
+  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta != null && e.delta < 0).length);
   /** Tổng độ lệch tuyệt đối (Σ|delta|) — chỉ số GAP chung để so giữa các talent. */
   radarTotalGap = computed(() => this.radarProfile()?.total_gap_abs ?? 0);
   /** Trung bình gap có dấu (Σdelta / 5). Âm = tổng thể dưới chuẩn, dương = vượt chuẩn. */
@@ -327,7 +327,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   radarActualPath = computed(() =>
     this.radarEntries().map((e, i) => {
-      const p = this.radarPoint(i, e.actual);
+      const p = this.radarPoint(i, e.actual ?? 0);
       return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`;
     }).join(' ') + ' Z'
   );
@@ -423,10 +423,32 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   // ─── Assessment (backend-driven với dropdown cycle) ──────────────────────
-  cycles           = signal<Cycle[]>([]);
-  selectedCycleId  = signal<string | null>(null);
-  assessmentView   = signal<AssessmentView | null>(null);
-  radarProfile     = signal<RadarProfile | null>(null);
+  cycles             = signal<Cycle[]>([]);
+  selectedCycleId    = signal<string | null>(null);
+  assessmentView     = signal<AssessmentView | null>(null);
+  assessmentBlocks   = signal<AssessmentBlocksView | null>(null);
+  radarProfile       = signal<RadarProfile | null>(null);
+  expandedBlocks     = signal(new Set<string>());
+
+  blockVisibleItems(block: AssessmentBlock): AssessmentBlock['items'] {
+    return this.expandedBlocks().has(block.type) ? block.items : block.items.slice(0, 5);
+  }
+
+  isBlockExpanded(type: string): boolean { return this.expandedBlocks().has(type); }
+
+  toggleBlockExpanded(type: string): void {
+    this.expandedBlocks.update(s => {
+      const next = new Set(s);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      return next;
+    });
+  }
+
+  blockWeightLabel(type: string): string {
+    const w = this.assessmentBlocks()?.weights;
+    if (!w) return '';
+    return type === 'kpi' ? `${w.assessment_weight}%` : `${w.weight_360}%`;
+  }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
   private employeeSvc  = inject(EmployeeService);
@@ -699,13 +721,16 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   }
 
   private async loadAssessmentForCycle(employeeId: string, cycleId: string): Promise<void> {
-    const [view, radar] = await Promise.all([
+    const [view, radar, blocks] = await Promise.all([
       this.assessmentSvc.getAssessment(employeeId, cycleId),
       this.assessmentSvc.getRadarProfile(employeeId, cycleId),
+      this.assessmentSvc.getAssessmentBlocks(employeeId, cycleId),
     ]);
     this.assessmentView.set(view);
     this.radarProfile.set(radar);
-    if (view) this.careerReviewLoaded.set(true);
+    this.assessmentBlocks.set(blocks);
+    this.expandedBlocks.set(new Set<string>());
+    if (view || blocks.blocks.length > 0) this.careerReviewLoaded.set(true);
   }
 
   goBack(): void {

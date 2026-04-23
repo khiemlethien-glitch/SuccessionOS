@@ -171,10 +171,14 @@
           @for (e of radarEntries(); track e.label) {
             <div class="rs-col">
               <div class="rs-label">{{ e.label }}</div>
-              <div class="rs-value">{{ e.actual }}</div>
-              <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-down]="e.delta < 0">
-                {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
-              </div>
+              <div class="rs-value">{{ e.actual ?? '—' }}</div>
+              @if (e.delta != null) {
+                <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-down]="e.delta < 0">
+                  {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
+                </div>
+              } @else {
+                <div class="rs-delta rs-na">—</div>
+              }
             </div>
           }
         </div>
@@ -438,52 +442,94 @@
             </nz-select>
           </div>
 
-          @if (assessmentView(); as av) {
-            <div class="eval-bars">
-              @for (c of av.items; track c.id) {
-                <div class="eval-bar-row">
-                  <span class="eb-label" [title]="c.description ?? ''">{{ c.label }}</span>
-                  <div class="eb-track">
-                    <div class="eb-fill" [class]="reviewBarClass(c.score ?? 0)" [style.width.%]="c.score ?? 0"></div>
+          @if (assessmentBlocks(); as ab) {
+            @if (ab.blocks.length === 0) {
+              <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
+            } @else {
+              <!-- 1 or 2 columns -->
+              <div class="eval-blocks" [class.eval-blocks-dual]="ab.blocks.length >= 2">
+                @for (block of ab.blocks; track block.type) {
+                  <div class="eval-block">
+                    <!-- Block header -->
+                    <div class="eval-block-head">
+                      <span class="eval-block-badge" [class]="'ebt-' + block.type">
+                        {{ block.type === 'kpi' ? 'KPI' : '360°' }}
+                      </span>
+                      @if (block.overall_score != null) {
+                        <span class="eval-block-score">{{ block.overall_score }}/100</span>
+                      }
+                      <span class="eval-block-weight">
+                        {{ ab.blocks.length >= 2 ? blockWeightLabel(block.type) + ' trọng số' : '100% trọng số' }}
+                      </span>
+                    </div>
+
+                    <!-- Criteria list -->
+                    @if (block.items.length > 0) {
+                      <div class="eval-bars">
+                        @for (c of blockVisibleItems(block); track c.id) {
+                          <div class="eval-bar-row">
+                            <span class="eb-label" [title]="c.description ?? ''">{{ c.label }}</span>
+                            <div class="eb-track">
+                              <div class="eb-fill" [class]="reviewBarClass((c.score ?? 0) / c.item_max * 100)"
+                                   [style.width.%]="(c.score ?? 0) / c.item_max * 100"></div>
+                            </div>
+                            <span class="eb-score">
+                              {{ c.score ?? '—' }}@if (c.item_max !== 100) { <span class="eb-max">/{{ c.item_max }}</span> }
+                            </span>
+                          </div>
+                        }
+                      </div>
+                      @if (block.items.length > 5) {
+                        <button type="button" class="eval-expand-btn" (click)="toggleBlockExpanded(block.type)">
+                          @if (isBlockExpanded(block.type)) {
+                            <span nz-icon nzType="up"></span> Thu gọn
+                          } @else {
+                            <span nz-icon nzType="down"></span> Xem thêm ({{ block.items.length - 5 }})
+                          }
+                        </button>
+                      }
+                    } @else {
+                      <div class="empty-msg">Chưa có tiêu chí.</div>
+                    }
+
+                    <!-- Notes section -->
+                    @if (block.strengths.length || block.needs_dev.length || block.manager_note) {
+                      <div class="eval-notes eval-notes-compact">
+                        @if (block.strengths.length) {
+                          <div class="en-col">
+                            <div class="en-head en-head-good"><span nz-icon nzType="check-circle"></span> Điểm mạnh</div>
+                            @for (s of block.strengths; track s) {
+                              <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
+                            }
+                          </div>
+                        }
+                        @if (block.needs_dev.length) {
+                          <div class="en-col">
+                            <div class="en-head en-head-warn"><span nz-icon nzType="exclamation-circle"></span> Cần phát triển</div>
+                            @for (s of block.needs_dev; track s) {
+                              <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
+                            }
+                          </div>
+                        }
+                      </div>
+                      @if (block.manager_note) {
+                        <p class="eval-quote">"{{ block.manager_note }}"</p>
+                      }
+                    }
                   </div>
-                  <span class="eb-score">{{ c.score ?? '—' }}</span>
-                </div>
-              }
-              @if (av.items.length === 0) {
-                <div class="empty-msg">Chưa có cấu hình tiêu chí hiển thị. Liên hệ Admin.</div>
-              }
-            </div>
-
-            <div class="eval-overall">
-              <div class="eo-value">{{ av.overall_score ?? '—' }}<span class="eo-max">/ 100</span></div>
-              <div class="eo-label">{{ av.rating_label ?? reviewLabel(av.overall_score ?? 0) }}</div>
-            </div>
-
-            <div class="eval-notes">
-              <div class="en-col">
-                <div class="en-head en-head-good">
-                  <span nz-icon nzType="check-circle"></span> Điểm mạnh
-                </div>
-                @for (s of av.strengths; track s) {
-                  <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
-                } @empty {
-                  <div class="en-item en-empty">— chưa có ghi nhận —</div>
                 }
               </div>
-              <div class="en-col">
-                <div class="en-head en-head-warn">
-                  <span nz-icon nzType="exclamation-circle"></span> Cần phát triển
-                </div>
-                @for (s of av.needs_dev; track s) {
-                  <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
-                } @empty {
-                  <div class="en-item en-empty">— chưa có ghi nhận —</div>
-                }
-              </div>
-            </div>
 
-            @if (av.manager_note) {
-              <p class="eval-quote">"{{ av.manager_note }}"</p>
+              <!-- Combined total (only when 2+ blocks) -->
+              @if (ab.blocks.length >= 2 && ab.combined_total != null) {
+                <div class="eval-combined">
+                  <div class="ec-label">Điểm tổng hợp</div>
+                  <div class="ec-val">{{ ab.combined_total | number:'1.1-1' }}<span class="ec-max">/100</span></div>
+                  <div class="ec-formula">
+                    KPI × {{ ab.weights.assessment_weight }}% + 360° × {{ ab.weights.weight_360 }}%
+                  </div>
+                </div>
+              }
             }
           } @else {
             <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>

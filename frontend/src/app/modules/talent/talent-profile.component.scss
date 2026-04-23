@@ -618,6 +618,79 @@
   padding-top:14px; border-top:1px dashed #e5e7eb;
 }
 
+/* ── Assessment blocks (new 1/2-column layout) ── */
+.eval-blocks {
+  display:flex; flex-direction:column; gap:0;
+}
+.eval-blocks-dual {
+  display:grid; grid-template-columns:1fr 1fr; gap:20px;
+  @media(max-width:900px) { grid-template-columns:1fr; }
+}
+.eval-block {
+  display:flex; flex-direction:column; gap:12px;
+  padding:14px 0;
+  & + & { border-top:1px solid #f3f4f6; }
+  .eval-blocks-dual & { border-top:none; }
+  .eval-blocks-dual &:first-child {
+    padding-right:20px; border-right:1px solid #f3f4f6;
+    @media(max-width:900px) { border-right:none; padding-right:0; border-bottom:1px solid #f3f4f6; }
+  }
+}
+
+.eval-block-head {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.eval-block-badge {
+  font-size:11px; font-weight:700; letter-spacing:0.4px;
+  padding:3px 10px; border-radius:999px;
+}
+.ebt-kpi  { background:#dbeafe; color:#1d4ed8; }
+.ebt-360  { background:#f3e8ff; color:#7c3aed; }
+
+.eval-block-score {
+  font-size:13px; font-weight:700; color:#111827;
+}
+.eval-block-weight {
+  margin-left:auto; font-size:11px; font-weight:500; color:#9ca3af;
+  background:#f9fafb; border:1px solid #f1f3f5; padding:2px 8px; border-radius:999px;
+}
+
+.eval-expand-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:12px; font-weight:500; color:#4f46e5;
+  background:none; border:none; cursor:pointer; padding:4px 0;
+  &:hover { text-decoration:underline; }
+  [nz-icon] { font-size:10px; }
+}
+
+.eval-notes-compact {
+  gap:12px;
+  @media(max-width:640px) { grid-template-columns:1fr; }
+}
+
+.eb-max { font-size:11px; color:#9ca3af; margin-left:1px; }
+
+.rs-na { color:#9ca3af; }
+
+/* Combined total footer */
+.eval-combined {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin-top:4px; padding:14px 16px;
+  background:linear-gradient(90deg,#f5f3ff,#eef2ff);
+  border:1px solid #c7d2fe; border-radius:10px;
+}
+.ec-label {
+  font-size:12px; font-weight:600; color:#7c3aed; text-transform:uppercase; letter-spacing:0.4px;
+}
+.ec-val {
+  font-size:24px; font-weight:800; color:#4f46e5; line-height:1;
+}
+.ec-max { font-size:13px; font-weight:500; color:#9ca3af; margin-left:2px; }
+.ec-formula {
+  margin-left:auto; font-size:11px; color:#818cf8;
+  font-style:italic; text-align:right;
+}
+
 /* --- Info cards (Dự án / Thống kê) --- */
 .info-card       {
   background:#fff; border:1px solid #f1f3f5; border-radius:14px;
