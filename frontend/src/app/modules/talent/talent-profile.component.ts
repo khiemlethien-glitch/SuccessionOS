@@ -16,6 +16,7 @@ import { EmployeeService } from '../../core/services/data/employee.service';
 import { IdpService } from '../../core/services/data/idp.service';
 import { AssessmentService, Cycle, AssessmentView, RadarProfile } from '../../core/services/data/assessment.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
+import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
 import {
   Talent,
   Assessment,
@@ -26,64 +27,6 @@ import {
   KnowledgeTransfer,
   Assessment360,
 } from '../../core/models/models';
-
-// ─── Default fallback values (dùng trong mock mode / khi backend chưa có data) ─
-const DEFAULT_360: Assessment360 = {
-  overall: 4.55, benchmark: 4.5, period: '2024-Annual',
-  sources: [
-    { label: 'QL', pct: 50 }, { label: 'ĐN', pct: 30 }, { label: 'CĐ', pct: 20 },
-  ],
-  criteria: [
-    { label: 'Tầm nhìn chiến lược & định hướng',  score: 4.27 },
-    { label: 'Ra quyết định & giải quyết vấn đề', score: 4.27 },
-    { label: 'Giao tiếp & ảnh hưởng',             score: 4.27 },
-    { label: 'Làm việc nhóm & hợp tác',           score: 4.27 },
-    { label: 'Tính chuyên nghiệp kỹ thuật',       score: 4.64 },
-    { label: 'Chất lượng & an toàn công việc',    score: 4.64 },
-    { label: 'Tuân thủ quy trình & tiêu chuẩn',   score: 4.64 },
-    { label: 'Hiệu suất & kết quả đầu ra',        score: 4.64 },
-    { label: 'Quản lý thời gian & ưu tiên',       score: 4.64 },
-    { label: 'Đổi mới & cải tiến',                score: 4.64 },
-    { label: 'Phát triển & coaching nhân sự',     score: 4.56 },
-    { label: 'Tuân thủ văn hóa & hành vi',        score: 4.26 },
-    { label: 'Tiềm năng phát triển',              score: 4.41 },
-  ],
-  strengths: ['FEA analysis ở đẳng cấp quốc tế', 'Đầu ra thiết kế không có lỗi major', 'Mentor hiệu quả'],
-  needs_dev:  ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
-  manager_note: 'Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ.',
-};
-
-const DEFAULT_CAREER_REVIEW: CareerReview = {
-  period: 'Chu kỳ 2024',
-  categories: [
-    { label: 'Chuyên môn kỹ thuật',  weight: 40, score: 96 },
-    { label: 'Kết quả & Hiệu suất',  weight: 30, score: 88 },
-    { label: 'Hành vi & Thái độ',    weight: 20, score: 82 },
-    { label: 'Tiềm năng phát triển', weight: 10, score: 85 },
-  ],
-  overall: 91,
-  strengths: ['FEA analysis ở đẳng cấp quốc tế', 'Đầu ra thiết kế không có lỗi major', 'Mentor hiệu quả'],
-  needs_dev:  ['Chưa thăng chức 4 năm', 'Chưa có mentor', 'KTP tiến độ thấp 40%'],
-  manager_note: 'Nhận xét quản lý: Cần quyết định nhanh về career track. Rủi ro mất người cao nếu không có lộ trình rõ. Principal Engineer là con đường phù hợp nhất.',
-};
-
-const DEFAULT_PROJECT: CurrentProject = {
-  name: 'Sao Vang Dai Nguyet – Jacket Fabrication',
-  type: 'EPC', role: 'Lead Structural Engineer',
-  client: 'Eni Vietnam', value: '180M USD', status: 'active',
-};
-
-const DEFAULT_KT: KnowledgeTransfer = {
-  successor: 'Phạm Văn Việt', successor_role: 'Commissioning Engineer',
-  start_date: '2024-03-01', target_date: '2025-06-30', overall_progress: 40,
-  items: [
-    { title: 'FEA methodology cho Jacket analysis',  category: 'Technical',   status: 'Completed',   progress: 100 },
-    { title: 'API RP 2A-WSD design standards',       category: 'Standards',   status: 'In Progress', progress: 60  },
-    { title: 'Fatigue analysis workflow',            category: 'Technical',   status: 'In Progress', progress: 30  },
-    { title: 'Client communication — Eni Vietnam',   category: 'Soft skills', status: 'Not Started', progress: 0   },
-    { title: 'Project handover documentation',       category: 'Process',     status: 'In Progress', progress: 45  },
-  ],
-};
 
 @Component({
   selector: 'app-talent-profile',
@@ -110,11 +53,15 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   idp        = signal<IdpPlan | null>(null);
   loading    = signal(true);
 
+  // ─── External scores (from score-config service) ─────────────────────────
+  externalScore       = signal<ComputedScore | null>(null);
+  externalScoreLoaded = signal<boolean | null>(null);
+
   // ─── Profile section signals (mỗi section fetch riêng) ───────────────────
-  assessment360Data    = signal<Assessment360>(DEFAULT_360);
-  careerReviewData     = signal<CareerReview>(DEFAULT_CAREER_REVIEW);
-  currentProjectData   = signal<CurrentProject>(DEFAULT_PROJECT);
-  knowledgeTransferData = signal<KnowledgeTransfer>(DEFAULT_KT);
+  assessment360Data    = signal<Assessment360 | null>(null);
+  careerReviewData     = signal<CareerReview | null>(null);
+  currentProjectData   = signal<CurrentProject | null>(null);
+  knowledgeTransferData = signal<KnowledgeTransfer | null>(null);
 
   // Trạng thái load từng section: null=loading, true=có data, false=không có data (404/error)
   assessment360Loaded    = signal<boolean | null>(null);
@@ -483,6 +430,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   private idpSvc       = inject(IdpService);
   private assessmentSvc = inject(AssessmentService);
   private successionSvc = inject(SuccessionService);
+  private scoreSvc     = inject(ScoreConfigService);
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
@@ -549,6 +497,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       if (idp) { this.idp.set(idp as any); this.idpLoaded.set(true); }
       else this.idpLoaded.set(false);
     } catch { this.idpLoaded.set(false); }
+
+    // External scores (assessment_score + score_360 → total)
+    this.scoreSvc.getLatestScoreForEmployee(id)
+      .then(s => { this.externalScore.set(s); this.externalScoreLoaded.set(true); })
+      .catch(() => this.externalScoreLoaded.set(false));
 
     this.loading.set(false);
   }

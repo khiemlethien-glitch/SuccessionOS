@@ -360,6 +360,32 @@
   border-top:1px solid #f1f3f5;
 }
 
+/* ══ Weight config ══ */
+.weight-title    { margin-top:28px !important; }
+.weight-config   {
+  display:flex; flex-direction:column; gap:14px;
+  background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;
+  padding:20px 24px; max-width:480px;
+}
+.wc-row          { display:flex; align-items:center; gap:16px; }
+.wc-label        {
+  display:flex; align-items:center; gap:8px;
+  flex:1; font-size:13px; font-weight:500; color:#374151;
+}
+.wc-ico          { font-size:15px; }
+.wc-ico-blue     { color:#6366f1; }
+.wc-ico-purple   { color:#9333ea; }
+.wc-input        { width:120px; }
+.wc-total        {
+  display:flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:600; padding:8px 12px;
+  border-radius:8px; border:1px solid transparent;
+  &.wc-ok  { background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
+  &.wc-err { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+}
+.wc-hint         { font-weight:400; color:#9ca3af; }
+.wc-save         { align-self:flex-start; }
+
 /* ══ Edit modal ══ */
 .edit-body       { display:flex; flex-direction:column; gap:14px; padding:4px 0 10px; }
 .edit-field      { display:flex; flex-direction:column; gap:6px; }

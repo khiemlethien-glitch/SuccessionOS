@@ -264,6 +264,53 @@
           </div>
         }
       </div>
+
+      <!-- Score weight config -->
+      <h3 class="panel-title weight-title">Trọng số điểm tổng hợp</h3>
+      <p class="panel-sub">Điểm tổng = Đánh giá × w₁ + 360° × w₂. Tổng w₁ + w₂ phải bằng 100.</p>
+
+      <div class="weight-config">
+        <div class="wc-row">
+          <div class="wc-label">
+            <span nz-icon nzType="star" class="wc-ico wc-ico-blue"></span>
+            Đánh giá năng lực
+          </div>
+          <nz-input-number
+            [ngModel]="weightConfig().assessment_weight"
+            (ngModelChange)="setWeight('assessment_weight', $event)"
+            [nzMin]="0" [nzMax]="100" [nzStep]="5"
+            [nzFormatter]="pctFormatter"
+            class="wc-input">
+          </nz-input-number>
+        </div>
+
+        <div class="wc-row">
+          <div class="wc-label">
+            <span nz-icon nzType="team" class="wc-ico wc-ico-purple"></span>
+            360° phản hồi
+          </div>
+          <nz-input-number
+            [ngModel]="weightConfig().weight_360"
+            (ngModelChange)="setWeight('weight_360', $event)"
+            [nzMin]="0" [nzMax]="100" [nzStep]="5"
+            [nzFormatter]="pctFormatter"
+            class="wc-input">
+          </nz-input-number>
+        </div>
+
+        <div class="wc-total" [class.wc-ok]="weightSum() === 100" [class.wc-err]="weightSum() !== 100">
+          <span nz-icon [nzType]="weightSum() === 100 ? 'check-circle' : 'exclamation-circle'"></span>
+          Tổng: {{ weightSum() }}%
+          @if (weightSum() !== 100) { <span class="wc-hint">— phải bằng 100%</span> }
+        </div>
+
+        <button nz-button nzType="primary" class="btn-navy wc-save"
+                [nzLoading]="weightSaving()"
+                [disabled]="weightSum() !== 100"
+                (click)="saveWeightConfig()">
+          <span nz-icon nzType="save"></span> Lưu cấu hình
+        </button>
+      </div>
     </div>
   }
 

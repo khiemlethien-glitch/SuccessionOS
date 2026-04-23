@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, WritableSignal } from '@angular/core';
+import { Component, OnInit, signal, computed, WritableSignal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NzTableModule } from 'ng-zorro-antd/table';
@@ -7,6 +7,7 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
@@ -19,6 +20,7 @@ import { EmployeeService } from '../../core/services/data/employee.service';
 import { AssessmentService, Criterion } from '../../core/services/data/assessment.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { ScoreConfigService, ScoreWeightConfig } from '../../core/services/data/score-config.service';
 import {
   AuditLog, AuditLogListResponse,
   Talent, TalentListResponse,
@@ -64,7 +66,7 @@ interface EntityDef {
   selector: 'app-admin',
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
-    NzModalModule, NzInputModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
+    NzModalModule, NzInputModule, NzInputNumberModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   // nz-drawer / nz-modal portal content to the body's cdk-overlay-container
@@ -86,14 +88,7 @@ export class AdminComponent implements OnInit {
   mentorings  = signal<MentoringPair[]>([]);
   calibrations = signal<CalibrationSession[]>([]);
 
-  users = signal<AdminUser[]>([
-    { id: 'U001', username: 'admin',       fullName: 'HR Admin',          email: 'admin@ptscmc.vn',    role: 'Admin',        status: 'Active',   lastLogin: '2026-04-20 14:30' },
-    { id: 'U002', username: 'hr.manager',  fullName: 'Nguyễn Thị Hoa',    email: 'hoa.nt@ptscmc.vn',   role: 'HR Manager',   status: 'Active',   lastLogin: '2026-04-19 09:15' },
-    { id: 'U003', username: 'lm.kythuat',  fullName: 'Trần Minh Tuấn',    email: 'tuan.tm@ptscmc.vn',  role: 'Line Manager', status: 'Active',   lastLogin: '2026-04-18 16:42' },
-    { id: 'U004', username: 'lm.duan',     fullName: 'Lê Hoàng Sơn',      email: 'son.lh@ptscmc.vn',   role: 'Line Manager', status: 'Active',   lastLogin: '2026-04-20 08:20' },
-    { id: 'U005', username: 'viewer.ceo',  fullName: 'Phạm Quốc Việt',    email: 'viet.pq@ptscmc.vn',  role: 'Viewer',       status: 'Active',   lastLogin: '2026-04-17 11:05' },
-    { id: 'U006', username: 'hr.backup',   fullName: 'Vũ Thị Lan',        email: 'lan.vt@ptscmc.vn',   role: 'HR Manager',   status: 'Disabled', lastLogin: '2026-03-15 10:00' },
-  ]);
+  users = signal<AdminUser[]>([]);
 
   modules = signal([
     { key: 'talent',      name: 'Quản lý Nhân tài',         desc: 'Talent Pool + Tier + Readiness', enabled: true,  tier: 'core' },
@@ -427,6 +422,26 @@ export class AdminComponent implements OnInit {
 
   isAdmin = computed(() => this.auth.isAdmin());
 
+  // ── Score weight config ───────────────────────────────────────────────────
+  private scoreSvc  = inject(ScoreConfigService);
+  weightConfig = signal<ScoreWeightConfig>({ assessment_weight: 60, weight_360: 40 });
+  weightSaving = signal(false);
+  weightSum    = computed(() => (this.weightConfig().assessment_weight ?? 0) + (this.weightConfig().weight_360 ?? 0));
+  readonly pctFormatter = (v: number) => `${v}%`;
+
+  setWeight(field: keyof ScoreWeightConfig, value: number): void {
+    this.weightConfig.set({ ...this.weightConfig(), [field]: value ?? 0 });
+  }
+
+  async saveWeightConfig(): Promise<void> {
+    if (this.weightSum() !== 100) return;
+    this.weightSaving.set(true);
+    const ok = await this.scoreSvc.updateWeightConfig(this.weightConfig());
+    this.weightSaving.set(false);
+    if (ok) this.msg.success('Đã lưu cấu hình trọng số điểm');
+    else    this.msg.error('Lưu thất bại, vui lòng thử lại');
+  }
+
   constructor(
     private api: ApiService,
     private msg: NzMessageService,
@@ -519,9 +534,29 @@ export class AdminComponent implements OnInit {
     } catch (e) {
       console.warn('[admin] load error', e);
     }
+    // Load score weight config
+    const cfg = await this.scoreSvc.getWeightConfig().catch(() => null);
+    if (cfg) this.weightConfig.set(cfg);
+    // Users tab: query user_profiles
+    const { data: profileRows } = await this.sbSvc.client
+      .from('user_profiles')
+      .select('id, email, full_name, role, status, last_sign_in_at')
+      .order('full_name', { ascending: true })
+      .then(r => r, () => ({ data: null }));
+    if (profileRows) {
+      this.users.set(profileRows.map((p: any) => ({
+        id:        p.id,
+        username:  (p.email ?? '').split('@')[0],
+        fullName:  p.full_name ?? p.email ?? p.id,
+        email:     p.email ?? '',
+        role:      p.role ?? 'Viewer',
+        status:    p.status === 'disabled' ? 'Disabled' : 'Active',
+        lastLogin: p.last_sign_in_at
+          ? new Date(p.last_sign_in_at).toLocaleString('vi-VN')
+          : '—',
+      })));
+    }
     // TODO Data tab: positions/idps/assessments/successions/mentorings/calibrations — chờ fix RLS
-    // TODO Users tab: giữ static local (6 hardcoded users)
-    // TODO Settings tab: module config hardcode trong component
     this.loading.set(false);
   }
 

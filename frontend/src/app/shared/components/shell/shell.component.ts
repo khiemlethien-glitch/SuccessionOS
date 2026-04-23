@@ -35,7 +35,7 @@ export class ShellComponent {
       { label: 'Bản đồ kế thừa',     icon: 'cluster',   route: '/succession' },
     ]},
     { label: 'PHÁT TRIỂN', items: [
-      { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp' },
+      { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp',        disabled: true },
       { label: 'Đánh giá',           icon: 'star',      route: '/assessment',  disabled: true },
       { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring',   disabled: true },
       { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration', disabled: true },

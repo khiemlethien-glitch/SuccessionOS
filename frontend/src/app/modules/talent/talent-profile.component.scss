@@ -822,3 +822,31 @@
   color: #9ca3af; font-size: 13px; padding: 16px 0;
 }
 .ai-empty-icon { font-size: 20px; }
+
+/* ───────────── Score cards (Điểm số tab) ───────────── */
+.score-loading { display:flex; justify-content:center; padding:40px; }
+.score-empty {
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  padding:40px; color:#9ca3af;
+  span[nz-icon] { font-size:36px; }
+  p { margin:0; font-size:14px; }
+}
+.score-cards {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:16px 0;
+  @media(max-width:768px) { grid-template-columns:1fr; }
+}
+.score-card {
+  display:flex; align-items:center; gap:16px;
+  border-radius:14px; padding:20px 22px;
+  border:1px solid transparent;
+}
+.score-card-blue   { background:#eff6ff; border-color:#bfdbfe; .sc-icon { color:#3b82f6; } .sc-value { color:#1d4ed8; } }
+.score-card-purple { background:#f5f3ff; border-color:#ddd6fe; .sc-icon { color:#7c3aed; } .sc-value { color:#5b21b6; } }
+.score-card-green  { background:#f0fdf4; border-color:#bbf7d0; .sc-icon { color:#16a34a; } .sc-value { color:#15803d; } }
+.sc-icon  { font-size:28px; flex-shrink:0; }
+.sc-body  { display:flex; flex-direction:column; gap:4px; }
+.sc-label { font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.4px; }
+.sc-value { font-size:28px; font-weight:800; line-height:1; }
+.sc-value-total { font-size:32px; }
+.sc-na    { font-size:20px; font-weight:600; color:#d1d5db; }
+.sc-sub   { font-size:11px; color:#9ca3af; margin-top:2px; }

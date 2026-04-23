@@ -341,35 +341,36 @@
       }
     </div>
 
-    <!-- ══ Kết quả đánh giá 360° ══ -->
+    <!-- ══ Kết quả đánh giá 360° — chỉ hiện khi có data ══ -->
+    @if (assessment360Data(); as d) {
     <div class="a360-card">
       <button type="button" class="a360-head" (click)="assessment360Expanded.set(!assessment360Expanded())">
         <span nz-icon nzType="bar-chart" nzTheme="outline" class="a360-ico"></span>
         <span class="a360-title">Kết quả đánh giá 360°</span>
-        <span class="a360-head-meta">{{ assessment360Data().benchmark }} điểm · {{ assessment360Data().period }}</span>
-        <span class="a360-badge">{{ assessment360Data().benchmark }} điểm · {{ assessment360Data().period }}</span>
+        <span class="a360-head-meta">{{ d.benchmark }} điểm · {{ d.period }}</span>
+        <span class="a360-badge">{{ d.benchmark }} điểm · {{ d.period }}</span>
         <span nz-icon [nzType]="assessment360Expanded() ? 'arrow-up' : 'arrow-down'" class="a360-toggle"></span>
       </button>
 
       @if (assessment360Expanded()) {
         <div class="a360-summary">
           <div class="a360-overall">
-            <div class="a360-overall-label">Điểm tổng hợp — {{ assessment360Data().period }}</div>
-            <div class="a360-overall-value">{{ assessment360Data().overall }}</div>
+            <div class="a360-overall-label">Điểm tổng hợp — {{ d.period }}</div>
+            <div class="a360-overall-value">{{ d.overall }}</div>
           </div>
           <div class="a360-sources">
             <div class="a360-sources-label">Nguồn đánh giá</div>
             <div class="a360-sources-chips">
-              @for (s of assessment360Data().sources; track s.label) {
+              @for (s of d.sources; track s.label) {
                 <span class="a360-chip">{{ s.label }} {{ s.pct }}%</span>
               }
             </div>
           </div>
         </div>
 
-        <div class="a360-section-title">CHI TIẾT {{ assessment360Data().criteria.length }} TIÊU CHÍ</div>
+        <div class="a360-section-title">CHI TIẾT {{ d.criteria.length }} TIÊU CHÍ</div>
         <ul class="a360-criteria">
-          @for (c of assessment360Data().criteria; track c.label) {
+          @for (c of d.criteria; track c.label) {
             <li class="a360-crit">
               <span class="a360-dot"></span>
               <span class="a360-crit-label">{{ c.label }}</span>
@@ -377,7 +378,7 @@
               <div class="a360-crit-bar">
                 <div class="a360-crit-fill" [style.width.%]="(c.score / 5) * 100"></div>
               </div>
-              <span class="a360-crit-max">/{{ assessment360Data().benchmark }}</span>
+              <span class="a360-crit-max">/{{ d.benchmark }}</span>
             </li>
           }
         </ul>
@@ -386,17 +387,17 @@
 
         <div class="a360-block">
           <div class="a360-block-title">Điểm mạnh</div>
-          @for (s of assessment360Data().strengths; track s) { <div class="a360-line">{{ s }}</div> }
+          @for (s of d.strengths; track s) { <div class="a360-line">{{ s }}</div> }
         </div>
 
         <div class="a360-block">
           <div class="a360-block-title">Cần phát triển</div>
-          @for (s of assessment360Data().needs_dev; track s) { <div class="a360-line">{{ s }}</div> }
+          @for (s of d.needs_dev; track s) { <div class="a360-line">{{ s }}</div> }
         </div>
 
         <div class="a360-block">
           <div class="a360-block-title">Nhận xét quản lý</div>
-          <div class="a360-quote">"{{ assessment360Data().manager_note }}"</div>
+          <div class="a360-quote">"{{ d.manager_note }}"</div>
         </div>
 
         <div class="a360-block">
@@ -410,6 +411,7 @@
         </div>
       }
     </div>
+    }
 
     <!-- ══ Đánh giá năng lực + Dự án + Thống kê nhanh + IDP ══ -->
     <div class="review-grid">
@@ -532,19 +534,21 @@
       <div class="review-col">
 
         <!-- Dự án hiện tại -->
+        @if (currentProjectData(); as p) {
         <div class="info-card">
           <h3 class="info-title">Dự án hiện tại</h3>
           <div class="info-project">
-            <div class="ip-name">{{ currentProjectData().name }}</div>
-            <span class="ip-tag">{{ currentProjectData().type }}</span>
+            <div class="ip-name">{{ p.name }}</div>
+            <span class="ip-tag">{{ p.type }}</span>
           </div>
           <div class="info-rows">
-            <div class="ir"><span class="ir-label">Vai trò:</span> <strong>{{ currentProjectData().role }}</strong></div>
-            <div class="ir"><span class="ir-label">Khách hàng:</span> <strong>{{ currentProjectData().client }}</strong></div>
-            <div class="ir"><span class="ir-label">Giá trị HĐ:</span> <strong>{{ currentProjectData().value }}</strong></div>
-            <div class="ir"><span class="ir-label">Trạng thái:</span> <span class="ir-status">{{ currentProjectData().status }}</span></div>
+            <div class="ir"><span class="ir-label">Vai trò:</span> <strong>{{ p.role }}</strong></div>
+            <div class="ir"><span class="ir-label">Khách hàng:</span> <strong>{{ p.client }}</strong></div>
+            <div class="ir"><span class="ir-label">Giá trị HĐ:</span> <strong>{{ p.value }}</strong></div>
+            <div class="ir"><span class="ir-label">Trạng thái:</span> <span class="ir-status">{{ p.status }}</span></div>
           </div>
         </div>
+        }
 
         <!-- Thống kê nhanh -->
         <div class="info-card">
@@ -573,26 +577,27 @@
     </div>
 
     <!-- ══ Chuyển giao Tri thức ══ -->
+    @if (knowledgeTransferData(); as kt) {
     <div class="kt-card">
       <div class="kt-head">
         <div>
           <h3 class="kt-title">Chuyển giao Tri thức</h3>
-          <p class="kt-sub">Người kế thừa: <strong>{{ knowledgeTransferData().successor }}</strong> · {{ knowledgeTransferData().successor_role }}</p>
+          <p class="kt-sub">Người kế thừa: <strong>{{ kt.successor }}</strong> · {{ kt.successor_role }}</p>
         </div>
         <div class="kt-progress-wrap">
           <div class="kt-progress-head">
             <span>Tiến độ chuyển giao</span>
-            <strong>{{ knowledgeTransferData().overall_progress }}%</strong>
+            <strong>{{ kt.overall_progress }}%</strong>
           </div>
           <div class="kt-progress-track">
-            <div class="kt-progress-fill" [style.width.%]="knowledgeTransferData().overall_progress"></div>
+            <div class="kt-progress-fill" [style.width.%]="kt.overall_progress"></div>
           </div>
-          <div class="kt-dates">{{ knowledgeTransferData().start_date }} → {{ knowledgeTransferData().target_date }}</div>
+          <div class="kt-dates">{{ kt.start_date }} → {{ kt.target_date }}</div>
         </div>
       </div>
 
       <ul class="kt-list">
-        @for (i of knowledgeTransferData().items; track i.title) {
+        @for (i of kt.items; track i.title) {
           <li class="kt-item">
             <span class="kt-status" [class]="ktStatusColor(i.status)"></span>
             <div class="kt-text">
@@ -610,29 +615,57 @@
         }
       </ul>
     </div>
+    }
 
     <!-- Tabs (chi tiết) -->
     <div class="tabs-card">
       <nz-tabs nzType="line">
 
-        <nz-tab nzTitle="Đánh giá 360°">
-          @if (assessment()) {
-            <div class="assess-header">
-              <span class="assess-period">Kỳ: {{ assessment()!.period }}</span>
-              <span class="assess-overall">Overall: <strong>{{ assessment()!.overall_score }}</strong>/100</span>
-              <span class="assess-count">{{ assessment()!.assessor_count }} người đánh giá</span>
-            </div>
-            <div class="comp-list">
-              @for (a of assessmentEntries; track a.key) {
-                <div class="comp-row">
-                  <span class="comp-label">{{ a.label }}</span>
-                  <nz-progress [nzPercent]="a.value" [nzShowInfo]="false" nzSize="small" class="comp-bar indigo-bar"></nz-progress>
-                  <span class="comp-val">{{ a.value }}</span>
+        <nz-tab nzTitle="Điểm số">
+          @if (externalScoreLoaded() === null) {
+            <div class="score-loading"><nz-spin nzSimple></nz-spin></div>
+          } @else if (externalScore(); as s) {
+            <div class="score-cards">
+              <div class="score-card score-card-blue">
+                <span nz-icon nzType="file-done" nzTheme="outline" class="sc-icon"></span>
+                <div class="sc-body">
+                  <div class="sc-label">Đánh giá năng lực</div>
+                  @if (s.assessment_score != null) {
+                    <div class="sc-value">{{ s.assessment_score }}</div>
+                  } @else {
+                    <div class="sc-na">N/A</div>
+                  }
                 </div>
-              }
+              </div>
+              <div class="score-card score-card-purple">
+                <span nz-icon nzType="team" nzTheme="outline" class="sc-icon"></span>
+                <div class="sc-body">
+                  <div class="sc-label">Điểm 360°</div>
+                  @if (s.score_360 != null) {
+                    <div class="sc-value">{{ s.score_360 }}</div>
+                  } @else {
+                    <div class="sc-na">N/A</div>
+                  }
+                </div>
+              </div>
+              <div class="score-card score-card-green">
+                <span nz-icon nzType="trophy" nzTheme="outline" class="sc-icon"></span>
+                <div class="sc-body">
+                  <div class="sc-label">Điểm tổng hợp</div>
+                  @if (s.total_score != null) {
+                    <div class="sc-value sc-value-total">{{ s.total_score | number:'1.1-1' }}</div>
+                    <div class="sc-sub">Tính theo trọng số cấu hình</div>
+                  } @else {
+                    <div class="sc-na">N/A</div>
+                  }
+                </div>
+              </div>
             </div>
           } @else {
-            <p class="empty-msg">Chưa có đánh giá 360° cho nhân viên này.</p>
+            <div class="score-empty">
+              <span nz-icon nzType="inbox" nzTheme="outline"></span>
+              <p>Chưa có dữ liệu điểm số cho nhân viên này.</p>
+            </div>
           }
         </nz-tab>
 

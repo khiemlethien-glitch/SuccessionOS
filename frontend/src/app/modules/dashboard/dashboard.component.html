@@ -47,18 +47,6 @@
       <div class="kpi-sub">cần xử lý trong 30 ngày</div>
     </div>
 
-    <!-- IDP đang thực hiện -->
-    <div class="kpi-card kpi-amber">
-      <div class="kpi-hdr">
-        <div class="kpi-label">IDP đang thực hiện</div>
-        <div class="kpi-icon kpi-icon-amber"><span nz-icon nzType="clock-circle"></span></div>
-      </div>
-      <div class="kpi-value">{{ activeIdpGoalsCount() }}</div>
-      <div class="kpi-progress">
-        <div class="bar"><div class="fill fill-amber" [style.width.%]="avgIdpProgress()"></div></div>
-        <div class="kpi-sub">trung bình {{ avgIdpProgress() }}% hoàn thành</div>
-      </div>
-    </div>
   </div>
 
   <div class="top-grid">
