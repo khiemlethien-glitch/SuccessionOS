@@ -9,12 +9,13 @@ import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { EmployeeService } from '../../core/services/data/employee.service';
 import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { Talent, SuccessionPlan, KeyPosition, Successor } from '../../core/models/models';
+import { Talent, SuccessionPlan, KeyPosition, Successor, ReadinessLevel } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
@@ -35,6 +36,7 @@ interface TreeNode {
   title: string;
   department: string;
   current_holder: string;
+  current_holder_id: string | null;
   critical_level: string;
   successors: Successor[];  // from matching SuccessionPlan, or []
   children: TreeNode[];
@@ -47,7 +49,7 @@ interface TreeNode {
   imports: [
     CommonModule, FormsModule,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
-    NzDrawerModule, NzSliderModule, NzButtonModule,
+    NzDrawerModule, NzSliderModule, NzButtonModule, NzSelectModule,
     AvatarComponent, TalentPreviewDrawerComponent,
   ],
   templateUrl: './succession.component.html',
@@ -111,13 +113,77 @@ export class SuccessionComponent implements OnInit {
     this.drawerNode.set(node);
     this.positionDrawerOpen.set(true);
   }
-  closePositionDrawer(): void { this.positionDrawerOpen.set(false); }
+  closePositionDrawer(): void {
+    this.positionDrawerOpen.set(false);
+    this.addSuccessorOpen.set(false);
+  }
 
-  /** Match current_holder against talents list if possible. */
+  // ── Add successor inline form ───────────────────────────────────────────────
+  addSuccessorOpen = signal(false);
+  addDraft: { talent_id: string | null; readiness: ReadinessLevel } = {
+    talent_id: null,
+    readiness: 'Ready in 1 Year',
+  };
+
+  readonly readinessOptions: { value: ReadinessLevel; label: string }[] = [
+    { value: 'Ready Now',        label: 'Sẵn sàng ngay' },
+    { value: 'Ready in 1 Year',  label: '1–2 năm' },
+    { value: 'Ready in 2 Years', label: '3–5 năm' },
+  ];
+
+  /** Talents not yet in the current drawer's successor list. */
+  readonly availableTalents = computed(() => {
+    const node = this.drawerNode();
+    if (!node) return this.talents();
+    const taken = new Set(node.successors.map(s => s.talent_id));
+    return this.talents().filter(t => !taken.has(t.id));
+  });
+
+  openAddSuccessor(ev: Event): void {
+    ev.stopPropagation();
+    this.addDraft = { talent_id: null, readiness: 'Ready in 1 Year' };
+    this.addSuccessorOpen.set(true);
+  }
+
+  cancelAddSuccessor(): void { this.addSuccessorOpen.set(false); }
+
+  async submitAddSuccessor(): Promise<void> {
+    const node = this.drawerNode();
+    if (!node || !this.addDraft.talent_id) {
+      this.msg.warning('Vui lòng chọn nhân viên');
+      return;
+    }
+    const talent = this.talents().find(t => t.id === this.addDraft.talent_id);
+    const nextPriority = node.successors.length + 1;
+
+    const result = await this.successionSvc.upsertPlan({
+      position_id: node.positionId,
+      talent_id:   this.addDraft.talent_id,
+      readiness:   this.addDraft.readiness,
+      priority:    nextPriority,
+      gap_score:   0,
+    });
+    if (!result) { this.msg.error('Không thể thêm ứng viên kế thừa'); return; }
+
+    const newSuccessor: Successor = {
+      talent_id:   this.addDraft.talent_id,
+      talent_name: talent?.full_name ?? '—',
+      readiness:   this.addDraft.readiness,
+      priority:    nextPriority,
+      gap_score:   0,
+    };
+    this.drawerNode.set({ ...node, successors: [...node.successors, newSuccessor] });
+    this.cancelAddSuccessor();
+    this.msg.success(`Đã thêm ${talent?.full_name ?? ''} vào danh sách kế thừa`);
+  }
+
+  readonly isAdmin = computed(() => !this.isRestrictedView());
+
+  /** Match current_holder_id against talents list. */
   drawerHolderTalent = computed<Talent | null>(() => {
     const node = this.drawerNode();
-    if (!node?.current_holder) return null;
-    return this.talents().find(t => t.id === node.current_holder) ?? null;
+    if (!node?.current_holder_id) return null;
+    return this.talents().find(t => t.id === node.current_holder_id) ?? null;
   });
 
   /** Full talent records for successors of drawer node. */
@@ -140,14 +206,15 @@ export class SuccessionComponent implements OnInit {
     const nodeById  = new Map<string, TreeNode>();
     positions.forEach(p => {
       nodeById.set(p.id, {
-        positionId:    p.id,
-        title:         p.title,
-        department:    p.department,
-        current_holder: p.current_holder,
-        critical_level: p.critical_level,
-        successors:    planByPos.get(p.id)?.successors ?? [],
-        children:      [],
-        depth:         0,
+        positionId:       p.id,
+        title:            p.title,
+        department:       p.department,
+        current_holder:   p.current_holder,
+        current_holder_id: (p as any).current_holder_id ?? null,
+        critical_level:   p.critical_level,
+        successors:       planByPos.get(p.id)?.successors ?? [],
+        children:         [],
+        depth:            0,
       });
     });
     const roots: TreeNode[] = [];

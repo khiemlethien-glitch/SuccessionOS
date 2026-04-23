@@ -433,24 +433,26 @@
         </div>
 
         @if (node.current_holder) {
-          <div class="pd-holder">
+          <div class="pd-holder"
+               [class.pd-holder-linked]="!!drawerHolderTalent()"
+               (click)="drawerHolderTalent() ? openTalentPreview(drawerHolderTalent()!.id, $event) : null">
             <app-avatar [name]="node.current_holder" [size]="52"></app-avatar>
             <div class="pd-holder-main">
               <div class="pd-holder-name">{{ node.current_holder }}</div>
               @if (drawerHolderTalent(); as t) {
-                <div class="pd-holder-sub">{{ t.position }} · {{ t.department }}</div>
+                <div class="pd-holder-sub">{{ t.position }}</div>
                 <div class="pd-holder-stats">
                   <span class="pd-stat">Hiệu suất <strong>{{ t.performance_score }}</strong></span>
                   <span class="pd-stat">Tiềm năng <strong>{{ t.potential_score }}</strong></span>
                   <span class="pd-stat">Risk <strong>{{ t.risk_score }}</strong></span>
                 </div>
-                <button class="pd-link-btn" (click)="openTalentPreview(t.id, $event)">
-                  <span nz-icon nzType="user"></span> Xem hồ sơ
-                </button>
               } @else {
                 <div class="pd-holder-sub pd-holder-note">Chưa liên kết với hồ sơ nhân tài</div>
               }
             </div>
+            @if (drawerHolderTalent(); as t) {
+              <span class="pd-holder-arrow" nz-icon nzType="arrow-right"></span>
+            }
           </div>
         } @else {
           <div class="pd-empty">
@@ -466,7 +468,38 @@
           <span nz-icon nzType="team" class="pd-ico pd-ico-purple"></span>
           <h4>Ứng viên kế thừa</h4>
           <span class="pd-count-badge">{{ node.successors.length }}</span>
+          @if (isAdmin()) {
+            <button class="pd-add-btn" (click)="openAddSuccessor($event)" title="Thêm ứng viên kế thừa">
+              <span nz-icon nzType="plus"></span>
+            </button>
+          }
         </div>
+
+        <!-- Inline add-successor form -->
+        @if (addSuccessorOpen()) {
+          <div class="pd-add-form">
+            <nz-select
+              [(ngModel)]="addDraft.talent_id"
+              nzShowSearch
+              nzPlaceholder="Tìm và chọn nhân viên…"
+              class="pd-add-select">
+              @for (t of availableTalents(); track t.id) {
+                <nz-option [nzValue]="t.id" [nzLabel]="t.full_name + ' — ' + t.position"></nz-option>
+              }
+            </nz-select>
+            <nz-select [(ngModel)]="addDraft.readiness" class="pd-add-select pd-add-select-sm">
+              @for (opt of readinessOptions; track opt.value) {
+                <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+              }
+            </nz-select>
+            <div class="pd-add-actions">
+              <button nz-button nzSize="small" (click)="cancelAddSuccessor()">Hủy</button>
+              <button nz-button nzType="primary" nzSize="small" (click)="submitAddSuccessor()">
+                <span nz-icon nzType="check"></span> Thêm
+              </button>
+            </div>
+          </div>
+        }
 
         @if (node.successors.length) {
           <ul class="pd-succ-list">
