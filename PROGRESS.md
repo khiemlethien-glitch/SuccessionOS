@@ -1,7 +1,39 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 17:30 (perf — server-side pagination + skeleton loading)
+> Cập nhật lần cuối: 2026-04-23 — Succession: tab "Mật độ kế thừa" hoàn thành ✅
+
+---
+
+## ⚡ Succession — Tab "Mật độ kế thừa" (2026-04-23) — build ✅
+
+### Tính năng mới: Tab 3 trong Succession module
+- **Heat map theo phòng ban**: mỗi department thành 1 row; positions render thành ô màu (ok/warn/low/empty)
+- **Config bar**: chỉnh ngưỡng Ready Now & tổng ứng viên bằng stepper; filter theo phòng ban
+- **4 KPI cards**: Đạt chuẩn, Thiếu hụt, Chưa có kế thừa, Bench Strength (%)
+- **Drill-down drawer** (480px): click ô → thấy coverage bars, danh sách ứng viên có readiness tag + priority
+
+### Logic phân loại tone
+| Condition | Tone |
+|-----------|------|
+| total = 0 | empty (đỏ) |
+| readyNow ≥ targetRN & total ≥ targetT | ok (xanh lá) |
+| readyNow ≥ targetRN nhưng total < targetT | warn (vàng) |
+| readyNow < targetRN | low (cam) |
+
+### New signals/computed
+- `densityTargetReadyNow`, `densityTargetTotal`, `densityDeptFilter` — configurable thresholds
+- `positionDensity` — computed flat list với tone classification
+- `deptDensity` — grouped by dept, sorted by emptyCount desc
+- `densitySummary` — KPI numbers + dept list for filter dropdown
+- `openDensityDrawer/closeDensityDrawer`, `densityReadinessLabel/Class`, `capAt100`
+
+### Files thay đổi
+- `modules/succession/succession.component.ts` — interfaces + signals + computed + methods
+- `modules/succession/succession.component.html` — Tab 3 + density drill-down drawer
+- `modules/succession/succession.component.scss` — density styles (~200 lines appended)
+
+Build: ✅ tsc --noEmit clean
 
 ---
 
