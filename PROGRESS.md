@@ -1,7 +1,24 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (wire quickStats từ employee_extras + assessment redesign merged)
+> Cập nhật lần cuối: 2026-04-23 (merge KPI + 360° thành 1 card thống nhất — unified assessment card)
+
+---
+
+## ⚡ Unified Assessment Card — KPI + 360° merged (2026-04-23) — build ✅
+
+### Thay đổi — commit d32ff7a
+- **Xoá `a360-card`** — không còn card riêng cho 360°
+- `eval-card` → `eval-card eval-standalone` (full-width, đứng ngoài `review-grid`)
+- **Layout linh hoạt**:
+  - Chỉ 1 loại dữ liệu → 1 cột chiếm 100%, nhãn "100% trọng số"
+  - Cả KPI + 360° → 2 cột `1fr 1fr`, divider dọc, footer "Điểm tổng hợp" tím
+- 360° block: badge tím + chip "Tự động đồng bộ" (api icon) + thanh 0–5
+- Empty state 360°: api icon + "Chưa đồng bộ từ hệ thống 360°" inline (không riêng card)
+- SCSS: thêm `.eval-standalone`, `.eval-360-sync`
+- TS: xoá `assessment360Expanded` signal (không còn dùng)
+
+Build: ✅ 0 errors
 
 ---
 
