@@ -1,7 +1,25 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (merge KPI + 360° thành 1 card thống nhất — unified assessment card)
+> Cập nhật lần cuối: 2026-04-23 (network card 5 UI fixes — pulse ring centering, hover tooltips)
+
+---
+
+## ⚡ Network card — 5 UI fixes (2026-04-23) — commit d30bdae — build ✅
+
+### Vấn đề được fix
+| # | Vấn đề | Root cause | Fix |
+|---|---|---|---|
+| 1 | Pulse rings lệch tâm | `position:absolute` trên div con thiếu `left/top` → anchor về (0,0) thay vì tâm nút | Xoá 2 div `.center-pulse-ring`, dùng `::before`/`::after` trên `.center-circle` (inset:0 + scale animation) |
+| 2 | Chữ "Dũng" bên dưới nút trung tâm | `.net-center-name` div thừa | Xoá khỏi HTML + xoá SCSS rule |
+| 3 | "Sắp ra mắt" tràn ra ngoài card | KTP node ở `left:16%`, label dùng `node-label-left` (position:absolute; right:calc(100%+8px)) → ra ngoài lề trái | Bỏ class `node-label-left`, để label trong flex flow bình thường (bên dưới icon lock); `.node-label-dis` đổi `align-items:flex-end → center`, thêm `white-space:normal; text-align:center` |
+| 4 | Chip "Vị trí hướng tới" hơi chật | Padding nhỏ, font nhỏ | `padding: 9px 18px`, `font-size: 12px`, `gap: 7px`, `max-width: 200px` |
+| 5 | Hover node không có popup | Chưa wired tooltip | Thêm `NzTooltipModule`, `nz-tooltip [nzTooltipTitle]` lên mentor + successor circles; helper `succNodeTooltip(pos)` lookup từ `allTalents()` |
+
+### Keyframe update
+- `pulse-ring`: bỏ `translate(-50%,-50%)` khỏi keyframe (không cần khi dùng `inset:0` trên pseudo-element)
+
+Build: ✅ 0 errors (2 SCSS budget warnings non-blocking)
 
 ---
 
