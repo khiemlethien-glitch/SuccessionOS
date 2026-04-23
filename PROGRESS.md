@@ -1,11 +1,63 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (inline edit toàn bộ sections talent profile)
+> Cập nhật lần cuối: 2026-04-23 (seed strategy decision)
 
 ---
 
-## ✏️ Inline Edit toàn bộ sections talent profile (2026-04-23) — commit 757cb0e
+## 🗺️ Chiến lược Seed Database
+
+> **Quyết định (2026-04-23):** Không seed dữ liệu giả ở từng bước.
+> Ưu tiên build full luồng trước, cuối cùng seed 1 lần duy nhất đầy đủ.
+
+### Nguyên tắc
+- **Chỗ nào trống → để trống** — hiển thị empty state, không fake data
+- Seed hiện tại (`assessment_seed_only.sql`) chỉ có 50 nhân viên, random 70–95, thiếu `leadership` → **không dùng**
+- **Cuối cùng**: 1 script seed hoàn chỉnh cho toàn bộ DB (500 nhân viên × tất cả bảng × dữ liệu nhất quán)
+
+### Bảng cần seed cuối kỳ
+| Bảng | Trạng thái | Ghi chú |
+|---|---|---|
+| `v_employees` (view) | ✅ 500 rows | Từ Supabase, có sẵn |
+| `assessment_scores` | ⏳ 50 rows random | Cần seed đủ 500, thêm `leadership` |
+| `assessment_summary` | ⏳ partial | Cần tính lại từ scores |
+| `external_scores` | ⏳ rỗng | Seed sau khi có dữ liệu thật hoặc cuối kỳ |
+| `score_weight_config` | ✅ 1 row (60/40) | Đã seed mặc định |
+| `employee_extras` | ⏳ rỗng | Seed sample project/KT/360 cuối kỳ |
+| `idp_goals` | ⏳ partial | Cần verify |
+| `mentoring_pairs` | ⏳ partial | Cần verify |
+
+### Thứ tự khi seed cuối kỳ
+1. `assessment_criteria` + `assessment_cycles` (đã có, verify)
+2. `assessment_scores` — 500 nhân viên × 5 cycles × 5–10 criteria (nhất quán với perf/potential)
+3. `assessment_summary` — aggregate từ scores
+4. `external_scores` — sample cho demo (assessment_score khớp với summary, score_360 sample)
+5. `employee_extras` — sample project/KT/360 cho ~20 nhân viên key
+6. Verify toàn bộ với frontend load test
+
+---
+
+## 🔧 Fix hardcoded values in talent-profile (2026-04-23) — commit b2da27f
+
+### FIX 1 — overallScore(): use externalScore().total_score as primary source
+- Priority: `externalScore().total_score` → `t.overall_score` → fallback formula
+- Ensures the computed score in header matches the "Điểm số" tab
+
+### FIX 2 — overallRank(): real percentile from allTalents() (500 employees)
+- `pct = (countBelow / total) * 100` using same score formula on all peers
+- Labels: ≥95 → Top 5% | ≥80 → Top 20% | ≥50 → Trung bình trên | else Trung bình
+- Falls back to old threshold logic if `allTalents().length < 2`
+
+### FIX 3 — quickStats: training_hours + last_promotion_year from extrasRaw signal
+- New signal `extrasRaw = signal<any>(null)` — populated in `extrasSvc.getByEmployee().then()`
+- `trainingHours: extrasRaw()?.training_hours ?? 0`
+- `lastPromotion: extrasRaw()?.last_promotion_year ?? '—'` (type: `number | string`)
+
+- Build: ✅ 0 errors (2 pre-existing SCSS budget warnings unchanged)
+
+---
+
+
 
 ### Vấn đề được giải quyết
 - Mỗi nhân viên là component instance riêng, data load từ DB theo `employee_id`
