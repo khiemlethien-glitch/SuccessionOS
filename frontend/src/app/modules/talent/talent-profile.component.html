@@ -632,25 +632,63 @@
 
         <!-- Thống kê nhanh -->
         <div class="info-card">
-          <h3 class="info-title">Thống kê nhanh</h3>
-          <div class="qs-grid">
-            <div class="qs-cell">
-              <div class="qs-label">Giờ đào tạo/năm</div>
-              <div class="qs-value">{{ quickStats().trainingHours }} giờ</div>
-            </div>
-            <div class="qs-cell">
-              <div class="qs-label">Thăng chức gần nhất</div>
-              <div class="qs-value">{{ quickStats().lastPromotion }}</div>
-            </div>
-            <div class="qs-cell">
-              <div class="qs-label">Tiến độ IDP</div>
-              <div class="qs-value">{{ quickStats().idpProgress }}%</div>
-            </div>
-            <div class="qs-cell">
-              <div class="qs-label">Risk Score</div>
-              <div class="qs-value qs-value-risk">{{ quickStats().riskScore }} / 100</div>
-            </div>
+          <div class="chb chb-slate">
+            <span nz-icon nzType="bar-chart" class="chb-ico"></span>
+            <h3 class="chb-title">Thống kê nhanh</h3>
+            @if (!qsEditMode()) {
+              <button type="button" class="chb-edit-btn" (click)="openQsEdit()" title="Chỉnh sửa">
+                <span nz-icon nzType="edit"></span>
+              </button>
+            }
           </div>
+
+          @if (qsEditMode()) {
+            <div class="edit-form" style="margin-top:4px">
+              <div class="ef-row">
+                <label>Giờ đào tạo/năm</label>
+                <input nz-input type="number" min="0" step="1"
+                  [ngModel]="qsDraft().training_hours"
+                  (ngModelChange)="qsDraft.update(d=>({...d,training_hours:$event===''||$event==null?null:+$event}))"
+                  placeholder="VD: 80" />
+              </div>
+              <div class="ef-row">
+                <label>Năm thăng chức gần nhất</label>
+                <input nz-input type="number" min="2000" max="2030" step="1"
+                  [ngModel]="qsDraft().last_promotion_year"
+                  (ngModelChange)="qsDraft.update(d=>({...d,last_promotion_year:$event===''||$event==null?null:+$event}))"
+                  placeholder="VD: 2023" />
+              </div>
+              <div class="ef-actions">
+                <button nz-button nzType="primary" nzSize="small" [nzLoading]="qsSaving()" (click)="saveQs()">Lưu</button>
+                <button nz-button nzSize="small" (click)="qsEditMode.set(false)">Hủy</button>
+              </div>
+            </div>
+          } @else {
+            <div class="qs-grid">
+              <div class="qs-cell">
+                <div class="qs-label">Giờ đào tạo/năm</div>
+                <div class="qs-value">
+                  @if (quickStats().trainingHours != null) { {{ quickStats().trainingHours }} giờ }
+                  @else { <span class="qs-empty">— chưa nhập</span> }
+                </div>
+              </div>
+              <div class="qs-cell">
+                <div class="qs-label">Thăng chức gần nhất</div>
+                <div class="qs-value">
+                  @if (quickStats().lastPromotion != null) { {{ quickStats().lastPromotion }} }
+                  @else { <span class="qs-empty">— chưa nhập</span> }
+                </div>
+              </div>
+              <div class="qs-cell">
+                <div class="qs-label">Tiến độ IDP</div>
+                <div class="qs-value">{{ quickStats().idpProgress }}%</div>
+              </div>
+              <div class="qs-cell">
+                <div class="qs-label">Risk Score</div>
+                <div class="qs-value qs-value-risk">{{ quickStats().riskScore }} / 100</div>
+              </div>
+            </div>
+          }
         </div>
 
       </div>

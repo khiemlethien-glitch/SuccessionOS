@@ -17,7 +17,7 @@ import { IdpService } from '../../core/services/data/idp.service';
 import { AssessmentService, Cycle, AssessmentView, AssessmentBlock, AssessmentBlocksView, RadarProfile } from '../../core/services/data/assessment.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { ScoreConfigService, ComputedScore } from '../../core/services/data/score-config.service';
-import { EmployeeExtrasService, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
+import { EmployeeExtrasService, EmployeeExtras, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import {
   Talent,
@@ -61,6 +61,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   externalScoreLoaded = signal<boolean | null>(null);
 
   // ─── Profile section signals (mỗi section fetch riêng) ───────────────────
+  extrasRaw            = signal<EmployeeExtras | null>(null);
   assessment360Data    = signal<Assessment360 | null>(null);
   careerReviewData     = signal<CareerReview | null>(null);
   currentProjectData   = signal<CurrentProject | null>(null);
@@ -231,10 +232,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   quickStats = computed(() => ({
-    trainingHours:  60,                         // TODO: từ /employees/{id}/stats
-    lastPromotion:  2020,                       // TODO: từ /employees/{id}/stats
-    idpProgress:    this.idpProgress(),
-    riskScore:      this.talent()?.risk_score ?? 0,
+    trainingHours: this.extrasRaw()?.training_hours      ?? null,
+    lastPromotion: this.extrasRaw()?.last_promotion_year ?? null,
+    idpProgress:   this.idpProgress(),
+    riskScore:     this.talent()?.risk_score ?? 0,
   }));
 
   // ─── IDP Plan (narrative view cho review card) ─────────────────────────────
@@ -470,6 +471,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   ktSaving   = signal(false);
   ktDraft    = signal({ successor:'', successor_role:'', start_date:'', target_date:'', overall_progress:0 });
 
+  // Quick stats edit
+  qsEditMode  = signal(false);
+  qsSaving    = signal(false);
+  qsDraft     = signal<{ training_hours: number | null; last_promotion_year: number | null }>({ training_hours: null, last_promotion_year: null });
+
   // 360° edit
   a360EditMode = signal(false);
   a360Saving   = signal(false);
@@ -545,6 +551,32 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       });
       this.ktEditMode.set(false);
       this.msg.success('Đã lưu thông tin chuyển giao tri thức');
+    } else {
+      this.msg.error('Lưu thất bại — xem console');
+    }
+  }
+
+  // ─── Quick stats edit helpers ─────────────────────────────────────────────
+  openQsEdit(): void {
+    const e = this.extrasRaw();
+    this.qsDraft.set({ training_hours: e?.training_hours ?? null, last_promotion_year: e?.last_promotion_year ?? null });
+    this.qsEditMode.set(true);
+  }
+
+  async saveQs(): Promise<void> {
+    const id = this.talent()?.id;
+    if (!id) return;
+    this.qsSaving.set(true);
+    const d = this.qsDraft();
+    const ok = await this.extrasSvc.save(id, {
+      training_hours:      d.training_hours,
+      last_promotion_year: d.last_promotion_year,
+    });
+    this.qsSaving.set(false);
+    if (ok) {
+      this.extrasRaw.update(e => e ? { ...e, training_hours: d.training_hours, last_promotion_year: d.last_promotion_year } : e);
+      this.qsEditMode.set(false);
+      this.msg.success('Đã lưu thống kê nhanh');
     } else {
       this.msg.error('Lưu thất bại — xem console');
     }
@@ -692,14 +724,15 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       else this.idpLoaded.set(false);
     } catch { this.idpLoaded.set(false); }
 
-    // Employee extras (project, KT, 360°)
+    // Employee extras (project, KT, 360°, quick stats)
     this.extrasSvc.getByEmployee(id).then(extras => {
+      this.extrasRaw.set(extras);
       if (extras) {
         const p    = extrasToProject(extras);
         const kt   = extrasToKt(extras);
         const a360 = extrasTo360(extras);
-        if (p)   this.currentProjectData.set(p);
-        if (kt)  this.knowledgeTransferData.set(kt);
+        if (p)    this.currentProjectData.set(p);
+        if (kt)   this.knowledgeTransferData.set(kt);
         if (a360) this.assessment360Data.set(a360);
       }
     });

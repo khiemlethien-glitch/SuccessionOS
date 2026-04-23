@@ -1,7 +1,20 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 (assessment section redesign — 1/2 col blocks + expand/collapse)
+> Cập nhật lần cuối: 2026-04-23 (wire quickStats từ employee_extras — training_hours + last_promotion_year)
+
+---
+
+## ⚡ Quick Stats wired từ DB + edit UI (2026-04-23) — build ✅
+
+### Thay đổi
+- `extrasRaw = signal<EmployeeExtras | null>(null)` — lưu raw extras, set cùng lúc với project/KT/360° load
+- `quickStats` computed: `trainingHours` và `lastPromotion` đọc từ `extrasRaw()` thay vì hardcode 60/2020
+- Null state: hiển thị "— chưa nhập" thay vì số sai
+- Edit UI: Quick Stats card có header bar (chb-slate) + nút bút chì → form nhập `training_hours` + `last_promotion_year` → save to `employee_extras`
+- SCSS: thêm `.chb-slate` variant + `.qs-empty`
+
+Build: ✅ 0 errors
 
 ---
 
