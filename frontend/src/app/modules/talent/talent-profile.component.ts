@@ -60,6 +60,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   externalScore       = signal<ComputedScore | null>(null);
   externalScoreLoaded = signal<boolean | null>(null);
 
+  // ─── Raw extras (training_hours, last_promotion_year, …) ─────────────────
+  extrasRaw = signal<any>(null);
+
   // ─── Profile section signals (mỗi section fetch riêng) ───────────────────
   assessment360Data    = signal<Assessment360 | null>(null);
   careerReviewData     = signal<CareerReview | null>(null);
@@ -129,12 +132,26 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   overallScore = computed(() => {
     const t = this.talent();
     if (!t) return 0;
+    const ext = this.externalScore();
+    if (ext?.total_score != null) return ext.total_score;
     if (t.overall_score != null) return t.overall_score;
     return Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
   });
 
   overallRank = computed(() => {
     const s = this.overallScore();
+    const all = this.allTalents();
+    if (all.length >= 2) {
+      const scoreOf = (t: Talent) =>
+        t.overall_score ?? Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
+      const countBelow = all.filter(t => scoreOf(t) < s).length;
+      const pct = (countBelow / all.length) * 100;
+      if (pct >= 95) return 'Top 5% toàn công ty';
+      if (pct >= 80) return 'Top 20% toàn công ty';
+      if (pct >= 50) return 'Trung bình trên';
+      return 'Trung bình';
+    }
+    // fallback khi chưa load đủ dữ liệu
     if (s >= 90) return 'Top 5% toàn công ty';
     if (s >= 80) return 'Top 20% toàn công ty';
     if (s >= 70) return 'Trung bình trên';
@@ -231,8 +248,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   });
 
   quickStats = computed(() => ({
-    trainingHours:  60,                         // TODO: từ /employees/{id}/stats
-    lastPromotion:  2020,                       // TODO: từ /employees/{id}/stats
+    trainingHours:  this.extrasRaw()?.training_hours ?? 0,
+    lastPromotion:  (this.extrasRaw()?.last_promotion_year as number | string) ?? '—',
     idpProgress:    this.idpProgress(),
     riskScore:      this.talent()?.risk_score ?? 0,
   }));
@@ -673,6 +690,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // Employee extras (project, KT, 360°)
     this.extrasSvc.getByEmployee(id).then(extras => {
       if (extras) {
+        this.extrasRaw.set(extras);
         const p    = extrasToProject(extras);
         const kt   = extrasToKt(extras);
         const a360 = extrasTo360(extras);
