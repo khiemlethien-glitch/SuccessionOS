@@ -289,7 +289,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // ─── IDP Plan (narrative view cho review card) ─────────────────────────────
   idpTargetPosition = computed(() =>
-    this.idp()?.target_position ?? this.talent()?.target_position ?? '—');
+    this.successionTargetPosition()
+    ?? this.idp()?.target_position
+    ?? this.talent()?.target_position
+    ?? '—');
   idpApprovedBy   = computed(() => this.idp()?.approved_by   ?? '—');
   idpApprovedDate = computed(() => this.idp()?.approved_date ?? '—');
   idpStatus       = computed(() => this.idp()?.status ?? '—');
@@ -438,6 +441,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   lastName(name: string): string { return (name ?? '').trim().split(/\s+/).pop() ?? name; }
 
+  // Target position: prioritise succession relationship over IDP data
+  successionTargetPosition = signal<string | null>(null);
+
   // Successors (people who will inherit current person's position)
   successorNodes = signal<{ talent_id: string; talent_name: string; readiness: string; priority: number; idp_progress: number }[]>([]);
   showAllSuccessors = signal(false);
@@ -515,17 +521,20 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
     this.successorNodes.set([]);
     this.showAllSuccessors.set(false);
+    this.successionTargetPosition.set(null);
 
-    const [talent, all, cycles, successors] = await Promise.all([
+    const [talent, all, cycles, successors, succTarget] = await Promise.all([
       this.employeeSvc.getById(id),
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
       this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
+      this.successionSvc.getTargetPositionForSuccessor(id).catch(() => null),
     ]);
     this.talent.set(talent);
     this.allTalents.set(all.data);
     this.cycles.set(cycles);
     this.successorNodes.set(successors);
+    this.successionTargetPosition.set(succTarget);
 
     // Pick cycle: ưu tiên cycle 'closed' gần nhất (có data), fallback cycle đầu.
     const firstClosed = cycles.find(c => c.status === 'closed') ?? cycles[0];

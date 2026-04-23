@@ -147,20 +147,38 @@ export class PositionsComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.loading.set(true);
-    try {
-      const [positions, plans, depts, emps] = await Promise.all([
-        this.positionSvc.getAll(),
-        this.successionSvc.getPlans(),
-        this.sbSvc.client.from('departments').select('id, name').order('name'),
-        this.sbSvc.client.from('v_employees').select('id, full_name, position, department_id').eq('is_active', true),
-      ]);
-      this.positions.set(positions as any);
-      this.plans.set(plans as any);
-      if (!depts.error) this.allDepts.set((depts.data ?? []) as DeptOpt[]);
-      if (!emps.error)  this.allEmployees.set((emps.data ?? []) as EmpOpt[]);
-    } catch (e) {
-      console.warn('[positions] load error', e);
+
+    // Isolate each call so one failure doesn't block the others
+    const [positions, plans, depts, emps] = await Promise.all([
+      this.positionSvc.getAll().catch(() => [] as any[]),
+      this.successionSvc.getPlans().catch(() => [] as any[]),
+      this.sbSvc.client.from('departments').select('id, name').order('name'),
+      this.sbSvc.client.from('v_employees').select('id, full_name, position, department_id').eq('is_active', true),
+    ]);
+
+    this.positions.set(positions as any);
+    this.plans.set(plans as any);
+
+    // Departments: prefer direct query, fallback to deriving from positions
+    if (!depts.error && depts.data?.length) {
+      this.allDepts.set(depts.data as DeptOpt[]);
+    } else {
+      // Derive from positions (department_id + name already joined by positionSvc)
+      const seen = new Map<string, string>();
+      for (const p of positions as any[]) {
+        if (p.department_id && p.department && p.department !== '—') {
+          seen.set(p.department_id, p.department);
+        }
+      }
+      this.allDepts.set(
+        [...seen.entries()]
+          .map(([id, name]) => ({ id, name }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+      );
     }
+
+    if (!emps.error) this.allEmployees.set((emps.data ?? []) as EmpOpt[]);
+
     this.loading.set(false);
   }
 

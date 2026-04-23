@@ -1,7 +1,44 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-22 21:10 (build xanh sau merge)
+> Cập nhật lần cuối: 2026-04-23 (build fix + positions dept dropdown + target position fix)
+
+---
+
+## 🔧 Bug fixes — build + positions dept + target position (2026-04-23)
+
+### Build fix: macOS duplicate files deleted
+- Xóa tất cả file `* 2.*` (macOS duplicates: `calibration.component 2.ts`, `app 2.ts`, `main 2.ts`, v.v.)
+- Các file này làm Angular compiler bị confused → NG8001 `nz-spin`/`nz-modal` not found
+- Build: ✅ 0 errors (2 SCSS budget warnings non-blocking)
+
+### Positions modal — Phòng ban dropdown
+- `positions.component.ts`: bỏ outer `try-catch` → per-promise `.catch([])`
+- Fallback: nếu `departments` table lỗi → derive dept list từ positions data đã load
+- Dropdown "Phòng ban" giờ hiển thị đúng danh sách phòng ban
+
+### Talent profile — Target position khi click successor node
+- `succession.service.ts`: thêm `getTargetPositionForSuccessor(employeeId)` — query `succession_plans` → `key_positions` để lấy vị trí đang được đào tạo
+- `talent-profile.component.ts`: `Promise.all` load `succTarget` song song, priority chain `successionTargetPosition > idp.target_position > talent.target_position`
+- Click vào successor node BMT → "Vị trí hướng tới" hiện đúng (VD: PXH — TGĐ)
+
+---
+
+## 📋 BA & Backend Specification generated (2026-04-23)
+
+File [BA_BACKEND_SPEC.md](BA_BACKEND_SPEC.md) đã được tạo tại root repo.
+
+Nội dung bao gồm:
+- **Mục 1**: Sitemap 16 routes đầy đủ
+- **Mục 2**: API endpoints chi tiết theo từng màn hình (10 màn hình), phân biệt đã implement vs TODO
+- **Mục 3**: Toàn bộ 15 interfaces/models từ `models.ts` + `assessment.service.ts`
+- **Mục 4**: Schema summary 14 tables/views đang có + 9 tables cần tạo
+- **Mục 5**: Business logic formulas (overall_score, 9-box, risk_band, IDP progress, ...)
+- **Mục 6**: Auth & permissions matrix (4 roles)
+- **Mục 7**: Checklist BA (8 điểm cần confirm)
+- **Mục 8**: Checklist Backend Dev (priorities + RLS policies + indexes + seed data)
+
+Không có file code nào bị sửa đổi.
 
 ---
 

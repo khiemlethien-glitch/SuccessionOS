@@ -74,6 +74,23 @@ export class SuccessionService {
     if (error) console.error('[SuccessionService.deletePlan]', error);
   }
 
+  /** Nếu employee này là ứng viên kế thừa cho 1 vị trí, trả về title của vị trí đó (highest priority). */
+  async getTargetPositionForSuccessor(employeeId: string): Promise<string | null> {
+    const planRes = await this.sb.from('succession_plans')
+      .select('position_id, priority')
+      .eq('talent_id', employeeId)
+      .order('priority')
+      .limit(1)
+      .maybeSingle();
+    if (!planRes.data?.position_id) return null;
+
+    const posRes = await this.sb.from('key_positions')
+      .select('title')
+      .eq('id', planRes.data.position_id)
+      .maybeSingle();
+    return posRes.data?.title ?? null;
+  }
+
   /** Lấy danh sách người kế thừa cho vị trí mà employee đang giữ, kèm IDP progress của từng người. */
   async getSuccessorsForHolder(employeeId: string): Promise<{
     talent_id: string; talent_name: string;
