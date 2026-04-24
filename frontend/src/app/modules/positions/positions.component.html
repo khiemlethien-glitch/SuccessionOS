@@ -69,9 +69,8 @@
   <!-- ── Position cards grid ─────────────────────────── -->
   <div class="pos-grid">
     @for (p of filteredPositions(); track p.id) {
-      <div class="pos-card" [ngClass]="'tone-' + toneOf(p.critical_level)"
-           [class.clickable]="isAdmin()"
-           (click)="isAdmin() && openEditModal(p, $event)">
+      <div class="pos-card clickable" [ngClass]="'tone-' + toneOf(p.critical_level)"
+           (click)="openPositionView(p, $event)">
         <div class="card-accent"></div>
 
         <!-- Header -->
@@ -163,200 +162,110 @@
   nzWrapClassName="add-pos-drawer"
 >
   <ng-container *nzDrawerContent>
-    <div class="m-hero">
-      <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
-      <div class="m-hero-text">
-        <div class="m-hero-title">{{ modalTitle() }}</div>
-        <div class="m-hero-sub">
-          {{ isEditMode() ? 'Cập nhật thông tin vị trí và yêu cầu năng lực' : 'Định nghĩa vị trí chiến lược và yêu cầu năng lực' }}
+
+    <!-- ══════════════════════════════════════════════════════
+         VIEW MODE — hiển thị thông tin, không chỉnh sửa
+    ══════════════════════════════════════════════════════ -->
+    @if (drawerMode() === 'view' && viewingPosition(); as p) {
+
+      <!-- Header -->
+      <div class="m-hero">
+        <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
+        <div class="m-hero-text">
+          <div class="m-hero-title">{{ p.title }}</div>
+          <div class="m-hero-sub">{{ p.department }}</div>
         </div>
-      </div>
-      <button type="button" class="m-hero-close" (click)="closeAddModal()" title="Đóng">
-        <span nz-icon nzType="close"></span>
-      </button>
-    </div>
-
-    <div class="m-body">
-      <!-- Row 1: Title (dropdown từ v_employees.position distinct) -->
-      <div class="m-field">
-        <label class="m-label">
-          <span class="m-label-dot"></span> Tên vị trí
-          <span class="m-req">*</span>
-        </label>
-        <nz-select
-          class="m-sel"
-          nzShowSearch
-          nzAllowClear
-          nzPlaceHolder="Chọn hoặc gõ tên vị trí…"
-          [ngModel]="draft().title"
-          (ngModelChange)="updateDraft('title', $event)"
-        >
-          @for (t of titleOptions(); track t) {
-            <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
-          }
-        </nz-select>
-      </div>
-
-      <!-- Row 2: Dept + Holder -->
-      <div class="m-row-2">
-        <div class="m-field">
-          <label class="m-label">
-            <span class="m-label-dot"></span> Phòng ban
-            <span class="m-req">*</span>
-          </label>
-          <nz-select
-            class="m-sel"
-            nzShowSearch
-            nzAllowClear
-            nzPlaceHolder="Chọn phòng ban…"
-            [ngModel]="draft().department"
-            (ngModelChange)="updateDraft('department', $event)"
-          >
-            @for (d of allDepts(); track d.id) {
-              <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
-            }
-          </nz-select>
-        </div>
-
-        <div class="m-field">
-          <label class="m-label">
-            <span class="m-label-dot"></span> Đương nhiệm
-            <span class="m-req">*</span>
-            @if (draft().current_holder_id && empOptionsForDept().length > 0) {
-              <span class="m-hint">Đã tự gợi ý từ phòng ban</span>
-            }
-          </label>
-          <nz-select
-            class="m-sel"
-            nzShowSearch
-            nzAllowClear
-            nzPlaceHolder="Chọn nhân viên đang giữ vị trí…"
-            [ngModel]="draft().current_holder_id"
-            (ngModelChange)="selectHolder($event)"
-          >
-            @for (e of empOptionsForDept(); track e.id) {
-              <nz-option [nzValue]="e.id" [nzLabel]="e.full_name + ' — ' + e.position"></nz-option>
-            }
-          </nz-select>
-        </div>
-      </div>
-
-      <!-- Row 3: Critical level -->
-      <div class="m-field">
-        <label class="m-label">
-          <span class="m-label-dot"></span> Mức độ quan trọng
-        </label>
-        <div class="crit-seg">
-          @for (opt of criticalOptions; track opt.value) {
-            <button
-              type="button"
-              class="crit-seg-btn"
-              [ngClass]="['cs-' + opt.tone, draft().critical_level === opt.value ? 'is-active' : '']"
-              (click)="updateDraft('critical_level', opt.value)"
-            >
-              {{ opt.label }}
+        <div class="m-hero-actions">
+          @if (canEdit()) {
+            <button type="button" class="view-edit-btn"
+              (click)="enterEditMode()"
+              nz-tooltip nzTooltipTitle="Chỉnh sửa vị trí">
+              <span nz-icon nzType="edit"></span>
             </button>
           }
+          <button type="button" class="m-hero-close" (click)="closeAddModal()" title="Đóng">
+            <span nz-icon nzType="close"></span>
+          </button>
         </div>
       </div>
 
-      <!-- Competencies drag-drop -->
-      <div class="m-field">
-        <label class="m-label">
-          <span class="m-label-dot"></span> Năng lực yêu cầu
-          <span class="m-req">*</span>
-          <span class="m-hint">Kéo thả hoặc bấm để chọn</span>
-        </label>
+      <div class="m-body">
 
-        <div class="dd-wrap" cdkDropListGroup>
-          <div class="dd-col">
-            <div class="dd-col-hdr">
-              <span nz-icon nzType="unordered-list"></span>
-              Có sẵn
-              <span class="dd-count">{{ availableCompetencies().length }}</span>
-            </div>
-            <div
-              id="available"
-              class="dd-zone"
-              cdkDropList
-              [cdkDropListData]="availableCompetencies()"
-              (cdkDropListDropped)="onDropCompetency($event)"
-            >
-              @for (c of availableCompetencies(); track c.key) {
-                <div class="dd-chip" cdkDrag (click)="addCompetency(c)">
-                  <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
-                  {{ c.label }}
-                  <span nz-icon nzType="plus" class="dd-chip-add"></span>
-                </div>
-              }
-              @if (availableCompetencies().length === 0) {
-                <div class="dd-empty">Đã chọn hết</div>
-              }
-            </div>
+        <!-- Info grid -->
+        <div class="view-info-grid">
+          <div class="vi-row">
+            <span class="vi-label"><span nz-icon nzType="user"></span> Đương nhiệm</span>
+            <span class="vi-val">{{ p.current_holder || '—' }}</span>
           </div>
-
-          <div class="dd-arrow">
-            <span nz-icon nzType="swap"></span>
+          <div class="vi-row">
+            <span class="vi-label"><span nz-icon nzType="bank"></span> Phòng ban</span>
+            <span class="vi-val">{{ p.department || '—' }}</span>
           </div>
-
-          <div class="dd-col dd-col-active">
-            <div class="dd-col-hdr">
-              <span nz-icon nzType="check-circle"></span>
-              Đã chọn
-              <span class="dd-count dd-count-active">{{ selectedCompetencies().length }}</span>
-            </div>
-            <div
-              id="selected"
-              class="dd-zone dd-zone-active"
-              cdkDropList
-              [cdkDropListData]="selectedCompetencies()"
-              (cdkDropListDropped)="onDropCompetency($event)"
-            >
-              @for (c of selectedCompetencies(); track c.key) {
-                <div class="dd-chip dd-chip-active" cdkDrag (click)="removeCompetency(c)">
-                  <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
-                  {{ c.label }}
-                  <span nz-icon nzType="close" class="dd-chip-add"></span>
-                </div>
+          <div class="vi-row">
+            <span class="vi-label"><span nz-icon nzType="alert"></span> Mức độ quan trọng</span>
+            <span class="vi-val">
+              <span class="crit-badge crit-{{ toneOf(p.critical_level) }}">{{ p.critical_level }}</span>
+            </span>
+          </div>
+          <div class="vi-row">
+            <span class="vi-label"><span nz-icon nzType="team"></span> Người kế thừa</span>
+            <span class="vi-val">{{ p.successor_count }} người
+              @if (p.ready_now_count > 0) {
+                <span class="vi-ready">• {{ p.ready_now_count }} sẵn sàng ngay</span>
               }
-              @if (selectedCompetencies().length === 0) {
-                <div class="dd-empty">
-                  <span nz-icon nzType="inbox"></span>
-                  Kéo năng lực từ bên trái vào đây
-                </div>
-              }
-            </div>
+            </span>
           </div>
         </div>
-      </div>
 
-      <!-- ── Người kế thừa (chỉ hiện khi edit) ────────── -->
-      @if (isEditMode()) {
-        <div class="m-field">
-          <label class="m-label">
-            <span class="m-label-dot m-dot-teal"></span>
-            Người kế thừa
-            @if (editingSuccessors().length > 0) {
-              <span class="drawer-succ-count">{{ editingSuccessors().length }}</span>
-            }
-            <a class="m-hint m-hint-link"
+        <!-- Năng lực yêu cầu -->
+        <div class="view-section">
+          <div class="view-section-title">
+            <span nz-icon nzType="tool"></span> Năng lực yêu cầu
+            <span class="view-section-count">{{ viewingCompetencies().length }}</span>
+          </div>
+          @if (viewingCompetencies().length > 0) {
+            <div class="view-comp-list">
+              @for (c of viewingCompetencies(); track c.key) {
+                <div class="view-comp-row">
+                  <span nz-icon [nzType]="c.icon" class="vc-ico"></span>
+                  <span class="vc-label">{{ c.label }}</span>
+                  <div class="vc-score-wrap">
+                    @if (c.score !== null) {
+                      <span class="vc-score">{{ c.score }}</span>
+                      <span class="vc-score-unit">điểm</span>
+                    } @else {
+                      <span class="vc-score-empty">Chưa đặt điểm</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="view-empty">Chưa có năng lực được chọn</div>
+          }
+        </div>
+
+        <!-- Người kế thừa -->
+        <div class="view-section">
+          <div class="view-section-title">
+            <span nz-icon nzType="solution"></span> Người kế thừa
+            <a class="view-section-link"
                [routerLink]="['/succession']"
-               [queryParams]="{ tab: 'map', positionId: editingId() }"
+               [queryParams]="{ tab: 'map', positionId: p.id }"
                (click)="closeAddModal()">
-              Quản lý kế thừa <span nz-icon nzType="arrow-right"></span>
+              Quản lý <span nz-icon nzType="arrow-right"></span>
             </a>
-          </label>
-
-          @if (editingSuccessors().length > 0) {
+          </div>
+          @if (getPlan(p.id)?.successors?.length) {
             <div class="drawer-succ-list">
-              @for (s of editingSuccessors(); track s.talent_id) {
+              @for (s of getPlan(p.id)!.successors; track s.talent_id) {
                 <div class="drawer-succ-row">
                   <div class="dsr-rank">{{ $index + 1 }}</div>
                   <app-avatar [name]="s.talent_name" [size]="30"></app-avatar>
                   <div class="dsr-info">
                     <div class="dsr-name">{{ s.talent_name }}</div>
                     @if (s.gap_score !== undefined && s.gap_score !== null) {
-                      <div class="dsr-gap">Gap score: {{ s.gap_score }}</div>
+                      <div class="dsr-gap">Gap: {{ s.gap_score }}</div>
                     }
                   </div>
                   <div class="dsr-right">
@@ -373,47 +282,227 @@
           } @else {
             <div class="drawer-succ-empty">
               <span nz-icon nzType="team" class="dse-ico"></span>
-              <span>Chưa có người kế thừa cho vị trí này</span>
+              <span>Chưa có người kế thừa</span>
               <a [routerLink]="['/succession']"
-                 [queryParams]="{ tab: 'map', positionId: editingId() }"
+                 [queryParams]="{ tab: 'map', positionId: p.id }"
                  class="dse-link" (click)="closeAddModal()">
                 Thêm ngay <span nz-icon nzType="arrow-right"></span>
               </a>
             </div>
           }
         </div>
-      }
-    </div>
 
-    <div class="m-footer">
-      @if (isEditMode() && isAdmin()) {
-        <button
-          nz-button
-          nzDanger
-          class="m-btn m-btn-delete"
-          nz-popconfirm
-          nzPopconfirmTitle="Xóa vị trí này? Hành động không thể hoàn tác."
-          nzPopconfirmPlacement="topLeft"
-          (nzOnConfirm)="deletePosition()"
-          [nzLoading]="deleting()"
-        >
-          <span nz-icon nzType="delete"></span>
-          Xóa vị trí
-        </button>
-      }
-      <div class="m-footer-right">
-        <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="closeAddModal()">Hủy</button>
-        <button
-          nz-button
-          nzType="primary"
-          class="m-btn m-btn-submit"
-          [disabled]="!canSubmit()"
-          (click)="submit()"
-        >
-          <span nz-icon nzType="check"></span>
-          {{ submitLabel() }}
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════════════════
+         EDIT / CREATE MODE — form chỉnh sửa
+    ══════════════════════════════════════════════════════ -->
+    @if (drawerMode() === 'edit') {
+
+      <div class="m-hero">
+        <div class="m-hero-ico"><span nz-icon nzType="apartment"></span></div>
+        <div class="m-hero-text">
+          <div class="m-hero-title">{{ modalTitle() }}</div>
+          <div class="m-hero-sub">
+            {{ isEditMode() ? 'Cập nhật thông tin vị trí và yêu cầu năng lực' : 'Định nghĩa vị trí chiến lược và yêu cầu năng lực' }}
+          </div>
+        </div>
+        <button type="button" class="m-hero-close" (click)="exitToView()" title="Đóng">
+          <span nz-icon nzType="close"></span>
         </button>
       </div>
-    </div>
+
+      <div class="m-body">
+
+        <!-- Row 1: Title -->
+        <div class="m-field">
+          <label class="m-label"><span class="m-label-dot"></span> Tên vị trí <span class="m-req">*</span></label>
+          <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn hoặc gõ tên vị trí…"
+            [ngModel]="draft().title" (ngModelChange)="updateDraft('title', $event)">
+            @for (t of titleOptions(); track t) {
+              <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
+            }
+          </nz-select>
+        </div>
+
+        <!-- Row 2: Dept + Holder -->
+        <div class="m-row-2">
+          <div class="m-field">
+            <label class="m-label"><span class="m-label-dot"></span> Phòng ban <span class="m-req">*</span></label>
+            <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn phòng ban…"
+              [ngModel]="draft().department" (ngModelChange)="updateDraft('department', $event)">
+              @for (d of allDepts(); track d.id) {
+                <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
+              }
+            </nz-select>
+          </div>
+          <div class="m-field">
+            <label class="m-label">
+              <span class="m-label-dot"></span> Đương nhiệm <span class="m-req">*</span>
+              @if (draft().current_holder_id && empOptionsForDept().length > 0) {
+                <span class="m-hint">Đã tự gợi ý từ phòng ban</span>
+              }
+            </label>
+            <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn nhân viên đang giữ vị trí…"
+              [ngModel]="draft().current_holder_id" (ngModelChange)="selectHolder($event)">
+              @for (e of empOptionsForDept(); track e.id) {
+                <nz-option [nzValue]="e.id" [nzLabel]="e.full_name + ' — ' + e.position"></nz-option>
+              }
+            </nz-select>
+          </div>
+        </div>
+
+        <!-- Row 3: Critical level -->
+        <div class="m-field">
+          <label class="m-label"><span class="m-label-dot"></span> Mức độ quan trọng</label>
+          <div class="crit-seg">
+            @for (opt of criticalOptions; track opt.value) {
+              <button type="button" class="crit-seg-btn"
+                [ngClass]="['cs-' + opt.tone, draft().critical_level === opt.value ? 'is-active' : '']"
+                (click)="updateDraft('critical_level', opt.value)">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Competencies drag-drop + điểm mục tiêu -->
+        <div class="m-field">
+          <label class="m-label">
+            <span class="m-label-dot"></span> Năng lực yêu cầu <span class="m-req">*</span>
+            <span class="m-hint">Kéo thả · Nhập điểm mục tiêu (0–100)</span>
+          </label>
+
+          <div class="dd-wrap" cdkDropListGroup>
+            <!-- Available -->
+            <div class="dd-col">
+              <div class="dd-col-hdr">
+                <span nz-icon nzType="unordered-list"></span> Có sẵn
+                <span class="dd-count">{{ availableCompetencies().length }}</span>
+              </div>
+              <div id="available" class="dd-zone" cdkDropList
+                [cdkDropListData]="availableCompetencies()"
+                (cdkDropListDropped)="onDropCompetency($event)">
+                @for (c of availableCompetencies(); track c.key) {
+                  <div class="dd-chip" cdkDrag (click)="addCompetency(c)">
+                    <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
+                    {{ c.label }}
+                    <span nz-icon nzType="plus" class="dd-chip-add"></span>
+                  </div>
+                }
+                @if (availableCompetencies().length === 0) {
+                  <div class="dd-empty">Đã chọn hết</div>
+                }
+              </div>
+            </div>
+
+            <div class="dd-arrow"><span nz-icon nzType="swap"></span></div>
+
+            <!-- Selected + điểm -->
+            <div class="dd-col dd-col-active">
+              <div class="dd-col-hdr">
+                <span nz-icon nzType="check-circle"></span> Đã chọn
+                <span class="dd-count dd-count-active">{{ selectedCompetencies().length }}</span>
+              </div>
+              <div id="selected" class="dd-zone dd-zone-active" cdkDropList
+                [cdkDropListData]="selectedCompetencies()"
+                (cdkDropListDropped)="onDropCompetency($event)">
+                @for (c of selectedCompetencies(); track c.key) {
+                  <div class="dd-chip dd-chip-active dd-chip-with-score" cdkDrag>
+                    <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
+                    <span class="dd-chip-name">{{ c.label }}</span>
+                    <label class="comp-score-label" (click)="$event.stopPropagation()">
+                      <input type="number" min="0" max="100"
+                        class="comp-score-input"
+                        [value]="getCompScore(c.key)"
+                        (change)="setCompScore(c.key, $event)"
+                        (click)="$event.stopPropagation()"
+                        placeholder="70">
+                      <span class="comp-score-unit">đ</span>
+                    </label>
+                    <span nz-icon nzType="close" class="dd-chip-add" (click)="removeCompetency(c); $event.stopPropagation()"></span>
+                  </div>
+                }
+                @if (selectedCompetencies().length === 0) {
+                  <div class="dd-empty">
+                    <span nz-icon nzType="inbox"></span>
+                    Kéo năng lực từ bên trái vào đây
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Người kế thừa (chỉ hiện khi edit) -->
+        @if (isEditMode()) {
+          <div class="m-field">
+            <label class="m-label">
+              <span class="m-label-dot m-dot-teal"></span> Người kế thừa
+              @if (editingSuccessors().length > 0) {
+                <span class="drawer-succ-count">{{ editingSuccessors().length }}</span>
+              }
+              <a class="m-hint m-hint-link"
+                 [routerLink]="['/succession']"
+                 [queryParams]="{ tab: 'map', positionId: editingId() }"
+                 (click)="closeAddModal()">
+                Quản lý kế thừa <span nz-icon nzType="arrow-right"></span>
+              </a>
+            </label>
+            @if (editingSuccessors().length > 0) {
+              <div class="drawer-succ-list">
+                @for (s of editingSuccessors(); track s.talent_id) {
+                  <div class="drawer-succ-row">
+                    <div class="dsr-rank">{{ $index + 1 }}</div>
+                    <app-avatar [name]="s.talent_name" [size]="30"></app-avatar>
+                    <div class="dsr-info">
+                      <div class="dsr-name">{{ s.talent_name }}</div>
+                      @if (s.gap_score !== undefined && s.gap_score !== null) {
+                        <div class="dsr-gap">Gap score: {{ s.gap_score }}</div>
+                      }
+                    </div>
+                    <div class="dsr-right">
+                      <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">{{ readinessLabel(s.readiness) }}</span>
+                      @if (s.priority === 1) { <span class="dsr-primary-badge">Chính</span> }
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="drawer-succ-empty">
+                <span nz-icon nzType="team" class="dse-ico"></span>
+                <span>Chưa có người kế thừa cho vị trí này</span>
+                <a [routerLink]="['/succession']" [queryParams]="{ tab: 'map', positionId: editingId() }"
+                   class="dse-link" (click)="closeAddModal()">
+                  Thêm ngay <span nz-icon nzType="arrow-right"></span>
+                </a>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+
+      <div class="m-footer">
+        @if (isEditMode() && isAdmin()) {
+          <button nz-button nzDanger class="m-btn m-btn-delete"
+            nz-popconfirm nzPopconfirmTitle="Xóa vị trí này? Hành động không thể hoàn tác."
+            nzPopconfirmPlacement="topLeft"
+            (nzOnConfirm)="deletePosition()" [nzLoading]="deleting()">
+            <span nz-icon nzType="delete"></span> Xóa vị trí
+          </button>
+        }
+        <div class="m-footer-right">
+          <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="exitToView()">Hủy</button>
+          <button nz-button nzType="primary" class="m-btn m-btn-submit"
+            [disabled]="!canSubmit()" (click)="submit()">
+            <span nz-icon nzType="check"></span> {{ submitLabel() }}
+          </button>
+        </div>
+      </div>
+
+    }
+
   </ng-container>
 </nz-drawer>

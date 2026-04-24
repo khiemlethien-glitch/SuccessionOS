@@ -75,11 +75,18 @@ export class PositionsComponent implements OnInit {
     return all;
   });
 
-  // ─── Modal state ───────────────────────────────────────────
-  showAddModal = signal(false);
-  /** null = create mode; ID string = edit mode (đang sửa position này). */
-  editingId    = signal<string | null>(null);
-  deleting     = signal(false);
+  // ─── Drawer state ──────────────────────────────────────────
+  showAddModal    = signal(false);
+  /** 'view' = read-only, 'edit' = form editable */
+  drawerMode      = signal<'view' | 'edit'>('view');
+  /** Vị trí đang xem / đang sửa */
+  viewingPosition = signal<KeyPosition | null>(null);
+  /** null = create mode; ID string = edit mode */
+  editingId       = signal<string | null>(null);
+  deleting        = signal(false);
+
+  /** Scores mục tiêu cho từng năng lực (key → 0‒100) */
+  competencyScores = signal<Record<string, number>>({});
 
   readonly isEditMode = computed(() => this.editingId() !== null);
   readonly modalTitle = computed(() =>
@@ -87,6 +94,11 @@ export class PositionsComponent implements OnInit {
   );
   readonly submitLabel = computed(() =>
     this.isEditMode() ? 'Lưu thay đổi' : 'Tạo vị trí'
+  );
+
+  /** Admin hoặc Line Manager được phép chỉnh sửa */
+  readonly canEdit = computed(() =>
+    this.auth.isAdmin() || this.auth.hasRole('Line Manager')
   );
 
   draft = signal<NewPositionDraft>({
@@ -251,21 +263,34 @@ export class PositionsComponent implements OnInit {
     return [...new Set(this.positions().map(p => p.department))].sort();
   });
 
-  // ─── Modal actions ───────────────────────────────────────
+  // ─── Drawer actions ──────────────────────────────────────
+  /** Nút "Thêm vị trí": mở drawer ở chế độ tạo mới */
   openAddModal(): void {
     this.editingId.set(null);
+    this.viewingPosition.set(null);
+    this.drawerMode.set('edit');
     this.resetDraft();
     this.showAddModal.set(true);
   }
 
-  openEditModal(p: KeyPosition, ev?: Event): void {
+  /** Click card: mở drawer ở chế độ xem (view) */
+  openPositionView(p: KeyPosition, ev?: Event): void {
     ev?.stopPropagation();
-    if (!this.isAdmin()) {
-      this.msg.warning('Chỉ Admin được phép chỉnh sửa vị trí then chốt');
+    this.viewingPosition.set(p);
+    this.editingId.set(null);
+    this.drawerMode.set('view');
+    this.showAddModal.set(true);
+  }
+
+  /** Nút edit trong drawer view: chuyển sang chế độ chỉnh sửa */
+  enterEditMode(): void {
+    const p = this.viewingPosition();
+    if (!p) return;
+    if (!this.canEdit()) {
+      this.msg.warning('Chỉ Admin và Line Manager được phép chỉnh sửa');
       return;
     }
     this.editingId.set(p.id);
-    // Map KeyPosition → draft shape. Tìm department_id từ tên.
     const deptId = this.allDepts().find(d => d.name === p.department)?.id ?? null;
     const holderEmp = this.allEmployees().find(e => e.full_name === p.current_holder) ?? null;
     this.draft.set({
@@ -275,21 +300,49 @@ export class PositionsComponent implements OnInit {
       current_holder_id: holderEmp?.id ?? null,
       critical_level: p.critical_level as CriticalLevel,
     });
-    // Populate competencies drag-drop: những key đã chọn vào "selected", còn lại "available".
     const selectedKeys = new Set(p.required_competencies ?? []);
-    this.selectedCompetencies.set(
-      this.allCompetencies.filter(c => selectedKeys.has(c.key))
-    );
-    this.availableCompetencies.set(
-      this.allCompetencies.filter(c => !selectedKeys.has(c.key))
-    );
-    this.showAddModal.set(true);
+    this.selectedCompetencies.set(this.allCompetencies.filter(c => selectedKeys.has(c.key)));
+    this.availableCompetencies.set(this.allCompetencies.filter(c => !selectedKeys.has(c.key)));
+    this.competencyScores.set({ ...(p.competency_scores ?? {}) });
+    this.drawerMode.set('edit');
+  }
+
+  /** Từ edit → quay về view nếu đang chỉnh sửa, hoặc đóng nếu đang tạo mới */
+  exitToView(): void {
+    if (this.viewingPosition()) {
+      this.editingId.set(null);
+      this.drawerMode.set('view');
+    } else {
+      this.closeAddModal();
+    }
   }
 
   closeAddModal(): void {
     this.showAddModal.set(false);
     this.editingId.set(null);
+    this.viewingPosition.set(null);
   }
+
+  // ─── Competency score helpers ─────────────────────────────
+  getCompScore(key: string): number {
+    return this.competencyScores()[key] ?? 70;
+  }
+
+  setCompScore(key: string, ev: Event): void {
+    const val = Math.min(100, Math.max(0, Number((ev.target as HTMLInputElement).value)));
+    this.competencyScores.update(s => ({ ...s, [key]: val }));
+  }
+
+  /** Competencies của vị trí đang xem (kết hợp key + score) */
+  readonly viewingCompetencies = computed(() => {
+    const p = this.viewingPosition();
+    if (!p) return [];
+    const scores = p.competency_scores ?? {};
+    return (p.required_competencies ?? []).map(key => {
+      const meta = this.allCompetencies.find(c => c.key === key);
+      return { key, label: meta?.label ?? key, icon: meta?.icon ?? 'tool', score: scores[key] ?? null };
+    });
+  });
 
   async deletePosition(): Promise<void> {
     const id = this.editingId();
@@ -376,29 +429,33 @@ export class PositionsComponent implements OnInit {
 
     if (editId) {
       // ── EDIT mode ──────────────────────────────────────
+      const scores = this.competencyScores();
       const dbPayload = {
         title: d.title.trim(),
         department_id: d.department,
         current_holder_id: d.current_holder_id,
         critical_level: d.critical_level,
         required_competencies: competencyKeys,
+        competency_scores: scores,
       };
       const saved = await this.positionSvc.update(editId, dbPayload);
       if (saved) {
-        // Update signal trong list — preserve successor_count/ready_now_count/risk_level từ DB
-        this.positions.update(list => list.map(p => p.id === editId ? {
-          ...p,
+        const updated: Partial<KeyPosition> = {
           title: d.title.trim(),
           department: deptName,
           current_holder: d.current_holder.trim(),
           critical_level: d.critical_level,
           required_competencies: competencyKeys,
-        } : p));
+          competency_scores: scores,
+        };
+        this.positions.update(list => list.map(p => p.id === editId ? { ...p, ...updated } : p));
+        // Cập nhật viewingPosition để view mode hiển thị dữ liệu mới
+        this.viewingPosition.update(p => p ? { ...p, ...updated } : null);
         this.msg.success('Đã cập nhật vị trí');
+        this.exitToView();
       } else {
         this.msg.error('Cập nhật thất bại');
       }
-      this.closeAddModal();
       return;
     }
 
@@ -428,6 +485,7 @@ export class PositionsComponent implements OnInit {
       current_holder_id: d.current_holder_id,
       critical_level: d.critical_level,
       required_competencies: competencyKeys,
+      competency_scores: this.competencyScores(),
       successor_count: 0,
       ready_now_count: 0,
       risk_level: 'Low',

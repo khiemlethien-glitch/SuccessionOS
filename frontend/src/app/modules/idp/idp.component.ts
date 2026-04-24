@@ -122,29 +122,36 @@ export class IdpComponent implements OnInit {
     const editing = this.editingIdp();
 
     if (editing) {
-      const updated: IdpPlan = {
-        ...editing,
-        year: this.draftYear(),
-        target_position: this.draftTargetPos(),
-        goals: this.draftGoals().map((g, i) => ({
-          id: editing.goals[i]?.id ?? `G_${Date.now()}_${i}`,
-          title: g.title, type: g.type, deadline: g.deadline,
-          category: g.type, status: editing.goals[i]?.status ?? 'Not Started',
-          progress: editing.goals[i]?.progress ?? 0, mentor: null,
-        })),
-      };
+      // Cập nhật local state trước để UI phản hồi ngay
+      const updatedGoals = this.draftGoals().map((g, i) => ({
+        id: editing.goals[i]?.id ?? `G_${Date.now()}_${i}`,
+        title: g.title, type: g.type, deadline: g.deadline,
+        category: g.type, status: editing.goals[i]?.status ?? 'Not Started',
+        progress: editing.goals[i]?.progress ?? 0, mentor: null,
+      }));
+      const updated: IdpPlan = { ...editing, year: this.draftYear(), target_position: this.draftTargetPos(), goals: updatedGoals };
       this.idps.update(list => list.map(p => p.id === editing.id ? updated : p));
       this.msg.success('Đã cập nhật IDP');
-      try { await this.idpSvc.updatePlan(editing.id, updated as any); } catch (e) { console.error(e); }
+
+      // Persist lên DB — chỉ gửi các cột thực sự tồn tại trong idp_plans
+      const dbPayload = {
+        year: this.draftYear(),
+        target_position: this.draftTargetPos() || null,
+      };
+      try { await this.idpSvc.updatePlan(editing.id, dbPayload); }
+      catch (e) { console.error('[IDP] updatePlan error:', e); }
+
     } else {
+      // Create: build local object ngay để hiển thị
+      const tempId = `IDP_${Date.now()}`;
       const newIdp: IdpPlan = {
-        id: `IDP_${Date.now()}`,
-        talent_id: `T_${Date.now()}`,
+        id: tempId,
+        talent_id: '',
         talent_name: this.draftName(),
         year: this.draftYear(),
         status: 'Pending',
         overall_progress: 0,
-        target_position: this.draftTargetPos(),
+        target_position: this.draftTargetPos() || undefined,
         approved_by: '—',
         approved_date: '—',
         goals_12m: [],
@@ -157,7 +164,22 @@ export class IdpComponent implements OnInit {
       };
       this.idps.update(list => [newIdp, ...list]);
       this.msg.success('Đã tạo IDP mới — trạng thái: Chờ duyệt');
-      try { await this.idpSvc.create(newIdp as any); } catch (e) { console.error(e); }
+
+      // Persist lên DB — chỉ gửi các cột hợp lệ của idp_plans
+      // Lưu ý: employee_id cần được truyền từ employee selector (hiện UI chưa có)
+      const dbPayload = {
+        year: this.draftYear(),
+        status: 'Pending',
+        overall_progress: 0,
+        target_position: this.draftTargetPos() || null,
+      };
+      try {
+        const saved = await this.idpSvc.create(dbPayload);
+        // Cập nhật ID thực từ DB nếu khác tempId
+        if (saved?.id && saved.id !== tempId) {
+          this.idps.update(list => list.map(p => p.id === tempId ? { ...p, id: saved.id } : p));
+        }
+      } catch (e) { console.error('[IDP] create error:', e); }
     }
     this.showCreateDrawer.set(false);
   }
@@ -174,29 +196,39 @@ export class IdpComponent implements OnInit {
     this.showApprovalModal.set(true);
   }
 
-  approveStep(): void {
+  async approveStep(): Promise<void> {
     const step = this.approvalStep();
     this.approvalSteps.update(steps => steps.map((s, i) => i === step ? { ...s, status: 'approved' } : s));
     if (step < 2) {
       this.approvalStep.set(step + 1);
     } else {
-      // All approved → activate IDP
+      // Tất cả 3 bước đã duyệt → kích hoạt IDP
       const idp = this.approvalIdp();
       if (idp) {
         this.idps.update(list => list.map(p => p.id === idp.id ? { ...p, status: 'Active' } : p));
+        // Persist status lên DB
+        try {
+          await this.idpSvc.updatePlan(idp.id, {
+            status: 'Active',
+            approved_by_l3_at: new Date().toISOString(),
+          });
+        } catch (e) { console.error('[IDP] approve persist error:', e); }
       }
       this.showApprovalModal.set(false);
       this.msg.success('IDP đã được phê duyệt và kích hoạt!');
-      // TODO: api.patch('idp/${idp.id}/approve', { step: 3 }).subscribe(...)
     }
   }
 
-  rejectStep(note: string): void {
+  async rejectStep(note: string): Promise<void> {
     const step = this.approvalStep();
     this.approvalSteps.update(steps => steps.map((s, i) => i === step ? { ...s, status: 'rejected', note } : s));
     const idp = this.approvalIdp();
     if (idp) {
       this.idps.update(list => list.map(p => p.id === idp.id ? { ...p, status: 'Pending' } : p));
+      // Persist trạng thái từ chối lên DB
+      try {
+        await this.idpSvc.updatePlan(idp.id, { status: 'Pending' });
+      } catch (e) { console.error('[IDP] reject persist error:', e); }
     }
     this.showApprovalModal.set(false);
     this.msg.warning('IDP bị từ chối — cần chỉnh sửa lại');

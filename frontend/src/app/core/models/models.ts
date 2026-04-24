@@ -114,6 +114,7 @@ export interface KeyPosition {
   risk_level: RiskLevel; critical_level: CriticalLevel;
   successors: string[];
   required_competencies: string[];
+  competency_scores?: Record<string, number>;   // target score mỗi năng lực (0–100)
   parent_id?: string | null;
 }
 export interface PositionListResponse { data: KeyPosition[]; total: number; }
