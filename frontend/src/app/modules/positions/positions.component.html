@@ -164,9 +164,151 @@
   <ng-container *nzDrawerContent>
 
     <!-- ══════════════════════════════════════════════════════
+         GAP ANALYSIS — sub-panel khi click vào người kế thừa
+    ══════════════════════════════════════════════════════ -->
+    @if (drawerMode() === 'view' && gapSuccessor(); as s) {
+      <div class="m-hero gap-hero">
+        <button class="gap-back-btn" (click)="closeGapPanel()">
+          <span nz-icon nzType="arrow-left"></span> Quay lại
+        </button>
+        <div class="m-hero-text">
+          <div class="m-hero-title">Phân tích khoảng cách năng lực</div>
+          <div class="m-hero-sub">So sánh năng lực hiện tại và yêu cầu vị trí</div>
+        </div>
+        <button type="button" class="m-hero-close" (click)="closeAddModal()">
+          <span nz-icon nzType="close"></span>
+        </button>
+      </div>
+
+      <div class="m-body">
+
+        <!-- Successor info card -->
+        <div class="gap-person-card">
+          <app-avatar [name]="s.talent_name" [size]="48"></app-avatar>
+          <div class="gap-person-info">
+            <div class="gap-person-name">{{ s.talent_name }}</div>
+            <div class="gap-person-pos">{{ gapEmployee()?.position || '—' }}</div>
+            <div class="gap-person-dept">{{ gapEmployee()?.department || '—' }}</div>
+          </div>
+          <div class="gap-person-meta">
+            <span class="succ-pill" [ngClass]="'rd-' + readinessTone(s.readiness)">
+              {{ readinessLabel(s.readiness) }}
+            </span>
+            <div class="gap-overall-score">
+              Gap tổng: <strong>{{ s.gap_score ?? '—' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Career path arrow -->
+        <div class="gap-path-bar">
+          <div class="gap-path-from">
+            <div class="gap-path-label">Vị trí hiện tại</div>
+            <div class="gap-path-val">{{ gapEmployee()?.position || '—' }}</div>
+          </div>
+          <div class="gap-path-arrow">
+            <span nz-icon nzType="arrow-right"></span>
+          </div>
+          <div class="gap-path-to">
+            <div class="gap-path-label">Vị trí mục tiêu</div>
+            <div class="gap-path-val">{{ viewingPosition()?.title }}</div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        @if (gapLoading()) {
+          <div class="gap-loading">
+            <span nz-icon nzType="loading" nzSpin></span> Đang tải dữ liệu năng lực...
+          </div>
+        } @else {
+
+          <!-- Competency comparison -->
+          <div class="gap-section">
+            <div class="gap-section-hdr">
+              <span class="gap-section-title">NĂNG LỰC SO SÁNH</span>
+              <div class="gap-legend">
+                <span class="gap-leg-dot leg-current"></span> Hiện tại
+                <span class="gap-leg-dot leg-target"></span> Mục tiêu
+              </div>
+            </div>
+
+            @if (gapRows().length === 0) {
+              <div class="gap-empty">Vị trí này chưa có năng lực yêu cầu nào được định nghĩa.</div>
+            } @else {
+              <div class="gap-comp-list">
+                @for (row of gapRows(); track row.key) {
+                  <div class="gap-comp-item">
+                    <div class="gci-header">
+                      <span nz-icon [nzType]="row.icon" class="gci-icon"></span>
+                      <span class="gci-label">{{ row.label }}</span>
+                      <div class="gci-gap-badge"
+                           [ngClass]="row.gap === null ? 'gap-na' :
+                                      row.gap >= 0     ? 'gap-ok' :
+                                      row.gap >= -15   ? 'gap-warn' : 'gap-bad'">
+                        @if (row.gap !== null) {
+                          {{ row.gap >= 0 ? '+' + row.gap : row.gap }}
+                        } @else { N/A }
+                      </div>
+                    </div>
+
+                    <!-- Dual bar: current vs target -->
+                    <div class="gci-bars">
+                      <!-- Current -->
+                      <div class="gci-bar-row">
+                        <span class="gci-bar-lbl">Hiện tại</span>
+                        <div class="gci-bar-track">
+                          @if (row.current !== null) {
+                            <div class="gci-bar gci-bar-current"
+                                 [style.width.%]="row.current">
+                            </div>
+                          }
+                          @if (row.target !== null) {
+                            <div class="gci-target-marker" [style.left.%]="row.target"
+                                 nz-tooltip [nzTooltipTitle]="'Mục tiêu: ' + row.target"></div>
+                          }
+                        </div>
+                        <span class="gci-bar-val">
+                          {{ row.current !== null ? row.current : '—' }}
+                        </span>
+                      </div>
+                      <!-- Target -->
+                      @if (row.target !== null) {
+                        <div class="gci-bar-row">
+                          <span class="gci-bar-lbl">Mục tiêu</span>
+                          <div class="gci-bar-track">
+                            <div class="gci-bar gci-bar-target"
+                                 [style.width.%]="row.target">
+                            </div>
+                          </div>
+                          <span class="gci-bar-val">{{ row.target }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Action -->
+          <div class="gap-actions">
+            <a class="gap-profile-link"
+               [routerLink]="['/talent', s.talent_id]"
+               (click)="closeAddModal()">
+              <span nz-icon nzType="user"></span>
+              Xem hồ sơ đầy đủ của {{ s.talent_name }}
+              <span nz-icon nzType="arrow-right"></span>
+            </a>
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════════════════
          VIEW MODE — hiển thị thông tin, không chỉnh sửa
     ══════════════════════════════════════════════════════ -->
-    @if (drawerMode() === 'view' && viewingPosition(); as p) {
+    @if (drawerMode() === 'view' && !gapSuccessor() && viewingPosition(); as p) {
 
       <!-- Header -->
       <div class="m-hero">
@@ -259,7 +401,8 @@
           @if (getPlan(p.id)?.successors?.length) {
             <div class="drawer-succ-list">
               @for (s of getPlan(p.id)!.successors; track s.talent_id) {
-                <div class="drawer-succ-row">
+                <div class="drawer-succ-row dsr-clickable" (click)="openGapPanel(s)"
+                     nz-tooltip nzTooltipTitle="Xem phân tích năng lực">
                   <div class="dsr-rank">{{ $index + 1 }}</div>
                   <app-avatar [name]="s.talent_name" [size]="30"></app-avatar>
                   <div class="dsr-info">
@@ -275,6 +418,7 @@
                     @if (s.priority === 1) {
                       <span class="dsr-primary-badge">Chính</span>
                     }
+                    <span nz-icon nzType="right" class="dsr-chevron"></span>
                   </div>
                 </div>
               }

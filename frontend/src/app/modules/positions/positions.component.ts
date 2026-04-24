@@ -16,9 +16,10 @@ import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
+import { EmployeeService } from '../../core/services/data/employee.service';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { KeyPosition, SuccessionPlan, CriticalLevel } from '../../core/models/models';
+import { KeyPosition, SuccessionPlan, CriticalLevel, Talent } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 
 interface Competency {
@@ -185,8 +186,48 @@ export class PositionsComponent implements OnInit {
     { value: 'Low',      label: 'Low',      tone: 'green' },
   ];
 
+  // ─── Gap Analysis sub-panel ────────────────────────────────
+  gapSuccessor = signal<any | null>(null);
+  gapEmployee  = signal<Talent | null>(null);
+  gapLoading   = signal(false);
+
+  readonly gapRows = computed(() => {
+    const pos = this.viewingPosition();
+    const emp = this.gapEmployee();
+    if (!pos) return [];
+
+    const currentComps: Record<string, number> = (emp?.competencies as any) ?? {};
+    // Map position canonical key → employee competency field name
+    const empKeyMap: Record<string, string> = {
+      technical: 'technical', leadership: 'leadership',
+      communication: 'communication', problemSolving: 'problem_solving',
+      adaptability: 'adaptability',
+    };
+
+    const comps = this.viewingCompetencies();
+    const baseList = comps.length > 0 ? comps : [
+      { key: 'technical',      label: 'Chuyên môn kỹ thuật', icon: 'tool',    score: null as number | null },
+      { key: 'leadership',     label: 'Lãnh đạo',            icon: 'crown',   score: null as number | null },
+      { key: 'communication',  label: 'Giao tiếp',           icon: 'message', score: null as number | null },
+      { key: 'problemSolving', label: 'Giải quyết vấn đề',   icon: 'bulb',    score: null as number | null },
+      { key: 'adaptability',   label: 'Thích nghi',          icon: 'sync',    score: null as number | null },
+    ];
+
+    return baseList.map(vc => {
+      const meta     = this.resolveCompMeta(vc.key);
+      const canonKey = meta?.key ?? vc.key;
+      const empField = empKeyMap[canonKey] ?? canonKey;
+      const current  = currentComps[empField] ?? currentComps[canonKey] ?? null;
+      const target   = vc.score;  // already resolved in viewingCompetencies
+      const gap      = (target !== null && current !== null)
+                       ? Math.round(current - target) : null;
+      return { ...vc, current, target, gap };
+    });
+  });
+
   private positionSvc = inject(KeyPositionService);
   private successionSvc = inject(SuccessionService);
+  private employeeSvc = inject(EmployeeService);
   private sbSvc = inject(SupabaseService);
   private auth = inject(AuthService);
 
@@ -366,6 +407,25 @@ export class PositionsComponent implements OnInit {
     this.showAddModal.set(false);
     this.editingId.set(null);
     this.viewingPosition.set(null);
+    this.gapSuccessor.set(null);
+    this.gapEmployee.set(null);
+  }
+
+  // ─── Gap Analysis sub-panel ─────────────────────────────────
+  async openGapPanel(s: any): Promise<void> {
+    this.gapSuccessor.set(s);
+    this.gapEmployee.set(null);
+    this.gapLoading.set(true);
+    try {
+      const emp = await this.employeeSvc.getById(s.talent_id);
+      this.gapEmployee.set(emp);
+    } catch { /* keep null */ }
+    this.gapLoading.set(false);
+  }
+
+  closeGapPanel(): void {
+    this.gapSuccessor.set(null);
+    this.gapEmployee.set(null);
   }
 
   // ─── Competency score helpers ─────────────────────────────
