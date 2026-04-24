@@ -177,9 +177,11 @@ export class AssessmentService {
     const targets: any = empRes.data ?? {};
 
     const entries: RadarEntry[] = RADAR_AXES.map(a => {
-      const critId = idByKey.get(a.key);
-      const actual = critId ? (scoreByCrit.get(critId) ?? null) : null;
-      const target = targets[a.targetField] ?? 85;
+      const critId  = idByKey.get(a.key);
+      const rawActual = critId ? (scoreByCrit.get(critId) ?? null) : null;
+      // Normalize 0-5 scores to 0-100 so they compare correctly with comp_target_* fields
+      const actual  = rawActual != null && rawActual <= 5 ? Math.round(rawActual * 20 * 10) / 10 : rawActual;
+      const target  = targets[a.targetField] ?? 85;
       return {
         key:    a.key,
         label:  a.label,
@@ -246,8 +248,15 @@ export class AssessmentService {
 
     const blocks: AssessmentBlock[] = [];
 
+    // Normalize helper: seed stores scores on a 0-5 scale; UI expects 0-100.
+    // If a value is ≤ 5 we multiply × 20. Values already on 0-100 scale pass through.
+    const norm = (v: number | null | undefined): number | null => {
+      if (v == null) return null;
+      return v <= 5 ? Math.round(v * 20 * 10) / 10 : Math.round(v * 10) / 10;
+    };
+
     // KPI block — only scored KPI criteria (assessment_type != '360')
-    const kpiOverall  = ext?.assessment_score ?? summary?.overall_score ?? null;
+    const kpiOverall  = norm(ext?.assessment_score ?? summary?.overall_score ?? null);
     const kpiItems: AssessmentItem[] = scores
       .filter(s => {
         const c = criterionMap.get(s.criterion_id);
@@ -255,7 +264,7 @@ export class AssessmentService {
       })
       .map(s => {
         const c = criterionMap.get(s.criterion_id)!;
-        return { id: c.id, label: c.label, description: c.description, weight: c.weight, item_max: 100, score: Number(s.score) };
+        return { id: c.id, label: c.label, description: c.description, weight: c.weight, item_max: 100, score: norm(Number(s.score)) };
       })
       .sort((a, b) => {
         const ca = criterionMap.get(a.id)?.sort_order ?? 0;
@@ -280,15 +289,15 @@ export class AssessmentService {
     if (ext?.score_360 != null || criteria360.length > 0) {
       blocks.push({
         type: '360',
-        overall_score: ext?.score_360 ?? null,
+        overall_score: norm(ext?.score_360 ?? null),
         rating_label: null,
         manager_note: null,
         strengths:    [],
         needs_dev:    [],
         items: criteria360.map((c, i) => ({
           id: `360_${i}`, label: c.label, description: null,
-          weight: 0, item_max: 5,
-          score: c.score ?? null,
+          weight: 0, item_max: 100,
+          score: norm(c.score ?? null),
         })),
       });
     }

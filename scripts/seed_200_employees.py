@@ -437,22 +437,55 @@ def main():
     # ── STEP 4: KEY POSITIONS ───────────────────────────────────────────────
     print("\n[ 4 ] Seeding key positions...")
     KP = {}
+    # Each tuple: (title, dept, critical_level, required_competencies, competency_scores)
+    # competency_scores maps each competency key to a 0-100 target score.
+    # Critical: 85-95  |  High: 75-87  |  Medium: 65-78
     kp_defs = [
-        ("Tổng Giám Đốc",               D["BGD"],  "Critical", ["leadership","strategic_thinking","financial_acumen"]),
-        ("Phó TGĐ Kinh Doanh",           D["BGD"],  "Critical", ["leadership","sales","negotiation"]),
-        ("Phó TGĐ Vận Hành",             D["BGD"],  "Critical", ["leadership","operations","logistics"]),
-        ("Giám đốc Nhân Sự",             D["HR"],   "High",     ["hrm","talent_management","leadership"]),
-        ("Giám đốc Tài Chính",           D["FIN"],  "Critical", ["finance","compliance","leadership"]),
-        ("Giám đốc Kinh Doanh",          D["SALES"],"High",     ["sales","crm","leadership"]),
-        ("Giám đốc Công Nghệ",           D["IT"],   "High",     ["technology","architecture","leadership"]),
-        ("Giám đốc Vận Hành",            D["OPS"],  "High",     ["operations","logistics","process_improvement"]),
-        ("Giám đốc Chi Nhánh Hà Nội",   D["HAN"],  "High",     ["leadership","sales","operations"]),
-        ("Trưởng phòng KD Quốc Tế",     D["SALES"],"Medium",   ["international_sales","english","negotiation"]),
-        ("Trưởng phòng Kế Toán",        D["FIN"],  "Medium",   ["accounting","tax","compliance"]),
-        ("Trưởng phòng Tuyển Dụng",     D["HR"],   "Medium",   ["recruitment","employer_branding","hrm"]),
-        ("Trưởng phòng IT Development", D["IT"],   "Medium",   ["software_development","agile","architecture"]),
-        ("Trưởng phòng Kho Bãi",        D["OPS"],  "Medium",   ["warehouse","wms","operations"]),
-        ("Giám đốc Chiến Lược",         D["PLAN"], "High",     ["strategy","analysis","leadership"]),
+        ("Tổng Giám Đốc",               D["BGD"],  "Critical",
+         ["leadership","strategic_thinking","financial_acumen"],
+         {"leadership": 92, "strategic_thinking": 90, "financial_acumen": 85}),
+        ("Phó TGĐ Kinh Doanh",           D["BGD"],  "Critical",
+         ["leadership","sales","negotiation"],
+         {"leadership": 88, "sales": 90, "negotiation": 87}),
+        ("Phó TGĐ Vận Hành",             D["BGD"],  "Critical",
+         ["leadership","operations","logistics"],
+         {"leadership": 88, "operations": 90, "logistics": 85}),
+        ("Giám đốc Nhân Sự",             D["HR"],   "High",
+         ["hrm","talent_management","leadership"],
+         {"hrm": 82, "talent_management": 80, "leadership": 82}),
+        ("Giám đốc Tài Chính",           D["FIN"],  "Critical",
+         ["finance","compliance","leadership"],
+         {"finance": 90, "compliance": 87, "leadership": 85}),
+        ("Giám đốc Kinh Doanh",          D["SALES"],"High",
+         ["sales","crm","leadership"],
+         {"sales": 85, "crm": 80, "leadership": 80}),
+        ("Giám đốc Công Nghệ",           D["IT"],   "High",
+         ["technology","architecture","leadership"],
+         {"technology": 85, "architecture": 82, "leadership": 78}),
+        ("Giám đốc Vận Hành",            D["OPS"],  "High",
+         ["operations","logistics","process_improvement"],
+         {"operations": 83, "logistics": 80, "process_improvement": 78}),
+        ("Giám đốc Chi Nhánh Hà Nội",   D["HAN"],  "High",
+         ["leadership","sales","operations"],
+         {"leadership": 82, "sales": 80, "operations": 78}),
+        ("Trưởng phòng KD Quốc Tế",     D["SALES"],"Medium",
+         ["international_sales","english","negotiation"],
+         {"international_sales": 75, "english": 78, "negotiation": 72}),
+        ("Trưởng phòng Kế Toán",        D["FIN"],  "Medium",
+         ["accounting","tax","compliance"],
+         {"accounting": 78, "tax": 75, "compliance": 72}),
+        ("Trưởng phòng Tuyển Dụng",     D["HR"],   "Medium",
+         ["recruitment","employer_branding","hrm"],
+         {"recruitment": 75, "employer_branding": 70, "hrm": 72}),
+        ("Trưởng phòng IT Development", D["IT"],   "Medium",
+         ["software_development","agile","architecture"],
+         {"software_development": 78, "agile": 75, "architecture": 72}),
+        ("Trưởng phòng Kho Bãi",        D["OPS"],  "Medium",
+         ["warehouse","wms","operations"],
+         {"warehouse": 75, "wms": 72, "operations": 70}),
+        ("Giám đốc Chiến Lược",         D["PLAN"], "High",
+         ["strategy","analysis","leadership"],
+         {"strategy": 85, "analysis": 82, "leadership": 80}),
     ]
 
     l1_ids = by_lvl.get(1, [])
@@ -461,7 +494,7 @@ def main():
     hp1 = iter(list(l1_ids)); hp2 = iter(list(l2_ids)); hp3 = iter(list(l3_ids))
 
     kp_rows = []
-    for title, dept, crit, comps in kp_defs:
+    for title, dept, crit, comps, comp_scores in kp_defs:
         pid = uid()
         KP[title] = pid
         if crit == "Critical":
@@ -479,6 +512,7 @@ def main():
             "critical_level": crit,
             # risk_level is GENERATED — DO NOT INSERT
             "required_competencies": comps,
+            "competency_scores": comp_scores,
             "successor_count": 0,
             "ready_now_count": 0,
             "is_active": True,

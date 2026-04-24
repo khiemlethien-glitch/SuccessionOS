@@ -197,15 +197,47 @@ export class PositionsComponent implements OnInit {
     if (!pos) return [];
 
     const currentComps: Record<string, number | null> = (emp?.competencies as any) ?? {};
-    // Map position canonical key → employee's competency field name in currentComps
-    // Handles both camelCase (frontend-generated) and snake_case (DB-generated) keys
+    // Map position competency key → employee competency field in currentComps.
+    // Non-standard position keys (sales, strategy, etc.) are mapped to the closest
+    // standard competency so the gap column always has a meaningful value to display.
     const empKeyMap: Record<string, string> = {
-      technical:       'technical',
-      leadership:      'leadership',
-      communication:   'communication',
-      problemSolving:  'problem_solving',
-      problem_solving: 'problem_solving',
-      adaptability:    'adaptability',
+      // ── Standard keys (direct match) ────────────────────────────────────
+      technical:            'technical',
+      leadership:           'leadership',
+      communication:        'communication',
+      problemSolving:       'problem_solving',
+      problem_solving:      'problem_solving',
+      adaptability:         'adaptability',
+      // ── Leadership / strategic family ────────────────────────────────────
+      strategic_thinking:   'leadership',
+      strategy:             'leadership',
+      talent_management:    'leadership',
+      hrm:                  'leadership',
+      operations:           'leadership',
+      logistics:            'leadership',
+      process_improvement:  'adaptability',
+      agile:                'adaptability',
+      // ── Technical / functional family ────────────────────────────────────
+      technology:           'technical',
+      architecture:         'technical',
+      software_development: 'technical',
+      warehouse:            'technical',
+      wms:                  'technical',
+      finance:              'technical',
+      accounting:           'technical',
+      tax:                  'technical',
+      compliance:           'technical',
+      // ── Communication / sales family ─────────────────────────────────────
+      sales:                'communication',
+      negotiation:          'communication',
+      crm:                  'communication',
+      international_sales:  'communication',
+      english:              'communication',
+      recruitment:          'communication',
+      employer_branding:    'communication',
+      // ── Analysis / problem-solving family ───────────────────────────────
+      analysis:             'problem_solving',
+      financial_acumen:     'problem_solving',
     };
 
     const comps = this.viewingCompetencies();

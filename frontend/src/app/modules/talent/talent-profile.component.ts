@@ -744,7 +744,10 @@ export class TalentProfileComponent implements OnInit, OnChanges {
         .then(r => new Set((r.data ?? []).map((s: any) => s.cycle_id))),
     ]);
     this.allTalents.set(all.data);
-    this.cycles.set(cycles);
+    // Show only cycles that have actual assessment data for this employee;
+    // fall back to all cycles if none match (e.g., newly created employee).
+    const relevantCycles = cycles.filter(c => summaries.has(c.id));
+    this.cycles.set(relevantCycles.length > 0 ? relevantCycles : cycles);
     this.successorNodes.set(successors);
     this.successionTargetPosition.set(succTarget);
 
