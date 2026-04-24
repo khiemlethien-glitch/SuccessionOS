@@ -1,7 +1,56 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-23 — Succession: tab "Mật độ kế thừa" hoàn thành ✅
+> Cập nhật lần cuối: 2026-04-24 — Gap analysis cross-module + accurate gap calculation ✅
+
+---
+
+## ⚡ Gap Analysis — Cross-module + Backend accuracy (2026-04-24) — build ✅
+
+### Tính năng mới: Phân tích khoảng cách năng lực (Gap Analysis)
+
+#### Positions module
+- **Gap panel trong drawer**: click vào người kế thừa → hiện bảng so sánh dual-bar (hiện tại vs mục tiêu) theo từng năng lực
+- Dữ liệu động 100%: target score từ `key_positions.competency_scores` (JSONB), current từ `v_employees.comp_*`
+- Badge màu: `+N` xanh (vượt mục tiêu), `−N` vàng/đỏ (còn thiếu), `N/A` xám (chưa đánh giá)
+- Auto-open gap panel qua query params: `?gapPos=&gapEmp=&gapName=&gapReadiness=&gapScore=`
+- Competency key fuzzy matching: DB full name ↔ short English key ↔ camelCase
+
+#### Succession module
+- RouterLink "Phân tích Gap" từ position details drawer (mỗi successor có icon ↗ sang `/positions`)
+- RouterLink "Phân tích Gap" từ density drill-down drawer → opens gap panel trực tiếp
+- Fix build: `RouterLink` import vào `succession.component.ts`; `node.positionId` thay `node.id`
+
+### Sửa lỗi tính toán gap
+- `employee.service`: `comp_*` default `null` thay `0` — không bị lỗi "cần 90 điểm" khi chưa đánh giá
+- `models.ts`: `Talent.competencies` fields `number | null`
+- `positions gapRows`: explicit `!== undefined` check (null không bị `??` fall-through sang key phụ)
+- `empKeyMap`: bổ sung `problem_solving` → `problem_solving` (handle snake_case key trực tiếp từ DB)
+
+### DB — cần chạy trong Supabase SQL Editor
+```sql
+-- File: supabase/migrations/20260424_fix_rls_and_schema.sql
+-- Tắt RLS infinite recursion + thêm column competency_scores vào key_positions
+ALTER TABLE user_profiles   DISABLE ROW LEVEL SECURITY;
+ALTER TABLE employees       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE key_positions   DISABLE ROW LEVEL SECURITY;
+ALTER TABLE succession_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE idp_plans       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE key_positions ADD COLUMN IF NOT EXISTS competency_scores JSONB DEFAULT '{}'::jsonb;
+```
+
+### Commits
+- `c7b75da` feat: gap analysis cross-link succession → positions + fix RLS migration
+- `29df55c` fix: accurate gap calculation from backend data
+
+### Files thay đổi
+- `core/models/models.ts` — Talent.competencies: number | null
+- `core/services/data/employee.service.ts` — comp_* default null
+- `modules/positions/positions.component.{ts,html,scss}` — gap panel UI + logic
+- `modules/succession/succession.component.{ts,html,scss}` — RouterLink gap links
+- `supabase/migrations/20260424_fix_rls_and_schema.sql` — RLS fix + column
+
+Build: ✅ 0 errors, 2 SCSS budget warnings (non-blocking)
 
 ---
 
