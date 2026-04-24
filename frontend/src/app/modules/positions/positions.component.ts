@@ -430,6 +430,22 @@ export class PositionsComponent implements OnInit {
     if (editId) {
       // ── EDIT mode ──────────────────────────────────────
       const scores = this.competencyScores();
+
+      // Optimistic update: cập nhật local state ngay → quay về view mode ngay
+      // để tránh màn hình bị đứng khi DB chậm hoặc lỗi
+      const updated: Partial<KeyPosition> = {
+        title: d.title.trim(),
+        department: deptName,
+        current_holder: d.current_holder.trim(),
+        critical_level: d.critical_level,
+        required_competencies: competencyKeys,
+        competency_scores: scores,
+      };
+      this.positions.update(list => list.map(p => p.id === editId ? { ...p, ...updated } : p));
+      this.viewingPosition.update(p => p ? { ...p, ...updated } : null);
+      this.exitToView(); // Return về view mode ngay — không đợi DB
+
+      // Sync lên DB background (service tự fallback nếu cột chưa tồn tại)
       const dbPayload = {
         title: d.title.trim(),
         department_id: d.department,
@@ -440,21 +456,10 @@ export class PositionsComponent implements OnInit {
       };
       const saved = await this.positionSvc.update(editId, dbPayload);
       if (saved) {
-        const updated: Partial<KeyPosition> = {
-          title: d.title.trim(),
-          department: deptName,
-          current_holder: d.current_holder.trim(),
-          critical_level: d.critical_level,
-          required_competencies: competencyKeys,
-          competency_scores: scores,
-        };
-        this.positions.update(list => list.map(p => p.id === editId ? { ...p, ...updated } : p));
-        // Cập nhật viewingPosition để view mode hiển thị dữ liệu mới
-        this.viewingPosition.update(p => p ? { ...p, ...updated } : null);
         this.msg.success('Đã cập nhật vị trí');
-        this.exitToView();
       } else {
-        this.msg.error('Cập nhật thất bại');
+        // Thông báo nhẹ — view mode đã hiển thị đúng, chỉ DB chưa đồng bộ
+        this.msg.warning('Hiển thị đã cập nhật — lưu DB chưa thành công (kiểm tra migration RLS)');
       }
       return;
     }

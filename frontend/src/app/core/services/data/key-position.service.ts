@@ -78,7 +78,22 @@ export class KeyPositionService {
 
   async create(payload: any) {
     const { data, error } = await this.sb.from('key_positions').insert(payload).select().maybeSingle();
-    if (error) { console.error('[KeyPositionService.create]', error); return null; }
+    if (error) {
+      // Nếu column competency_scores chưa tồn tại (migration chưa chạy), retry không có nó
+      if (payload.competency_scores !== undefined) {
+        const { competency_scores: _dropped, ...rest } = payload;
+        const retry = await this.sb.from('key_positions').insert(rest).select().maybeSingle();
+        if (!retry.error) {
+          this.cache.invalidatePrefix('kpos:');
+          this.cache.invalidate('dash:pos-stats');
+          return retry.data;
+        }
+        console.error('[KeyPositionService.create fallback]', retry.error);
+        return null;
+      }
+      console.error('[KeyPositionService.create]', error);
+      return null;
+    }
     this.cache.invalidatePrefix('kpos:');
     this.cache.invalidate('dash:pos-stats');
     return data;
@@ -86,7 +101,24 @@ export class KeyPositionService {
 
   async update(id: string, payload: any) {
     const { data, error } = await this.sb.from('key_positions').update(payload).eq('id', id).select().maybeSingle();
-    if (error) { console.error('[KeyPositionService.update]', error); return null; }
+    if (error) {
+      // Nếu column competency_scores chưa tồn tại (migration chưa chạy), retry không có nó
+      if (payload.competency_scores !== undefined) {
+        const { competency_scores: _dropped, ...rest } = payload;
+        const retry = await this.sb.from('key_positions').update(rest).eq('id', id).select().maybeSingle();
+        if (!retry.error) {
+          this.cache.invalidate(`kpos:${id}`);
+          this.cache.invalidatePrefix('kpos:all:');
+          this.cache.invalidate('kpos:summary');
+          this.cache.invalidate('dash:pos-stats');
+          return retry.data;
+        }
+        console.error('[KeyPositionService.update fallback]', retry.error);
+        return null;
+      }
+      console.error('[KeyPositionService.update]', error);
+      return null;
+    }
     this.cache.invalidate(`kpos:${id}`);
     this.cache.invalidatePrefix('kpos:all:');
     this.cache.invalidate('kpos:summary');
