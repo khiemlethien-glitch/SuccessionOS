@@ -1626,131 +1626,154 @@
 .dd-arrow    { color: #d1d5db; font-size: 12px; }
 
 
-// ═════════════════ Succession Map View (SMV) ═════════════════
+// ═══════════════ Succession Map View — Vertical Org Tree ════════════════
 
 .smv-root {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 36px;
   padding-top: 4px;
 }
 
-// ─── Dept section header ─────────────────────────────────────
-.smv-dept { display: flex; flex-direction: column; gap: 12px; }
+// ─── Dept group section ───────────────────────────────────────
+.smv-dept { display: flex; flex-direction: column; gap: 0; }
 
 .smv-dept-hdr {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: linear-gradient(90deg, #eef2ff 0%, #f8faff 100%);
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 7px 14px 7px 12px;
+  background: linear-gradient(90deg, #eef2ff 0%, #f0f4ff 100%);
   border: 1px solid #e0e7ff;
-  border-radius: 12px;
+  border-radius: 10px;
+  align-self: flex-start;           // don't stretch full width
+  margin-bottom: 2px;
 }
-
-.smv-dept-ico  { font-size: 16px; color: #6366f1; }
-.smv-dept-name { flex: 1; font-size: 14px; font-weight: 700; color: #1e1b4b; }
-
+.smv-dept-ico  { font-size: 14px; color: #6366f1; }
+.smv-dept-name { font-size: 13px; font-weight: 700; color: #1e1b4b; }
 .smv-dept-badge {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 24px; height: 22px; padding: 0 7px;
+  min-width: 20px; height: 20px; padding: 0 6px;
   background: #e0e7ff; color: #4f46e5;
-  border-radius: 999px; font-size: 12px; font-weight: 700;
+  border-radius: 999px; font-size: 11px; font-weight: 700;
 }
-
 .smv-dept-warn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px;
   background: #fef2f2; color: #dc2626;
-  border-radius: 999px; font-size: 11.5px; font-weight: 600;
-  .anticon { font-size: 12px; }
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+  .anticon { font-size: 11px; }
 }
 
-// ─── Card grid ────────────────────────────────────────────────
-.smv-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-  align-items: start;
-}
-
-// ─── Position card ────────────────────────────────────────────
-.smv-card {
+// ─── Tree containers: left border = vertical line ─────────────
+// .smv-tree  → children of a dept-group
+// .smv-children → children of a position
+.smv-tree,
+.smv-children {
   position: relative;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 14px 14px 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  margin-left: 28px;
+  padding-left: 22px;
+  border-left: 2px solid #dde3f5;
+  padding-top: 6px;
+}
+
+// ─── Position node ────────────────────────────────────────────
+.smv-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 18px;
+  padding-bottom: 14px;
+}
+
+// Horizontal connector: vertical line → card
+.smv-tree > .smv-node::before,
+.smv-children > .smv-node::before {
+  content: '';
+  position: absolute;
+  left: -22px; top: 28px;
+  width: 20px; height: 2px;
+  background: #c7d2fe;
+}
+
+// ─── Compact position card ────────────────────────────────────
+.smv-pos-card {
+  display: inline-flex;
+  align-items: stretch;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
   overflow: hidden;
-  transition: box-shadow .15s, border-color .15s;
+  max-width: 380px;
+  min-width: 200px;
+  transition: border-color .15s, box-shadow .15s;
 
   &:hover {
     border-color: #c7d2fe;
-    box-shadow: 0 4px 12px rgba(79,70,229,.08);
+    box-shadow: 0 3px 10px rgba(79,70,229,.08);
   }
 }
 
-// Critical level — 3 px coloured top strip
-.smv-crit-bar {
-  position: absolute; top: 0; left: 0; right: 0;
-  height: 3px; border-radius: 14px 14px 0 0;
+// Left-edge colour strip (4px full height)
+.smv-crit-strip {
+  width: 4px;
+  flex-shrink: 0;
 }
-.smv-crit-critical .smv-crit-bar { background: #dc2626; }
-.smv-crit-high     .smv-crit-bar { background: #f59e0b; }
-.smv-crit-medium   .smv-crit-bar { background: #6366f1; }
-.smv-crit-low      .smv-crit-bar { background: #94a3b8; }
+.smv-crit-critical .smv-crit-strip { background: #dc2626; }
+.smv-crit-high     .smv-crit-strip { background: #f59e0b; }
+.smv-crit-medium   .smv-crit-strip { background: #6366f1; }
+.smv-crit-low      .smv-crit-strip { background: #94a3b8; }
 
-// Card header: title / holder + ℹ button
-.smv-card-head {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding-top: 4px; // clear the 3 px bar
+.smv-pos-body {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
 }
-.smv-card-meta { flex: 1; min-width: 0; }
-
-.smv-card-title {
-  font-size: 13.5px; font-weight: 700; color: #1e1b4b;
+.smv-pos-title {
+  font-size: 13px; font-weight: 700; color: #1e1b4b;
   line-height: 1.3;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-.smv-card-holder {
+.smv-pos-holder {
   display: flex; align-items: center; gap: 4px;
-  margin-top: 4px; font-size: 12px; color: #6b7280;
-  .anticon { font-size: 11px; color: #94a3b8; }
+  margin-top: 4px; font-size: 11.5px; color: #64748b;
+  .anticon { font-size: 10px; color: #94a3b8; }
 }
-.smv-holder-ico    { font-size: 11px; color: #94a3b8; }
+.smv-holder-ico    { font-size: 10px; color: #94a3b8; }
 .smv-holder-vacant { color: #9ca3af; font-style: italic; }
 
 .smv-info-btn {
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px;
-  border: 1px solid #e5e7eb; border-radius: 7px;
-  background: #f9fafb; color: #6366f1;
+  width: 32px;
+  border: none; border-left: 1px solid #f1f5f9;
+  background: #fafbfc; color: #6366f1;
   cursor: pointer; font-size: 13px;
-  transition: background .12s, border-color .12s;
-  &:hover { background: #eef2ff; border-color: #a5b4fc; }
+  transition: background .12s;
+  &:hover { background: #eef2ff; color: #4338ca; }
 }
 
-// ─── Successor list ──────────────────────────────────────────
-.smv-succ-list {
-  display: flex; flex-direction: column; gap: 5px;
+// ─── Successor rows (indented below the card) ─────────────────
+.smv-succ-area {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1.5px dashed #dde3f5;
+  align-items: flex-start;           // rows don't stretch full width
 }
 
 .smv-succ-row {
-  display: flex; align-items: center; gap: 7px;
-  padding: 5px 8px;
-  border-radius: 8px;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 8px;
+  border-radius: 7px;
   border-left: 3px solid transparent;
-  background: #f9fafb;
   cursor: pointer;
-  transition: background .12s;
+  transition: background .1s;
 
-  &:hover { background: #f1f5f9; }
+  &:hover { background: #f8fafc; }
   &.smv-rd-green  { border-left-color: #10b981; }
   &.smv-rd-amber  { border-left-color: #f59e0b; }
   &.smv-rd-orange { border-left-color: #f97316; }
@@ -1758,46 +1781,38 @@
 
 .smv-rank {
   font-size: 10px; font-weight: 700; color: #9ca3af;
-  min-width: 20px; text-align: center; flex-shrink: 0;
+  min-width: 18px; text-align: center; flex-shrink: 0;
 }
-
 .smv-succ-name {
-  flex: 1; font-size: 12px; font-weight: 600; color: #374151;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12px; font-weight: 600; color: #374151;
+  white-space: nowrap;
+  // no flex:1 — pill stays immediately after name
 }
-
 .smv-ready-pill {
   flex-shrink: 0; font-size: 10px; font-weight: 600;
-  padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  padding: 2px 7px; border-radius: 999px;
   &.smv-pill-green  { background: #ecfdf5; color: #059669; }
   &.smv-pill-amber  { background: #fffbeb; color: #b45309; }
   &.smv-pill-orange { background: #fff7ed; color: #c2410c; }
 }
 
-// ─── Empty position warning ───────────────────────────────────
-.smv-no-succ {
-  display: flex; align-items: center; gap: 7px;
-  padding: 9px 12px;
-  background: #fef2f2; border: 1px dashed #fca5a5;
-  border-radius: 8px; color: #dc2626;
-  font-size: 12px; font-weight: 600;
-  .anticon { font-size: 13px; }
+// ─── "Thêm kế thừa" button (replaces heavy red warning) ──────
+.smv-add-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #4f46e5;
+    background: #eef2ff;
+  }
+  .anticon { font-size: 14px; }
 }
 
-// ─── Nested child positions (real hierarchy) ──────────────────
-.smv-card-children {
-  border-top: 1px solid #f1f5f9;
-  padding-top: 10px;
-  display: flex; flex-direction: column; gap: 8px;
-}
-
-.smv-child-label {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10.5px; font-weight: 700; color: #94a3b8;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  .anticon { font-size: 11px; }
-}
-
-.smv-child-grid {
-  display: flex; flex-direction: column; gap: 8px;
-}

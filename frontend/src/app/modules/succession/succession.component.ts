@@ -502,10 +502,40 @@ export class SuccessionComponent implements OnInit {
     return node.successors.length - this.COLLAPSE_THRESHOLD;
   }
 
-  /** Count how many child positions have zero successors (for dept-group header warning). */
-  countEmpty(children: TreeNode[]): number {
-    return children.filter(c => c.successors.length === 0).length;
+  /** Count how many positions have zero successors (for dept-group header warning). */
+  countEmpty(positions: TreeNode[]): number {
+    return positions.filter(c => c.successors.length === 0).length;
   }
+
+  /** Flatten the tree into dept → positions groups for the SMV card-grid view.
+   *  Works for both real-hierarchy trees and the dept-group fallback.
+   *  isDeptGroup virtual nodes are skipped; their children are collected.
+   */
+  smvDeptGroups = computed<{ dept: string; positions: TreeNode[] }[]>(() => {
+    const roots = this.treeRoots();
+    if (!roots.length) return [];
+
+    const flat: TreeNode[] = [];
+    const collect = (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        if (!n.isDeptGroup) flat.push(n);
+        if (n.children.length) collect(n.children);
+      }
+    };
+    collect(roots);
+
+    const map = new Map<string, TreeNode[]>();
+    for (const pos of flat) {
+      const dept = pos.department || 'Khác';
+      const list = map.get(dept) ?? [];
+      list.push(pos);
+      map.set(dept, list);
+    }
+
+    return [...map.entries()]
+      .map(([dept, positions]) => ({ dept, positions }))
+      .sort((a, b) => b.positions.length - a.positions.length);
+  });
 
   // 9-box definitions — row=performance, col=potential
   boxes: BoxDef[] = [
