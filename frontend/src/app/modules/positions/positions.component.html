@@ -391,12 +391,6 @@
         <div class="view-section">
           <div class="view-section-title">
             <span nz-icon nzType="solution"></span> Người kế thừa
-            <a class="view-section-link"
-               [routerLink]="['/succession']"
-               [queryParams]="{ tab: 'map', positionId: p.id }"
-               (click)="closeAddModal()">
-              Quản lý <span nz-icon nzType="arrow-right"></span>
-            </a>
           </div>
           @if (getPlan(p.id)?.successors?.length) {
             <div class="drawer-succ-list">
@@ -427,11 +421,9 @@
             <div class="drawer-succ-empty">
               <span nz-icon nzType="team" class="dse-ico"></span>
               <span>Chưa có người kế thừa</span>
-              <a [routerLink]="['/succession']"
-                 [queryParams]="{ tab: 'map', positionId: p.id }"
-                 class="dse-link" (click)="closeAddModal()">
-                Thêm ngay <span nz-icon nzType="arrow-right"></span>
-              </a>
+              <button class="dse-link dse-link-btn" (click)="openFindSuccessor()">
+                <span nz-icon nzType="search"></span> Tìm người kế thừa
+              </button>
             </div>
           }
 
@@ -752,11 +744,21 @@
                        (change)="fsSetMinPotential($event)">
               </div>
               <div class="fs-filter-group">
-                <label class="fs-filter-label">Mức phù hợp ≥ %</label>
-                <input nz-input type="number" min="0" max="100" placeholder="0 – 100"
-                       class="fs-filter-input"
-                       [value]="fsMinMatch() ?? ''"
-                       (change)="fsSetMinMatch($event)">
+                <label class="fs-filter-label">Khoảng phù hợp (%)</label>
+                <div class="fs-range-row">
+                  <input nz-input type="number" min="0" max="100" placeholder="Từ"
+                         class="fs-filter-input fs-range-input"
+                         [value]="fsMinMatch() ?? ''"
+                         (change)="fsSetMinMatch($event)">
+                  <span class="fs-range-sep">–</span>
+                  <input nz-input type="number" min="0" max="100" placeholder="Đến"
+                         class="fs-filter-input fs-range-input"
+                         [value]="fsMaxMatch() ?? ''"
+                         (change)="fsSetMaxMatch($event)">
+                </div>
+                <div class="fs-range-hint">
+                  Để tìm ứng viên trong vùng gap cụ thể (vd: 60%–80%)
+                </div>
               </div>
             </div>
 

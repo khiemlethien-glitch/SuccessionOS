@@ -193,6 +193,14 @@ export class SuccessionComponent implements OnInit {
     this.addSuccessorOpen.set(true);
   }
 
+  /** Điều hướng sang /positions với modal "Tìm người kế thừa" tự mở cho vị trí đã chọn */
+  navigateToFindSuccessor(positionId: string, ev: Event): void {
+    ev.stopPropagation();
+    this.router.navigate(['/positions'], {
+      queryParams: { posId: positionId, openFinder: 'true' }
+    });
+  }
+
   cancelAddSuccessor(): void { this.addSuccessorOpen.set(false); }
 
   async submitAddSuccessor(): Promise<void> {

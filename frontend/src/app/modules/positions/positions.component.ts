@@ -329,6 +329,18 @@ export class PositionsComponent implements OnInit {
 
     if (!emps.error) this.allEmployees.set((emps.data ?? []) as EmpOpt[]);
 
+    // Deep-link từ Succession module: ?posId=<id>&openFinder=true
+    // → mở drawer position rồi mở modal tìm kế thừa
+    const deepPosId    = this.route.snapshot.queryParamMap.get('posId');
+    const deepFinder   = this.route.snapshot.queryParamMap.get('openFinder');
+    if (deepPosId && deepFinder === 'true') {
+      const targetPos = (positions as any[]).find(p => p.id === deepPosId);
+      if (targetPos) {
+        this.openPositionView(targetPos as any);
+        await this.openFindSuccessor();
+      }
+    }
+
     this.loading.set(false);
   }
 
@@ -601,6 +613,7 @@ export class PositionsComponent implements OnInit {
   fsMinPerf           = signal<number | null>(null);
   fsMinPotential      = signal<number | null>(null);
   fsMinMatch          = signal<number | null>(null);
+  fsMaxMatch          = signal<number | null>(null);   // gap range upper bound
   fsReadiness         = signal<string[]>([]);
   fsExcludeRisk       = signal(false);
 
@@ -624,12 +637,14 @@ export class PositionsComponent implements OnInit {
     const minPerf  = this.fsMinPerf();
     const minPot   = this.fsMinPotential();
     const minMatch = this.fsMinMatch();
+    const maxMatch = this.fsMaxMatch();
     const readiness = this.fsReadiness();
     const excRisk  = this.fsExcludeRisk();
     if (q)                 list = list.filter(e => e.full_name.toLowerCase().includes(q));
     if (minPerf  !== null) list = list.filter(e => (e.performance_score ?? 0) >= minPerf);
     if (minPot   !== null) list = list.filter(e => (e.potential_score   ?? 0) >= minPot);
     if (minMatch !== null) list = list.filter(e => e.matchScore >= minMatch);
+    if (maxMatch !== null) list = list.filter(e => e.matchScore <= maxMatch);
     if (readiness.length)  list = list.filter(e => readiness.includes(e.readiness_level));
     if (excRisk)           list = list.filter(e => (e.risk_score ?? 0) < 60);
     return list;
@@ -771,6 +786,11 @@ export class PositionsComponent implements OnInit {
   fsSetMinMatch(ev: Event): void {
     const v = (ev.target as HTMLInputElement).value.trim();
     this.fsMinMatch.set(v === '' ? null : Number(v));
+    this.fsPage.set(1);
+  }
+  fsSetMaxMatch(ev: Event): void {
+    const v = (ev.target as HTMLInputElement).value.trim();
+    this.fsMaxMatch.set(v === '' ? null : Number(v));
     this.fsPage.set(1);
   }
   fsToggleReadiness(r: string, checked: boolean): void {

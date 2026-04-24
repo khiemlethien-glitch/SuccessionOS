@@ -1727,3 +1727,38 @@
 }
 .fs-action-clear { font-size: 13px; }
 .fs-action-confirm { min-width: 200px; }
+
+// ── Gap range filter inputs ────────────────────────────────────────────────
+.fs-range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fs-range-input { flex: 1; }
+.fs-range-sep {
+  color: #94a3b8;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.fs-range-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+// ── "Thêm ngay" button style (empty state in drawer) ──────────────────────
+.dse-link-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6366f1;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  &:hover { color: #4f46e5; text-decoration: underline; }
+}
