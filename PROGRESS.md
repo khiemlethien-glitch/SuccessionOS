@@ -1,7 +1,44 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-24 — Gap analysis cross-module + accurate gap calculation ✅
+> Cập nhật lần cuối: 2026-04-24 — Find Successor modal: smart search + match score + DB save ✅
+
+---
+
+## ⚡ Find Successor Modal (2026-04-24) — build ✅
+
+### Tính năng: Tìm người kế thừa thông minh
+
+#### UI Layout
+- **Left panel (320px)**: Bộ tiêu chuẩn (vị trí + năng lực yêu cầu) + bộ lọc tìm kiếm
+  - Filter: min hiệu suất, min tiềm năng, min match %, mức sẵn sàng, loại trừ rủi ro cao
+  - Active filter tags hiển thị ở trên cùng
+- **Right panel**: Bảng kết quả 10/page với:
+  - NHÂN VIÊN (avatar + tên + ID code), PHÒNG BAN, CHỨC DANH
+  - MỨC ĐỘ PHÙ HỢP (progress bar + %, màu xanh/vàng/đỏ theo điểm)
+  - SẴN SÀNG (màu green/blue/amber theo readiness)
+  - RỦI RO RỜI ĐI (badge Thấp/TB/Cao)
+- **Multi-select**: checkbox từng row + select-all trang hiện tại
+- **Action bar**: float bottom — "Thêm N người vào kế thừa"
+
+#### Thuật toán Match Score
+```typescript
+matchScore = mean( empScore[comp] / targetScore[comp] * 100 ) per required competency
+// Fallback: (performance + potential) / 2 nếu chưa thiết lập năng lực
+```
+- Gap score (match score) được lưu vào `succession_plans.gap_score`
+
+#### Backend persistence
+- Mỗi nhân viên được chọn: `succession_plans.upsertPlan({ position_id, talent_id, readiness, priority, gap_score })`
+- `onConflict: 'position_id,talent_id'` — safe upsert, không duplicate
+- Reload plans sau khi save, cập nhật `successor_count` real-time trong drawer
+
+#### Cách mở
+- Nút "Tìm người kế thừa" (dashed indigo) trong drawer view mode của position
+- Chỉ hiện với admin / line manager (`canEdit()`)
+- Loại trừ người đã có trong danh sách kế thừa
+
+### Commit `18893ae`
 
 ---
 
