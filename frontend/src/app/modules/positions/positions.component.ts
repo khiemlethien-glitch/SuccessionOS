@@ -326,10 +326,29 @@ export class PositionsComponent implements OnInit {
       current_holder_id: holderEmp?.id ?? null,
       critical_level: p.critical_level as CriticalLevel,
     });
-    const selectedKeys = new Set(p.required_competencies ?? []);
-    this.selectedCompetencies.set(this.allCompetencies.filter(c => selectedKeys.has(c.key)));
-    this.availableCompetencies.set(this.allCompetencies.filter(c => !selectedKeys.has(c.key)));
-    this.competencyScores.set({ ...(p.competency_scores ?? {}) });
+
+    // Match competencies từ DB (key ngắn hoặc tên đầy đủ) → Competency object
+    const rawKeys = p.required_competencies ?? [];
+    const matched = rawKeys
+      .map(raw => this.resolveCompMeta(raw))
+      .filter((m): m is Competency => m !== undefined);
+    // Dedup nếu 2 raw key cùng map về 1 canonical
+    const seen = new Set<string>();
+    const dedupMatched = matched.filter(c => seen.has(c.key) ? false : (seen.add(c.key), true));
+
+    this.selectedCompetencies.set(dedupMatched);
+    this.availableCompetencies.set(this.allCompetencies.filter(c => !seen.has(c.key)));
+
+    // Load scores — normalize: old raw-name keys → canonical short keys
+    const existingScores = p.competency_scores ?? {};
+    const canonicalScores: Record<string, number> = {};
+    for (const [rawKey, score] of Object.entries(existingScores)) {
+      if (score === null || score === undefined) continue;
+      const meta = this.resolveCompMeta(rawKey) ?? this.allCompetencies.find(c => c.key === rawKey);
+      const canonKey = meta?.key ?? rawKey;
+      canonicalScores[canonKey] = score as number;
+    }
+    this.competencyScores.set(canonicalScores);
     this.drawerMode.set('edit');
   }
 
@@ -350,13 +369,34 @@ export class PositionsComponent implements OnInit {
   }
 
   // ─── Competency score helpers ─────────────────────────────
-  getCompScore(key: string): number {
-    return this.competencyScores()[key] ?? 70;
+  /** Trả về điểm thực từ DB/user — null nếu chưa đặt (không default 70) */
+  getCompScore(key: string): number | null {
+    return this.competencyScores()[key] ?? null;
   }
 
   setCompScore(key: string, ev: Event): void {
-    const val = Math.min(100, Math.max(0, Number((ev.target as HTMLInputElement).value)));
-    this.competencyScores.update(s => ({ ...s, [key]: val }));
+    const raw = (ev.target as HTMLInputElement).value.trim();
+    this.competencyScores.update(s => {
+      const copy = { ...s };
+      if (raw === '') {
+        // User xóa trắng → bỏ key này, không lưu undefined
+        delete copy[key];
+      } else {
+        copy[key] = Math.min(100, Math.max(0, Number(raw)));
+      }
+      return copy;
+    });
+  }
+
+  /** Tìm Competency trong allCompetencies bằng key chính xác, label, hoặc keyword */
+  private resolveCompMeta(rawKey: string): Competency | undefined {
+    const lower = rawKey.toLowerCase();
+    return this.allCompetencies.find(c => c.key === rawKey)
+        ?? this.allCompetencies.find(c => c.label.toLowerCase() === lower)
+        ?? this.allCompetencies.find(c =>
+            lower.includes(c.label.toLowerCase()) ||
+            c.label.toLowerCase().includes(lower)
+          );
   }
 
   /** Competencies của vị trí đang xem (kết hợp key + score) */
@@ -364,13 +404,14 @@ export class PositionsComponent implements OnInit {
     const p = this.viewingPosition();
     if (!p) return [];
     const scores = p.competency_scores ?? {};
-    return (p.required_competencies ?? []).map(key => {
-      // Tìm theo key chính xác trước, rồi theo label (case-insensitive)
-      const meta = this.allCompetencies.find(c => c.key === key)
-                ?? this.allCompetencies.find(c => c.label.toLowerCase() === key.toLowerCase());
-      const label = meta?.label ?? key;                  // DB-stored name đã human-readable → dùng thẳng
-      const icon  = meta?.icon  ?? this.resolveCompIcon(key); // keyword match thay vì luôn 'tool'
-      return { key, label, icon, score: scores[key] ?? null };
+    return (p.required_competencies ?? []).map(rawKey => {
+      const meta  = this.resolveCompMeta(rawKey);
+      const label = meta?.label ?? rawKey;               // tên đầy đủ từ DB đã human-readable
+      const icon  = meta?.icon  ?? this.resolveCompIcon(rawKey);
+      // Tìm score: theo canonical key (nếu resolve được) rồi theo raw key
+      const canonKey = meta?.key ?? rawKey;
+      const score = scores[canonKey] ?? scores[rawKey] ?? null;
+      return { key: rawKey, label, icon, score };
     });
   });
 
@@ -461,6 +502,11 @@ export class PositionsComponent implements OnInit {
       // ── EDIT mode ──────────────────────────────────────
       const scores = this.competencyScores();
 
+      // Chỉ lưu scores đã được user đặt (loại bỏ null/undefined)
+      const cleanScores = Object.fromEntries(
+        Object.entries(scores).filter(([, v]) => v !== null && v !== undefined && !isNaN(v as number))
+      );
+
       // Optimistic update: cập nhật local state ngay → quay về view mode ngay
       // để tránh màn hình bị đứng khi DB chậm hoặc lỗi
       const updated: Partial<KeyPosition> = {
@@ -469,7 +515,7 @@ export class PositionsComponent implements OnInit {
         current_holder: d.current_holder.trim(),
         critical_level: d.critical_level,
         required_competencies: competencyKeys,
-        competency_scores: scores,
+        competency_scores: cleanScores,
       };
       this.positions.update(list => list.map(p => p.id === editId ? { ...p, ...updated } : p));
       this.viewingPosition.update(p => p ? { ...p, ...updated } : null);
@@ -482,7 +528,7 @@ export class PositionsComponent implements OnInit {
         current_holder_id: d.current_holder_id,
         critical_level: d.critical_level,
         required_competencies: competencyKeys,
-        competency_scores: scores,
+        competency_scores: cleanScores,
       };
       const saved = await this.positionSvc.update(editId, dbPayload);
       if (saved) {

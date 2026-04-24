@@ -415,10 +415,10 @@
                     <label class="comp-score-label" (click)="$event.stopPropagation()">
                       <input type="number" min="0" max="100"
                         class="comp-score-input"
-                        [value]="getCompScore(c.key)"
+                        [value]="getCompScore(c.key) ?? ''"
                         (change)="setCompScore(c.key, $event)"
                         (click)="$event.stopPropagation()"
-                        placeholder="70">
+                        placeholder="0–100">
                       <span class="comp-score-unit">đ</span>
                     </label>
                     <span nz-icon nzType="close" class="dd-chip-add" (click)="removeCompetency(c); $event.stopPropagation()"></span>
