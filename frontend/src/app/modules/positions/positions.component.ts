@@ -580,6 +580,234 @@ export class PositionsComponent implements OnInit {
     return !!(d.title.trim() && d.department && d.current_holder.trim() && this.selectedCompetencies().length > 0);
   });
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FIND SUCCESSOR MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  readonly fsReadinessOpts = [
+    { value: 'Ready Now',        label: 'Sẵn sàng ngay',    color: '#52c41a' },
+    { value: 'Ready in 1 Year',  label: 'Ngắn hạn 1 năm',   color: '#1890ff' },
+    { value: 'Ready in 2 Years', label: 'Trung hạn 1–2 năm', color: '#faad14' },
+  ];
+
+  showFindSuccessor   = signal(false);
+  fsLoading           = signal(false);
+  fsSaving            = signal(false);
+  fsAllCandidates     = signal<Talent[]>([]);
+  fsSelectedIds       = signal<Set<string>>(new Set());
+  fsPage              = signal(1);
+  readonly fsPageSize = 10;
+  fsNameQuery         = signal('');
+  fsMinPerf           = signal<number | null>(null);
+  fsMinPotential      = signal<number | null>(null);
+  fsMinMatch          = signal<number | null>(null);
+  fsReadiness         = signal<string[]>([]);
+  fsExcludeRisk       = signal(false);
+
+  /** All employees scored + excluding existing successors, sorted by match desc */
+  readonly fsScoredAll = computed(() => {
+    const pos = this.viewingPosition();
+    if (!pos) return [] as (Talent & { matchScore: number })[];
+    const existingIds = new Set(
+      (this.getPlan(pos.id)?.successors ?? []).map((s: any) => s.talent_id)
+    );
+    return this.fsAllCandidates()
+      .filter(e => !existingIds.has(e.id))
+      .map(e => ({ ...e, matchScore: this.calcMatchScore(e) }))
+      .sort((a, b) => b.matchScore - a.matchScore);
+  });
+
+  /** Candidates after applying filter controls */
+  readonly fsFiltered = computed(() => {
+    let list = this.fsScoredAll() as (Talent & { matchScore: number })[];
+    const q        = this.fsNameQuery().trim().toLowerCase();
+    const minPerf  = this.fsMinPerf();
+    const minPot   = this.fsMinPotential();
+    const minMatch = this.fsMinMatch();
+    const readiness = this.fsReadiness();
+    const excRisk  = this.fsExcludeRisk();
+    if (q)                 list = list.filter(e => e.full_name.toLowerCase().includes(q));
+    if (minPerf  !== null) list = list.filter(e => (e.performance_score ?? 0) >= minPerf);
+    if (minPot   !== null) list = list.filter(e => (e.potential_score   ?? 0) >= minPot);
+    if (minMatch !== null) list = list.filter(e => e.matchScore >= minMatch);
+    if (readiness.length)  list = list.filter(e => readiness.includes(e.readiness_level));
+    if (excRisk)           list = list.filter(e => (e.risk_score ?? 0) < 60);
+    return list;
+  });
+
+  readonly fsTotal     = computed(() => this.fsFiltered().length);
+  readonly fsPagedList = computed(() => {
+    const s = (this.fsPage() - 1) * this.fsPageSize;
+    return this.fsFiltered().slice(s, s + this.fsPageSize);
+  });
+
+  get fsSelectedCount(): number { return this.fsSelectedIds().size; }
+  get fsPageAllSelected(): boolean {
+    const ids = this.fsPagedList().map(e => e.id);
+    return ids.length > 0 && ids.every(id => this.fsSelectedIds().has(id));
+  }
+
+  /**
+   * Match score = mean(empScore / targetScore × 100) per required competency.
+   * Falls back to (performance + potential) / 2 if no comp requirements defined.
+   */
+  calcMatchScore(emp: Talent): number {
+    const pos = this.viewingPosition();
+    if (!pos) return 0;
+    const comps   = pos.required_competencies ?? [];
+    const targets = (pos.competency_scores ?? {}) as Record<string, number>;
+    const empKeyMap: Record<string, string> = {
+      technical: 'technical', leadership: 'leadership',
+      communication: 'communication', problemSolving: 'problem_solving',
+      problem_solving: 'problem_solving', adaptability: 'adaptability',
+    };
+    if (!comps.length) {
+      return Math.round(((emp.performance_score ?? 0) + (emp.potential_score ?? 0)) / 2);
+    }
+    let total = 0, count = 0;
+    for (const rawKey of comps) {
+      const meta     = this.resolveCompMeta(rawKey);
+      const canonKey = meta?.key ?? rawKey;
+      const target   = targets[canonKey] ?? targets[rawKey] ?? null;
+      if (!target) continue;
+      const empField = empKeyMap[canonKey] ?? canonKey;
+      const current  = (emp.competencies as any)?.[empField] ?? null;
+      if (current === null) continue;
+      total += Math.min(100, (current / target) * 100);
+      count++;
+    }
+    return count === 0
+      ? Math.round(((emp.performance_score ?? 0) + (emp.potential_score ?? 0)) / 2)
+      : Math.round(total / count);
+  }
+
+  async openFindSuccessor(): Promise<void> {
+    this.showFindSuccessor.set(true);
+    if (this.fsAllCandidates().length === 0) {
+      this.fsLoading.set(true);
+      try {
+        const res = await this.employeeSvc.getAll();
+        this.fsAllCandidates.set(res.data);
+      } catch { /* keep empty */ }
+      this.fsLoading.set(false);
+    }
+  }
+
+  closeFindSuccessor(): void {
+    this.showFindSuccessor.set(false);
+    this.fsSelectedIds.set(new Set());
+    this.fsPage.set(1);
+  }
+
+  toggleFsSelect(id: string, ev?: MouseEvent): void {
+    ev?.stopPropagation();
+    this.fsSelectedIds.update(s => {
+      const copy = new Set(s);
+      copy.has(id) ? copy.delete(id) : copy.add(id);
+      return copy;
+    });
+  }
+
+  isFsSelected(id: string): boolean { return this.fsSelectedIds().has(id); }
+  clearFsSelection(): void { this.fsSelectedIds.set(new Set()); }
+
+  toggleFsPageSelect(): void {
+    const ids   = this.fsPagedList().map(e => e.id);
+    const allSel = ids.every(id => this.fsSelectedIds().has(id));
+    this.fsSelectedIds.update(s => {
+      const copy = new Set(s);
+      if (allSel) ids.forEach(id => copy.delete(id));
+      else        ids.forEach(id => copy.add(id));
+      return copy;
+    });
+  }
+
+  async fsConfirmAdd(): Promise<void> {
+    const pos = this.viewingPosition();
+    if (!pos || this.fsSelectedIds().size === 0) return;
+    this.fsSaving.set(true);
+    const existingCount = (this.getPlan(pos.id)?.successors ?? []).length;
+    const ids = [...this.fsSelectedIds()];
+    try {
+      for (let i = 0; i < ids.length; i++) {
+        const emp = this.fsAllCandidates().find(e => e.id === ids[i]);
+        await this.successionSvc.upsertPlan({
+          position_id: pos.id,
+          talent_id:   ids[i],
+          readiness:   emp?.readiness_level ?? 'Ready in 2 Years',
+          priority:    existingCount + i + 1,
+          gap_score:   emp ? this.calcMatchScore(emp) : null,
+        });
+      }
+      this.msg.success(`Đã thêm ${ids.length} người kế thừa cho "${pos.title}"`);
+      const plans = await this.successionSvc.getPlans().catch(() => [] as any[]);
+      this.plans.set(plans as any);
+      const updatedPlan = (plans as any[]).find((p: any) => p.position_id === pos.id);
+      if (updatedPlan) {
+        this.viewingPosition.update(vp => vp ? {
+          ...vp,
+          successor_count:  updatedPlan.successors.length,
+          ready_now_count:  updatedPlan.successors.filter((s: any) => s.readiness === 'Ready Now').length,
+        } : null);
+      }
+      this.closeFindSuccessor();
+    } catch {
+      this.msg.error('Lỗi khi lưu — kiểm tra RLS Supabase');
+    } finally {
+      this.fsSaving.set(false);
+    }
+  }
+
+  fsSetMinPerf(ev: Event): void {
+    const v = (ev.target as HTMLInputElement).value.trim();
+    this.fsMinPerf.set(v === '' ? null : Number(v));
+    this.fsPage.set(1);
+  }
+  fsSetMinPotential(ev: Event): void {
+    const v = (ev.target as HTMLInputElement).value.trim();
+    this.fsMinPotential.set(v === '' ? null : Number(v));
+    this.fsPage.set(1);
+  }
+  fsSetMinMatch(ev: Event): void {
+    const v = (ev.target as HTMLInputElement).value.trim();
+    this.fsMinMatch.set(v === '' ? null : Number(v));
+    this.fsPage.set(1);
+  }
+  fsToggleReadiness(r: string, checked: boolean): void {
+    this.fsReadiness.update(l => checked ? [...l, r] : l.filter(x => x !== r));
+    this.fsPage.set(1);
+  }
+
+  // ─── Display helpers ──────────────────────────────────────────────────────
+  fsMatchTone(score: number): string {
+    if (score >= 85) return '#52c41a';
+    if (score >= 70) return '#1890ff';
+    if (score >= 50) return '#faad14';
+    return '#f5222d';
+  }
+  fsRiskLabel(risk: number | null): string {
+    if (risk === null) return '—';
+    if (risk >= 60) return 'Cao';
+    if (risk >= 30) return 'TB';
+    return 'Thấp';
+  }
+  fsRiskClass(risk: number | null): string {
+    if (risk === null) return 'fs-risk-na';
+    if (risk >= 60) return 'fs-risk-hi';
+    if (risk >= 30) return 'fs-risk-md';
+    return 'fs-risk-lo';
+  }
+  fsReadinessLabel(r: string): string {
+    if (r === 'Ready Now') return 'Sẵn sàng ngay';
+    if (r === 'Ready in 1 Year') return 'Ngắn hạn 1 năm';
+    return 'Trung hạn 1–2 năm';
+  }
+  fsReadinessColor(r: string): string {
+    if (r === 'Ready Now') return '#52c41a';
+    if (r === 'Ready in 1 Year') return '#1890ff';
+    return '#faad14';
+  }
+
   async submit(): Promise<void> {
     if (!this.canSubmit()) {
       this.msg.warning('Vui lòng điền đầy đủ và chọn ít nhất 1 năng lực');

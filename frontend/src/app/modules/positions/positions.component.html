@@ -434,6 +434,15 @@
               </a>
             </div>
           }
+
+          <!-- Nút tìm người kế thừa (Admin / Line Manager) -->
+          @if (canEdit()) {
+            <button nz-button nzType="dashed" class="view-find-succ-btn"
+                    (click)="openFindSuccessor()">
+              <span nz-icon nzType="search"></span>
+              Tìm người kế thừa
+            </button>
+          }
         </div>
 
       </div>
@@ -650,3 +659,286 @@
 
   </ng-container>
 </nz-drawer>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     FIND SUCCESSOR — Full-screen modal overlay
+══════════════════════════════════════════════════════════════════════════ -->
+@if (showFindSuccessor()) {
+  <div class="fs-overlay">
+    <div class="fs-modal">
+
+      <!-- Header -->
+      <div class="fs-modal-hd">
+        <div class="fs-modal-title">
+          <span nz-icon nzType="search" class="fs-title-ico"></span>
+          Tìm người kế thừa
+          <span class="fs-title-pos">{{ viewingPosition()?.title }}</span>
+        </div>
+        <button nz-button nzType="text" class="fs-close-btn" (click)="closeFindSuccessor()">
+          <span nz-icon nzType="close"></span>
+        </button>
+      </div>
+
+      <!-- Body: left panel + right panel -->
+      <div class="fs-body">
+
+        <!-- ── Left Panel — Criteria & Filters ── -->
+        <div class="fs-left">
+          <div class="fs-left-scroll">
+
+            <!-- Position criteria header -->
+            <div class="fs-section">
+              <div class="fs-section-hd">
+                <span class="fs-section-lbl">Bộ tiêu chuẩn</span>
+                <span class="fs-badge-ok">Đã thiết lập</span>
+              </div>
+              <div class="fs-pos-name">{{ viewingPosition()?.title }}</div>
+
+              <!-- Active criteria tags -->
+              <div class="fs-criteria-tags">
+                @if (fsMinPerf() !== null) {
+                  <nz-tag nzColor="blue">Hiệu suất ≥ {{ fsMinPerf() }}</nz-tag>
+                }
+                @if (viewingCompetencies().length > 0) {
+                  <nz-tag nzColor="geekblue">Năng lực ({{ viewingCompetencies().length }})</nz-tag>
+                }
+                @if (fsMinPotential() !== null) {
+                  <nz-tag nzColor="purple">Tiềm năng ≥ {{ fsMinPotential() }}</nz-tag>
+                }
+                @if (fsExcludeRisk()) {
+                  <nz-tag nzColor="volcano">Rủi ro thấp</nz-tag>
+                }
+                @if (fsReadiness().length) {
+                  <nz-tag nzColor="green">Sẵn sàng ({{ fsReadiness().length }})</nz-tag>
+                }
+              </div>
+            </div>
+
+            <div class="fs-divider"></div>
+
+            <!-- Position required competencies (read-only display) -->
+            @if (viewingCompetencies().length > 0) {
+              <div class="fs-section">
+                <div class="fs-sub-title">Năng lực yêu cầu vị trí</div>
+                @for (c of viewingCompetencies(); track c.key) {
+                  <div class="fs-comp-row">
+                    <span nz-icon [nzType]="c.icon" class="fsc-icon"></span>
+                    <span class="fsc-label">{{ c.label }}</span>
+                    @if (c.score !== null) {
+                      <span class="fsc-score">{{ c.score }}/100</span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="fs-divider"></div>
+            }
+
+            <!-- Filters -->
+            <div class="fs-section">
+              <div class="fs-sub-title">Bộ lọc tìm kiếm</div>
+
+              <div class="fs-filter-group">
+                <label class="fs-filter-label">Hiệu suất ≥</label>
+                <input nz-input type="number" min="0" max="100" placeholder="0 – 100"
+                       class="fs-filter-input"
+                       [value]="fsMinPerf() ?? ''"
+                       (change)="fsSetMinPerf($event)">
+              </div>
+              <div class="fs-filter-group">
+                <label class="fs-filter-label">Tiềm năng ≥</label>
+                <input nz-input type="number" min="0" max="100" placeholder="0 – 100"
+                       class="fs-filter-input"
+                       [value]="fsMinPotential() ?? ''"
+                       (change)="fsSetMinPotential($event)">
+              </div>
+              <div class="fs-filter-group">
+                <label class="fs-filter-label">Mức phù hợp ≥ %</label>
+                <input nz-input type="number" min="0" max="100" placeholder="0 – 100"
+                       class="fs-filter-input"
+                       [value]="fsMinMatch() ?? ''"
+                       (change)="fsSetMinMatch($event)">
+              </div>
+            </div>
+
+            <div class="fs-divider"></div>
+
+            <!-- Readiness filter -->
+            <div class="fs-section">
+              <div class="fs-sub-title">Mức độ sẵn sàng</div>
+              @for (r of fsReadinessOpts; track r.value) {
+                <label class="fs-check-row">
+                  <input type="checkbox"
+                         [checked]="fsReadiness().includes(r.value)"
+                         (change)="fsToggleReadiness(r.value, $any($event.target).checked)">
+                  <span class="fs-check-dot" [style.background]="r.color"></span>
+                  <span class="fs-check-label">{{ r.label }}</span>
+                </label>
+              }
+            </div>
+
+            <div class="fs-divider"></div>
+
+            <!-- Risk filter -->
+            <div class="fs-section">
+              <div class="fs-sub-title">Rủi ro nhân sự</div>
+              <label class="fs-check-row">
+                <input type="checkbox"
+                       [checked]="fsExcludeRisk()"
+                       (change)="fsExcludeRisk.set($any($event.target).checked)">
+                <span class="fs-check-label">Loại trừ rủi ro rời đi cao</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="fs-left-footer">
+            <button nz-button nzType="primary" nzBlock (click)="fsPage.set(1)">
+              <span nz-icon nzType="search"></span> Tìm kiếm
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Right Panel — Results ── -->
+        <div class="fs-right">
+
+          <!-- Search + result count -->
+          <div class="fs-right-header">
+            <div class="fs-search-wrap">
+              <span nz-icon nzType="search" class="fs-search-ico"></span>
+              <input class="fs-search-input"
+                     placeholder="Tìm kiếm nhân viên..."
+                     [ngModel]="fsNameQuery()"
+                     (ngModelChange)="fsNameQuery.set($event); fsPage.set(1)">
+            </div>
+            <div class="fs-result-count">
+              Kết quả tìm kiếm: <strong>{{ fsTotal() }}</strong> ứng viên
+              @if (fsSelectedCount > 0) {
+                <span class="fs-sel-hint">• Đã chọn {{ fsSelectedCount }}</span>
+              }
+            </div>
+          </div>
+
+          @if (fsLoading()) {
+            <div class="fs-loading-state">
+              <span nz-icon nzType="loading" nzSpin></span>
+              <span>Đang tải danh sách ứng viên...</span>
+            </div>
+          } @else {
+            <!-- Results table -->
+            <div class="fs-table-wrap">
+              <table class="fs-table">
+                <thead>
+                  <tr>
+                    <th class="fst-col-check">
+                      <input type="checkbox"
+                             [checked]="fsPageAllSelected"
+                             (change)="toggleFsPageSelect()">
+                    </th>
+                    <th>Nhân viên</th>
+                    <th>Phòng ban</th>
+                    <th>Chức danh</th>
+                    <th class="fst-col-match">Mức độ phù hợp</th>
+                    <th>Sẵn sàng</th>
+                    <th>Rủi ro rời đi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (fsPagedList().length === 0) {
+                    <tr>
+                      <td colspan="7" class="fst-empty">
+                        <span nz-icon nzType="inbox" class="fst-empty-ico"></span>
+                        <span>Không tìm thấy ứng viên phù hợp</span>
+                      </td>
+                    </tr>
+                  }
+                  @for (emp of fsPagedList(); track emp.id) {
+                    <tr [class.fstr-selected]="isFsSelected(emp.id)"
+                        (click)="toggleFsSelect(emp.id)">
+                      <td class="fst-col-check" (click)="$event.stopPropagation()">
+                        <input type="checkbox"
+                               [checked]="isFsSelected(emp.id)"
+                               (change)="toggleFsSelect(emp.id)">
+                      </td>
+                      <td>
+                        <div class="fst-emp">
+                          <app-avatar [name]="emp.full_name" [size]="36"></app-avatar>
+                          <div class="fste-info">
+                            <div class="fste-name">{{ emp.full_name }}</div>
+                            <div class="fste-code">{{ emp.id.slice(0, 8) }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="fst-dept">{{ emp.department }}</td>
+                      <td class="fst-title">{{ emp.position }}</td>
+                      <td class="fst-col-match">
+                        <div class="fsm-wrap">
+                          <div class="fsm-track">
+                            <div class="fsm-bar"
+                                 [style.width.%]="emp.matchScore"
+                                 [style.background]="fsMatchTone(emp.matchScore)">
+                            </div>
+                          </div>
+                          <span class="fsm-pct"
+                                [style.color]="fsMatchTone(emp.matchScore)">
+                            {{ emp.matchScore }}%
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="fst-readiness"
+                              [style.color]="fsReadinessColor(emp.readiness_level)">
+                          {{ fsReadinessLabel(emp.readiness_level) }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="fst-risk-badge" [ngClass]="fsRiskClass(emp.risk_score)">
+                          {{ fsRiskLabel(emp.risk_score) }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="fs-pagination">
+              <span class="fsp-info">
+                Hiển thị {{ (fsPage() - 1) * fsPageSize + 1 }}–{{ [fsPage() * fsPageSize, fsTotal()].sort((a, b) => a - b)[0] }} / {{ fsTotal() }} ứng viên
+              </span>
+              <div class="fsp-btns">
+                <button nz-button nzSize="small"
+                        [disabled]="fsPage() <= 1"
+                        (click)="fsPage.update(p => p - 1)">Trước</button>
+                <button nz-button nzSize="small"
+                        [disabled]="fsPage() * fsPageSize >= fsTotal()"
+                        (click)="fsPage.update(p => p + 1)">Sau</button>
+              </div>
+            </div>
+          }
+
+        </div><!-- /.fs-right -->
+      </div><!-- /.fs-body -->
+
+      <!-- ── Selection action bar (floats at bottom) ── -->
+      @if (fsSelectedCount > 0) {
+        <div class="fs-action-bar">
+          <span class="fs-action-info">
+            <span nz-icon nzType="check-circle"></span>
+            Đã chọn <strong>{{ fsSelectedCount }}</strong> nhân viên
+          </span>
+          <button nz-button nzType="default" class="fs-action-clear"
+                  (click)="clearFsSelection()">
+            Bỏ chọn tất cả
+          </button>
+          <button nz-button nzType="primary" class="fs-action-confirm"
+                  [nzLoading]="fsSaving()"
+                  (click)="fsConfirmAdd()">
+            <span nz-icon nzType="user-add"></span>
+            Thêm {{ fsSelectedCount }} người vào kế thừa
+          </button>
+        </div>
+      }
+
+    </div><!-- /.fs-modal -->
+  </div><!-- /.fs-overlay -->
+}

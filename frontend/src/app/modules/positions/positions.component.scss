@@ -1291,3 +1291,439 @@
   transition: opacity .15s, transform .15s;
   margin-left: 4px;
 }
+
+// ═════════════════════════════════════════════════════════════════
+// FIND SUCCESSOR MODAL
+// ═════════════════════════════════════════════════════════════════
+
+// ── "Tìm người kế thừa" button in drawer view mode ───────────────
+.view-find-succ-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+  border-style: dashed;
+  border-color: #6366f1;
+  color: #6366f1;
+  font-size: 13px;
+  transition: background .2s, color .2s;
+  &:hover { background: #eef2ff; }
+}
+
+// ── Overlay & modal shell ─────────────────────────────────────────
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  z-index: 1010;
+  display: flex;
+  align-items: stretch;
+}
+
+.fs-modal {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 1011;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ── Modal header ──────────────────────────────────────────────────
+.fs-modal-hd {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 55px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+.fs-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  flex: 1;
+}
+.fs-title-ico { color: #6366f1; font-size: 18px; }
+.fs-title-pos {
+  font-size: 13px;
+  font-weight: 400;
+  color: #64748b;
+  padding: 2px 10px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.fs-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 16px;
+  &:hover { background: #f1f5f9; color: #0f172a; }
+}
+
+// ── Body layout ───────────────────────────────────────────────────
+.fs-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+// ── Left panel ────────────────────────────────────────────────────
+.fs-left {
+  width: 320px;
+  min-width: 320px;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+  overflow: hidden;
+}
+.fs-left-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+.fs-left-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.fs-section { margin-bottom: 4px; }
+
+.fs-section-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.fs-section-lbl {
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+}
+.fs-badge-ok {
+  font-size: 11px;
+  padding: 1px 7px;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.fs-pos-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.fs-criteria-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.fs-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 12px 0;
+}
+
+.fs-sub-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 10px;
+}
+
+// Competency rows
+.fs-comp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  color: #374151;
+}
+.fsc-icon { color: #6366f1; font-size: 14px; }
+.fsc-label { flex: 1; }
+.fsc-score {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+// Filter controls
+.fs-filter-group {
+  margin-bottom: 10px;
+}
+.fs-filter-label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.fs-filter-input {
+  width: 100%;
+  height: 32px;
+  font-size: 13px;
+}
+
+// Checkbox rows
+.fs-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 5px 0;
+  color: #374151;
+  input[type="checkbox"] { cursor: pointer; }
+}
+.fs-check-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fs-check-label { flex: 1; }
+
+// ── Right panel ───────────────────────────────────────────────────
+.fs-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.fs-right-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.fs-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+.fs-search-ico {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+.fs-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  background: #f9fafb;
+  &:focus { border-color: #6366f1; background: #fff; }
+}
+
+.fs-result-count {
+  font-size: 13px;
+  color: #374151;
+  strong { color: #1e293b; font-weight: 700; }
+}
+.fs-sel-hint {
+  color: #6366f1;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.fs-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 12px;
+  font-size: 14px;
+  color: #64748b;
+  span[nz-icon] { font-size: 28px; color: #6366f1; }
+}
+
+// ── Results table ─────────────────────────────────────────────────
+.fs-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.fs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #374151;
+    vertical-align: middle;
+  }
+  tbody tr {
+    cursor: pointer;
+    transition: background .12s;
+    &:hover { background: #f8faff; }
+    &.fstr-selected {
+      background: #eef2ff;
+      td { color: #1e293b; }
+    }
+  }
+}
+.fst-col-check { width: 44px; text-align: center; }
+.fst-col-match { width: 180px; }
+.fst-dept, .fst-title { max-width: 160px; }
+
+.fst-emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fste-info { min-width: 0; }
+.fste-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.fste-code {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+// Match score bar
+.fsm-wrap { display: flex; align-items: center; gap: 8px; }
+.fsm-track {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.fsm-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .3s;
+}
+.fsm-pct {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 38px;
+  text-align: right;
+}
+
+.fst-readiness { font-size: 12px; font-weight: 500; }
+
+// Risk badges
+.fst-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.fs-risk-hi  { background: #fee2e2; color: #b91c1c; }
+.fs-risk-md  { background: #fef9c3; color: #a16207; }
+.fs-risk-lo  { background: #dcfce7; color: #15803d; }
+.fs-risk-na  { background: #f1f5f9; color: #94a3b8; }
+
+.fst-empty {
+  text-align: center;
+  padding: 60px 24px !important;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.fst-empty-ico { font-size: 40px; color: #cbd5e1; }
+
+// ── Pagination ────────────────────────────────────────────────────
+.fs-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.fsp-info { font-size: 12px; color: #64748b; }
+.fsp-btns { display: flex; gap: 8px; }
+
+// ── Action bar (floats at bottom) ─────────────────────────────────
+.fs-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: #fff;
+  border-top: 2px solid #6366f1;
+  box-shadow: 0 -4px 20px rgba(99, 102, 241, .12);
+  flex-shrink: 0;
+  z-index: 2;
+}
+.fs-action-info {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  span[nz-icon] { color: #22c55e; font-size: 16px; }
+  strong { color: #6366f1; }
+}
+.fs-action-clear { font-size: 13px; }
+.fs-action-confirm { min-width: 200px; }
