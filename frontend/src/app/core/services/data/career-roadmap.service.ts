@@ -137,6 +137,60 @@ Return ONLY this JSON (no markdown, no extra keys):
 }`;
 }
 
+// ─── Data normalizer (handles both AI-generated & seeded simplified format) ───
+
+function normalizeRoadmap(raw: any): CareerRoadmap {
+  const PHASE_COLORS: ('blue' | 'green' | 'yellow')[] = ['blue', 'green', 'yellow'];
+
+  const skill_gaps: SkillGap[] = Array.isArray(raw.skill_gaps)
+    ? raw.skill_gaps.map((g: any, i: number) => ({
+        id:            g.id ?? `sg${i}`,
+        skill_name:    g.skill_name ?? g.skill ?? '',
+        category:      g.category ?? 'Technical',
+        current_level: g.current_level ?? 2,
+        required_level:g.required_level ?? 4,
+        priority:      (g.priority === 'High' ? 'core'
+                      : g.priority === 'Medium' ? 'important'
+                      : g.priority ?? 'nice-to-have') as SkillGap['priority'],
+        rationale:     g.rationale ?? '',
+        courses:       Array.isArray(g.courses) ? g.courses.map((c: any, ci: number) => ({
+          id:        c.id ?? `c${ci}`,
+          name:      c.name ?? '',
+          provider:  c.provider ?? '',
+          duration:  c.duration ?? '',
+          price:     c.price ?? '',
+          language:  c.language ?? 'Vietnamese',
+          icon_type: c.icon_type ?? 'book',
+          features:  Array.isArray(c.features) ? c.features : [],
+        } as CourseItem)) : [],
+      }))
+    : [];
+
+  const phases = Array.isArray(raw.phases)
+    ? raw.phases.map((p: any) => ({
+        phase:  p.phase ?? 1,
+        title:  p.title ?? '',
+        months: p.months ?? p.duration ?? '',
+        theme:  p.theme ?? p.title ?? '',
+        color:  (['blue','green','yellow'].includes(p.color) ? p.color : PHASE_COLORS[(p.phase ?? 1) - 1] ?? 'blue') as 'blue'|'green'|'yellow',
+        tasks:  Array.isArray(p.tasks)
+                  ? p.tasks
+                  : [
+                      ...(Array.isArray(p.activities)  ? p.activities  : []),
+                      ...(Array.isArray(p.milestones)   ? p.milestones  : []),
+                    ],
+      }))
+    : [];
+
+  return {
+    ...raw,
+    strengths:  Array.isArray(raw.strengths)  ? raw.strengths.map((s: any)  => typeof s === 'string' ? s : (s.area ?? s.note ?? JSON.stringify(s))) : [],
+    challenges: Array.isArray(raw.challenges) ? raw.challenges.map((c: any) => typeof c === 'string' ? c : (c.area ?? c.note ?? JSON.stringify(c))) : [],
+    skill_gaps,
+    phases,
+  } as CareerRoadmap;
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
@@ -153,8 +207,8 @@ export class CareerRoadmapService {
 
       if (!data) return { expert: null, manager: null };
       return {
-        expert:  (data.find((r: any) => r.track === 'expert')  as CareerRoadmap) ?? null,
-        manager: (data.find((r: any) => r.track === 'manager') as CareerRoadmap) ?? null,
+        expert:  data.find((r: any) => r.track === 'expert')  ? normalizeRoadmap(data.find((r: any) => r.track === 'expert'))  : null,
+        manager: data.find((r: any) => r.track === 'manager') ? normalizeRoadmap(data.find((r: any) => r.track === 'manager')) : null,
       };
     } catch {
       return { expert: null, manager: null };

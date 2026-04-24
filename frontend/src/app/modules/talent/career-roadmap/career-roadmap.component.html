@@ -175,7 +175,7 @@
       <div class="cr-skills-wrap">
         <h3 class="cr-block-title">Kỹ năng cần phát triển</h3>
 
-        @for (gap of roadmap.skill_gaps; track gap.id; let gi = $index) {
+        @for (gap of roadmap.skill_gaps; track (gap.id || $index); let gi = $index) {
           <div class="cr-skill-card">
             <!-- Skill header -->
             <div class="cr-skill-head">
@@ -216,7 +216,7 @@
             @if (gap.courses.length) {
               <div class="cr-courses-wrap">
                 <div class="cr-courses-title">Khóa học / Chứng chỉ bên ngoài:</div>
-                @for (course of gap.courses; track course.id; let ci = $index) {
+                @for (course of gap.courses; track (course.id || $index); let ci = $index) {
                   <div class="cr-course-row">
                     <div class="cr-course-ico">
                       <span nz-icon [nzType]="courseIcon(course.icon_type)"></span>
