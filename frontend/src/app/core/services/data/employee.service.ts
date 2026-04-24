@@ -27,11 +27,11 @@ function mapVEmployee(row: any): Talent {
     risk_reasons: row.risk_reasons ?? [],
     departure_reasons: row.departure_reasons ?? [],
     competencies: {
-      technical:       row.comp_technical       ?? 0,
-      leadership:      row.comp_leadership      ?? 0,
-      communication:   row.comp_communication   ?? 0,
-      problem_solving: row.comp_problem_solving ?? 0,
-      adaptability:    row.comp_adaptability    ?? 0,
+      technical:       row.comp_technical       ?? null,
+      leadership:      row.comp_leadership      ?? null,
+      communication:   row.comp_communication   ?? null,
+      problem_solving: row.comp_problem_solving ?? null,
+      adaptability:    row.comp_adaptability    ?? null,
     },
     competency_targets: {
       technical:   row.comp_target_technical       ?? 85,

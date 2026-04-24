@@ -21,8 +21,8 @@ export interface Talent {
   readiness_level: ReadinessLevel;
   email: string;
   competencies?: {
-    technical: number; leadership: number; communication: number;
-    problem_solving: number; adaptability: number;
+    technical: number | null; leadership: number | null; communication: number | null;
+    problem_solving: number | null; adaptability: number | null;
   };
   competency_targets?: {
     technical: number; performance: number; behavior: number;

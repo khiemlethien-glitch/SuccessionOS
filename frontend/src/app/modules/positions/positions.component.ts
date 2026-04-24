@@ -196,12 +196,16 @@ export class PositionsComponent implements OnInit {
     const emp = this.gapEmployee();
     if (!pos) return [];
 
-    const currentComps: Record<string, number> = (emp?.competencies as any) ?? {};
-    // Map position canonical key → employee competency field name
+    const currentComps: Record<string, number | null> = (emp?.competencies as any) ?? {};
+    // Map position canonical key → employee's competency field name in currentComps
+    // Handles both camelCase (frontend-generated) and snake_case (DB-generated) keys
     const empKeyMap: Record<string, string> = {
-      technical: 'technical', leadership: 'leadership',
-      communication: 'communication', problemSolving: 'problem_solving',
-      adaptability: 'adaptability',
+      technical:       'technical',
+      leadership:      'leadership',
+      communication:   'communication',
+      problemSolving:  'problem_solving',
+      problem_solving: 'problem_solving',
+      adaptability:    'adaptability',
     };
 
     const comps = this.viewingCompetencies();
@@ -217,10 +221,17 @@ export class PositionsComponent implements OnInit {
       const meta     = this.resolveCompMeta(vc.key);
       const canonKey = meta?.key ?? vc.key;
       const empField = empKeyMap[canonKey] ?? canonKey;
-      const current  = currentComps[empField] ?? currentComps[canonKey] ?? null;
-      const target   = vc.score;  // already resolved in viewingCompetencies
-      const gap      = (target !== null && current !== null)
-                       ? Math.round(current - target) : null;
+      // Use explicit undefined check so a genuine null (unrated) does NOT fall through
+      const rawCurrent = currentComps[empField] !== undefined
+                         ? currentComps[empField]
+                         : currentComps[canonKey] !== undefined
+                           ? currentComps[canonKey]
+                           : null;
+      const current  = rawCurrent;                       // null → N/A gap badge
+      const target   = vc.score;                         // position target score from DB
+      // gap = current − target (positive = exceeds target ✓, negative = below target ✗)
+      const gap = (target !== null && current !== null)
+                  ? Math.round(current - target) : null;
       return { ...vc, current, target, gap };
     });
   });
