@@ -101,16 +101,22 @@ export class AssessmentService {
     return (data ?? []) as Cycle[];
   }
 
-  async getAllCriteria(): Promise<Criterion[]> {
-    return this.cache.get('asmnt:criteria', () => this._fetchAllCriteria());
+  async getAllCriteria(departmentId?: string | null): Promise<Criterion[]> {
+    const key = departmentId ? `asmnt:criteria:${departmentId}` : 'asmnt:criteria:all';
+    return this.cache.get(key, () => this._fetchAllCriteria(departmentId));
   }
 
-  private async _fetchAllCriteria(): Promise<Criterion[]> {
-    const { data, error } = await this.sb
+  private async _fetchAllCriteria(departmentId?: string | null): Promise<Criterion[]> {
+    let q = this.sb
       .from('assessment_criteria')
       .select('*')
       .eq('is_active', true)
       .order('sort_order');
+    // Filter by department if provided; fall back to criteria with no dept assigned (global)
+    if (departmentId) {
+      q = (q as any).or(`department_id.eq.${departmentId},department_id.is.null`);
+    }
+    const { data, error } = await q;
     if (error) { console.error('[AssessmentService.getAllCriteria]', error); return []; }
     return (data ?? []) as Criterion[];
   }
@@ -204,8 +210,8 @@ export class AssessmentService {
   }
 
   private async _fetchAssessmentBlocks(employeeId: string, cycleId: string): Promise<AssessmentBlocksView> {
-    const [allCriteria, scoresRes, summaryRes, extScoreRes, weightRes] = await Promise.all([
-      this.getAllCriteria(),
+    // Step 1: fetch scores + meta in parallel — scores tell us WHICH criteria to look up
+    const [scoresRes, summaryRes, extScoreRes, weightRes] = await Promise.all([
       this.sb.from('assessment_scores').select('criterion_id, score')
         .eq('employee_id', employeeId).eq('cycle_id', cycleId),
       this.sb.from('assessment_summary').select('*')
@@ -216,7 +222,8 @@ export class AssessmentService {
         .eq('id', 1).maybeSingle(),
     ]);
 
-    const scoreMap = new Map((scoresRes.data ?? []).map(s => [s.criterion_id, Number(s.score)]));
+    const scores   = scoresRes.data ?? [];
+    const scoreMap = new Map(scores.map(s => [s.criterion_id, Number(s.score)]));
     const summary  = summaryRes.data;
     const ext      = extScoreRes.data;
     const weights  = {
@@ -224,16 +231,38 @@ export class AssessmentService {
       weight_360:        weightRes.data?.weight_360        ?? 40,
     };
 
+    // Step 2: fetch ONLY the criteria that have actual scores for this employee+cycle
+    // (avoids loading all 1,786 company-wide KPIs when only ~5-20 are relevant per employee)
+    let criterionMap = new Map<string, Criterion>();
+    const scoredIds = scores.map(s => s.criterion_id);
+    if (scoredIds.length > 0) {
+      const criteriaRes = await this.sb
+        .from('assessment_criteria')
+        .select('id, key, label, description, weight, category, sort_order, is_active, assessment_type')
+        .in('id', scoredIds);
+      const criteriaData = (criteriaRes.data ?? []) as Criterion[];
+      criterionMap = new Map(criteriaData.map(c => [c.id, c]));
+    }
+
     const blocks: AssessmentBlock[] = [];
 
-    // KPI block — criteria where assessment_type != '360'
-    const kpiCriteria = allCriteria.filter(c => !c.assessment_type || c.assessment_type === 'kpi');
+    // KPI block — only scored KPI criteria (assessment_type != '360')
     const kpiOverall  = ext?.assessment_score ?? summary?.overall_score ?? null;
-    const kpiItems: AssessmentItem[] = kpiCriteria.map(c => ({
-      id: c.id, label: c.label, description: c.description,
-      weight: c.weight, item_max: 100,
-      score: scoreMap.get(c.id) ?? null,
-    }));
+    const kpiItems: AssessmentItem[] = scores
+      .filter(s => {
+        const c = criterionMap.get(s.criterion_id);
+        return c && (!c.assessment_type || c.assessment_type === 'kpi');
+      })
+      .map(s => {
+        const c = criterionMap.get(s.criterion_id)!;
+        return { id: c.id, label: c.label, description: c.description, weight: c.weight, item_max: 100, score: Number(s.score) };
+      })
+      .sort((a, b) => {
+        const ca = criterionMap.get(a.id)?.sort_order ?? 0;
+        const cb = criterionMap.get(b.id)?.sort_order ?? 0;
+        return ca - cb;
+      });
+
     if (kpiItems.length > 0 || kpiOverall != null) {
       blocks.push({
         type: 'kpi',
@@ -274,14 +303,17 @@ export class AssessmentService {
     return { employee_id: employeeId, cycle_id: cycleId, blocks, weights, combined_total };
   }
 
-  async getAssessment(employeeId: string, cycleId: string): Promise<AssessmentView | null> {
-    return this.cache.get(`asmnt:score:${employeeId}:${cycleId}`, () => this._fetchAssessment(employeeId, cycleId));
+  async getAssessment(employeeId: string, cycleId: string, departmentId?: string | null): Promise<AssessmentView | null> {
+    const cacheKey = departmentId
+      ? `asmnt:score:${employeeId}:${cycleId}:${departmentId}`
+      : `asmnt:score:${employeeId}:${cycleId}`;
+    return this.cache.get(cacheKey, () => this._fetchAssessment(employeeId, cycleId, departmentId));
   }
 
-  private async _fetchAssessment(employeeId: string, cycleId: string): Promise<AssessmentView | null> {
+  private async _fetchAssessment(employeeId: string, cycleId: string, departmentId?: string | null): Promise<AssessmentView | null> {
     const [displayIds, allCriteria, scoresRes, summaryRes] = await Promise.all([
       this.getDisplayConfig(),
-      this.getAllCriteria(),
+      this.getAllCriteria(departmentId),
       this.sb.from('assessment_scores').select('*')
         .eq('employee_id', employeeId).eq('cycle_id', cycleId),
       this.sb.from('assessment_summary').select('*')

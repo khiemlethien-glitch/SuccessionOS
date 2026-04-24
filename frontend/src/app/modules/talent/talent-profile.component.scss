@@ -85,7 +85,7 @@
 }
 .identity-text { min-width:0; flex:1; }
 .name          { margin:0 0 2px; font-size:20px; font-weight:700; color:#1e1b4b; line-height:1.2; }
-.position      { margin:0 0 2px; font-size:15px; font-weight:600; color:#374151; }
+.position      { margin:0 0 2px; font-size:15px; font-weight:600; color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sub           { margin:0; font-size:13px; color:#9ca3af; }
 
 .meta          {

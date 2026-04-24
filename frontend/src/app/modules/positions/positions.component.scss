@@ -1032,6 +1032,9 @@
   font-size: 13px;
   color: #4f46e5;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gap-person-dept {
   font-size: 12px;
@@ -1619,7 +1622,7 @@
 }
 .fst-col-check { width: 44px; text-align: center; }
 .fst-col-match { width: 180px; }
-.fst-dept, .fst-title { max-width: 160px; }
+.fst-dept, .fst-title { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .fst-emp {
   display: flex;

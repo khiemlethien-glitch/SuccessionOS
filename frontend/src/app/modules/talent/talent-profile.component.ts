@@ -731,22 +731,30 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!talent) { this.cyclesLoading.set(false); return; }
 
     // ② Secondary data in parallel (sections show skeletons until ready)
-    const [all, cycles, successors, succTarget] = await Promise.all([
+    const [all, cycles, successors, succTarget, summaries] = await Promise.all([
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
       this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
       this.successionSvc.getTargetPositionForSuccessor(id).catch(() => null),
+      // Lấy danh sách cycle_id có assessment_summary cho employee này
+      this.sbSvc.client
+        .from('assessment_summary')
+        .select('cycle_id')
+        .eq('employee_id', id)
+        .then(r => new Set((r.data ?? []).map((s: any) => s.cycle_id))),
     ]);
     this.allTalents.set(all.data);
     this.cycles.set(cycles);
     this.successorNodes.set(successors);
     this.successionTargetPosition.set(succTarget);
 
-    // Pick cycle: ưu tiên cycle 'closed' gần nhất (có data), fallback cycle đầu.
-    const firstClosed = cycles.find(c => c.status === 'closed') ?? cycles[0];
-    if (firstClosed) {
-      this.selectedCycleId.set(firstClosed.id);
-      await this.loadAssessmentForCycle(id, firstClosed.id);
+    // Pick cycle: ưu tiên cycle có data thật (assessment_summary), sau đó mới fallback.
+    // cycles đã sort_order DESC (mới nhất trước) — lấy cycle mới nhất có data.
+    const cycleWithData = cycles.find(c => summaries.has(c.id));
+    const defaultCycle  = cycleWithData ?? cycles.find(c => c.status === 'closed') ?? cycles[0];
+    if (defaultCycle) {
+      this.selectedCycleId.set(defaultCycle.id);
+      await this.loadAssessmentForCycle(id, defaultCycle.id);
     }
     this.cyclesLoading.set(false);  // assessment skeleton → real assessment
 

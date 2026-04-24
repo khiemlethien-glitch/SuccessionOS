@@ -1,7 +1,104 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-24 — Find Successor modal: smart search + match score + DB save ✅
+> Cập nhật lần cuối: 2026-04-24 — Seed 200 nhân viên mới (full data 100%) ✅
+
+---
+
+## ⚡ Seed 200 nhân viên hoàn chỉnh (2026-04-24) — ✅ DONE
+
+### Script: `scripts/seed_200_employees.py`
+
+**Bước thực hiện**: Clean toàn bộ DB → Seed mới hoàn toàn.
+
+| Bảng | Số rows | Ghi chú |
+|---|---|---|
+| `departments` | 12 | 12 phòng ban ITL Group + hierarchy |
+| `employees` | 200 | 5 cấp bậc (L1-L5), hierarchy reports_to + mentor wired |
+| `key_positions` | 15 | Vị trí then chốt, current_holder_id gắn thực |
+| `succession_plans` | 37 | 2-3 successors per position, readiness + gap_score |
+| `assessment_summary` | 623 | 4 cycles × nhân viên (nhiều hơn cho senior) |
+| `assessment_scores` | 4086 | 9 tiêu chí 360° × cycles |
+| `external_scores` | 200 | 1 record/người cho cycle 2025-end |
+| `employee_extras` | 200 | Project, KT, A360, training_hours, last_promotion_year |
+| `career_roadmaps` | 119 | 80 nhân viên, 2 tracks (expert/manager) |
+| `idp_plans` | 150 | 150 nhân viên, status Active/Pending |
+| `idp_goals` | 584 | 3-5 goals/plan, type Training/Certification/Project/Mentoring |
+| `mentoring_pairs` | 26 | Manager → Staff pairs, focus_area |
+| `calibration_sessions` | 3 | 2024-mid, 2024-end, 2025-mid |
+| `audit_logs` | 60 | System action logs |
+| `score_weight_config` | 1 | 60/40 split |
+| `assessment_display_config` | 1 | 4 criteria hiển thị |
+
+**Các enum values đã xác nhận:**
+- `talent_tier`: `"Kế thừa"` | `"Tiềm năng"` | `"Nòng cốt"` (chỉ 3 values)
+- `readiness_level`: `"Ready Now"` | `"Ready in 1 Year"` | `"Ready in 2 Years"` (chỉ 3 values)
+- `goal_type`: `"Training"` | `"Certification"` | `"Project"` | `"Mentoring"` (Title Case)
+- `goal_status`: `"Not Started"` | `"In Progress"` | `"Completed"`
+- `idp_status`: `"Active"` | `"Pending"` | `"Completed"` (không có "Draft")
+- `mentoring_status`: `"Active"` | `"Completed"` | `"Paused"`
+
+**Generated columns (không được INSERT):**
+- `employees.overall_score` — tính tự động từ perf+pot
+- `employees.risk_band` — tính tự động từ risk_score
+- `key_positions.risk_level` — tính tự động từ critical_level
+
+---
+
+## ⚡ Post-import fixes #1/#2/#3 (2026-04-24) — build ✅
+
+### Fix 1 — Score scale: bỏ giới hạn trên 100
+
+Supabase SQL (chạy qua Management API):
+```sql
+ALTER TABLE assessment_scores DROP CONSTRAINT IF EXISTS assessment_scores_score_check;
+ALTER TABLE assessment_scores ADD CONSTRAINT assessment_scores_score_check CHECK (score >= 0);
+ALTER TABLE assessment_summary DROP CONSTRAINT IF EXISTS assessment_summary_overall_score_check;
+ALTER TABLE assessment_summary ADD CONSTRAINT assessment_summary_overall_score_check CHECK (overall_score >= 0);
+```
+
+### Fix 2 — Tiêu chí đánh giá theo phòng ban (department_id)
+
+DB: thêm column `department_id TEXT` + index vào `assessment_criteria`
+
+Service: `assessment.service.ts`
+- `getAllCriteria(departmentId?)` — cache key riêng per dept; PostgREST `.or('department_id.eq.{id},department_id.is.null')`
+- `getAssessment(empId, cycleId, departmentId?)` — truyền `departmentId` xuống `getAllCriteria`
+
+⚠️ `assessment_criteria.department_id` hiện tất cả NULL (cần admin UI hoặc migration mapping tiêu chí → phòng ban)
+
+### Fix 3 — Chức vụ quá dài phá vỡ UI: text truncation
+
+CSS `white-space:nowrap; overflow:hidden; text-overflow:ellipsis` đã thêm vào:
+
+| File | Class |
+|---|---|
+| `talent-profile.component.scss` | `.position` |
+| `succession.component.scss` | `.pd-holder-sub`, `.smv-pos-title` |
+| `positions.component.scss` | `.gap-person-pos`, `.fst-dept`, `.fst-title` |
+
+Các class đã có truncation từ trước (không đụng):
+`.emp-sub`, `.emp-name` (talent-list), `.bm-pod-pos`, `.bm-hc-pos`, `.bm-lr-pos` (succession), `.card-title`, `.gap-path-val` (positions)
+
+Build: ✅ 0 errors (3 pre-existing SCSS budget warnings non-blocking)
+
+### Import PTSC thực (2026-04-24) — tổng kết
+
+| Bảng | Đã import | Ghi chú |
+|---|---|---|
+| `departments` | 613/613 | ✅ |
+| `assessment_cycles` | 10/10 | ✅ |
+| `assessment_criteria` | 1,786/1,786 | ✅ |
+| `employees` | 4,705/4,715 | 10 bỏ: 3 thiếu dept, 7 dept UUID sai |
+| `reports_to_id` links | 3,509/3,516 | 4 orphan manager, 3 FK lỗi |
+| `assessment_scores` | 341/352 | 10 orphan cycle 2C53CD2C, 1 duplicate |
+| `assessment_summary` | 127/150 | 7 orphan cycles, 16 duplicates |
+| `auth.users + user_profiles` | 4,157/4,157 | ✅ qua SQL chunks |
+
+Scripts:
+- `scripts/import_supabase.py` — import 6 bảng chính
+- `scripts/generate_auth_sql.py` — tạo 21 SQL chunks cho auth.users
+- `scripts/run_auth_chunks.py` — chạy chunks qua Management API
 
 ---
 
