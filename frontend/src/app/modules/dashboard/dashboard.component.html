@@ -11,7 +11,7 @@
   <!-- KPI Cards -->
   <div class="kpi-grid">
     <!-- Nhân sự trong chuỗi -->
-    <div class="kpi-card kpi-blue">
+    <a class="kpi-card kpi-blue kpi-link" routerLink="/talent">
       <div class="kpi-hdr">
         <div class="kpi-label">Nhân sự trong chuỗi</div>
         <div class="kpi-icon kpi-icon-blue"><span nz-icon nzType="user"></span></div>
@@ -22,20 +22,22 @@
         <div class="kpi-dot-row"><span class="dot dot-successor"></span><span class="txt">{{ tierCounts().potential }} Tiềm năng</span></div>
         <div class="kpi-dot-row"><span class="dot dot-potential"></span><span class="txt">{{ tierCounts().successor }} Kế thừa</span></div>
       </div>
-    </div>
+      <div class="kpi-cta">Xem danh sách <span nz-icon nzType="arrow-right"></span></div>
+    </a>
 
     <!-- Vị trí có kế thừa -->
-    <div class="kpi-card kpi-green">
+    <a class="kpi-card kpi-green kpi-link" routerLink="/positions" [queryParams]="{ filter: 'has-successor' }">
       <div class="kpi-hdr">
         <div class="kpi-label">Vị trí có kế thừa</div>
         <div class="kpi-icon kpi-icon-green"><span nz-icon nzType="safety-certificate"></span></div>
       </div>
       <div class="kpi-value">{{ positionsWithSuccessors() }}</div>
       <div class="kpi-sub">{{ positionsNoSuccessor() }} vị trí chưa đủ</div>
-    </div>
+      <div class="kpi-cta">Xem vị trí <span nz-icon nzType="arrow-right"></span></div>
+    </a>
 
     <!-- Rủi ro cao -->
-    <div class="kpi-card kpi-red">
+    <a class="kpi-card kpi-red kpi-link" routerLink="/talent" [queryParams]="{ filter: 'high-risk' }">
       <div class="kpi-hdr">
         <div class="kpi-label">Rủi ro cao</div>
         <div class="kpi-icon kpi-icon-red"><span nz-icon nzType="warning"></span></div>
@@ -45,7 +47,8 @@
         <span class="kpi-pill">↑ {{ highRiskPct() }}%</span>
       </div>
       <div class="kpi-sub">cần xử lý trong 30 ngày</div>
-    </div>
+      <div class="kpi-cta">Xem nhân sự <span nz-icon nzType="arrow-right"></span></div>
+    </a>
 
     <!-- Kế hoạch IDP — coming soon -->
     <div class="kpi-card kpi-amber kpi-coming">
@@ -72,7 +75,8 @@
 
       <div class="risk-list">
         @for (t of topRiskAlerts(); track t.id) {
-          <div class="risk-row">
+          <div class="risk-row risk-row-clickable" (click)="openTalentDrawer(t.id)"
+               nz-tooltip nzTooltipTitle="Xem chi tiết nhân sự">
             <!-- Left: Avatar + Info -->
             <div class="person-info">
               <nz-avatar
@@ -92,8 +96,11 @@
               <span>{{ riskReason(t) }}</span>
             </div>
 
-            <!-- Right: Badge -->
-            <span class="risk-badge">Rủi ro cao</span>
+            <!-- Right: Badge + chevron -->
+            <div class="risk-row-right">
+              <span class="risk-badge">Rủi ro cao</span>
+              <span nz-icon nzType="right" class="risk-chevron"></span>
+            </div>
           </div>
         }
       </div>
@@ -200,3 +207,23 @@
     </div>
   </div>
 </div>
+
+<!-- ── Talent Preview Drawer (dùng chung với succession) ─────────────────── -->
+<nz-drawer
+  [nzVisible]="previewOpen()"
+  (nzOnClose)="closeDrawer()"
+  nzPlacement="right"
+  [nzWidth]="'calc(100vw - 240px)'"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
+  [nzMaskClosable]="true"
+  nzWrapClassName="talent-preview-drawer-wrap">
+  <ng-container *nzDrawerContent>
+    <app-talent-preview
+      [talentId]="previewId()"
+      (closed)="closeDrawer()"
+      (navigate)="switchPreview($event)">
+    </app-talent-preview>
+  </ng-container>
+</nz-drawer>

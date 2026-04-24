@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -63,6 +63,17 @@ export class PositionsComponent implements OnInit {
   readonly criticalCount  = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
   readonly noSuccessor    = computed(() => this.positions().filter(p => p.successor_count === 0).length);
   readonly highRiskCount  = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
+
+  // ─── Coverage filter (từ dashboard deeplink hoặc tự chọn) ──────
+  coverageFilter = signal<'all' | 'covered' | 'uncovered'>('all');
+
+  readonly filteredPositions = computed(() => {
+    const f = this.coverageFilter();
+    const all = this.positions();
+    if (f === 'covered')   return all.filter(p => (p.successor_count ?? 0) > 0);
+    if (f === 'uncovered') return all.filter(p => (p.successor_count ?? 0) === 0);
+    return all;
+  });
 
   // ─── Modal state ───────────────────────────────────────────
   showAddModal = signal(false);
@@ -150,10 +161,15 @@ export class PositionsComponent implements OnInit {
     return this.getPlan(id)?.successors ?? [];
   });
 
-  constructor(private msg: NzMessageService) {}
+  constructor(private msg: NzMessageService, private route: ActivatedRoute) {}
 
   async ngOnInit(): Promise<void> {
     this.loading.set(true);
+
+    // Đọc queryParam từ dashboard deeplink (vd: ?filter=has-successor)
+    const filterParam = this.route.snapshot.queryParamMap.get('filter');
+    if (filterParam === 'has-successor') this.coverageFilter.set('covered');
+    if (filterParam === 'no-successor')  this.coverageFilter.set('uncovered');
 
     // Isolate each call so one failure doesn't block the others
     const [positions, plans, depts, emps] = await Promise.all([

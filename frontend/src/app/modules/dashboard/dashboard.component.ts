@@ -4,23 +4,43 @@ import { RouterLink } from '@angular/router';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCardModule } from 'ng-zorro-antd/card';
 import { NzAvatarModule } from 'ng-zorro-antd/avatar';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { DashboardService } from '../../core/services/data/dashboard.service';
+import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule,
-    RouterLink,
-    NzIconModule,
-    NzCardModule,
-    NzAvatarModule,
+    CommonModule, RouterLink,
+    NzIconModule, NzCardModule, NzAvatarModule,
+    NzDrawerModule, NzTooltipModule,
+    TalentPreviewDrawerComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit {
   private dashboardSvc = inject(DashboardService);
+
+  // ─── Talent preview drawer ────────────────────────────────────────────────
+  previewId   = signal<string | null>(null);
+  previewOpen = signal(false);
+
+  openTalentDrawer(id: string): void {
+    this.previewId.set(id);
+    this.previewOpen.set(true);
+  }
+
+  closeDrawer(): void {
+    this.previewOpen.set(false);
+    this.previewId.set(null);
+  }
+
+  switchPreview(id: string): void {
+    this.previewId.set(id);
+  }
 
   isLoading = signal(false);
 

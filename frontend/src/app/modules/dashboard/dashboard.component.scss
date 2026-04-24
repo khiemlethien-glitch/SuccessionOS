@@ -98,6 +98,33 @@
   color:#ef4444;
 }
 
+/* Clickable KPI card */
+a.kpi-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,.1);
+  }
+
+  .kpi-cta {
+    margin-top: 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--kpi-accent, #6366f1);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+
+  &:hover .kpi-cta { opacity: 1; }
+}
+
 /* Coming soon card */
 .kpi-coming { cursor:default; opacity:.88; }
 .kpi-coming:hover { transform:none !important; box-shadow:0 1px 3px rgba(0,0,0,.05) !important; }
@@ -319,6 +346,30 @@
     margin-right:6px;
   }
 }
+
+// Clickable risk row
+.risk-row-clickable {
+  cursor: pointer;
+  &:hover { background: #f5f3ff; }
+}
+
+.risk-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.risk-chevron {
+  font-size: 11px;
+  color: #c7d2fe;
+  transition: color .15s, transform .15s;
+}
+.risk-row-clickable:hover .risk-chevron {
+  color: #6366f1;
+  transform: translateX(2px);
+}
+
 
 @media (max-width: 900px) {
   .risk-row {

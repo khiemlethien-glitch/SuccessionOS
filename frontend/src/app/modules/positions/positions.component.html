@@ -46,9 +46,29 @@
     </div>
   </div>
 
+  <!-- ── Filter bar ─────────────────────────────────── -->
+  <div class="pos-filter-bar">
+    <div class="pf-group">
+      <span class="pf-label">Kế thừa:</span>
+      <div class="pf-seg">
+        <button type="button" class="pf-btn" [class.pf-active]="coverageFilter() === 'all'"
+          (click)="coverageFilter.set('all')">Tất cả</button>
+        <button type="button" class="pf-btn" [class.pf-active]="coverageFilter() === 'covered'"
+          (click)="coverageFilter.set('covered')">
+          <span nz-icon nzType="safety-certificate"></span> Có kế thừa
+        </button>
+        <button type="button" class="pf-btn" [class.pf-active]="coverageFilter() === 'uncovered'"
+          (click)="coverageFilter.set('uncovered')">
+          <span nz-icon nzType="user-delete"></span> Chưa có kế thừa
+        </button>
+      </div>
+    </div>
+    <span class="pf-count">{{ filteredPositions().length }} vị trí</span>
+  </div>
+
   <!-- ── Position cards grid ─────────────────────────── -->
   <div class="pos-grid">
-    @for (p of positions(); track p.id) {
+    @for (p of filteredPositions(); track p.id) {
       <div class="pos-card" [ngClass]="'tone-' + toneOf(p.critical_level)"
            [class.clickable]="isAdmin()"
            (click)="isAdmin() && openEditModal(p, $event)">

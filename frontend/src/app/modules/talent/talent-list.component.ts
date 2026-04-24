@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NzTableModule } from 'ng-zorro-antd/table';
@@ -82,9 +82,15 @@ export class TalentListComponent implements OnInit {
   private employeeSvc = inject(EmployeeService);
   private _searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private route: ActivatedRoute) {}
 
   async ngOnInit(): Promise<void> {
+    // Đọc queryParam từ dashboard (vd: ?filter=high-risk)
+    const filterParam = this.route.snapshot.queryParamMap.get('filter');
+    if (filterParam === 'high-risk') {
+      this.riskBand.set('High');
+    }
+
     // Load dept options + first page in parallel
     const [depts] = await Promise.all([
       this.employeeSvc.getDeptOptions(),
