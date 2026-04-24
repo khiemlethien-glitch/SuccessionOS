@@ -1,213 +1,599 @@
 <div class="talent-page" (click)="closeFilters()">
 
+  <!-- ── Page header ─────────────────────────────────────────────────────── -->
   <div class="page-head">
     <div class="head-left">
       <div class="crumb">Nhân tài</div>
       <div class="title-row">
         <div class="page-title">Chuỗi Phát triển Nhân tài</div>
       </div>
-      <div class="page-sub">{{ totalCount() }} nhân sự đang trong chương trình nhân tài</div>
+      <div class="page-sub">Phân tích và theo dõi toàn bộ nguồn nhân tài</div>
     </div>
+
+    <!-- 9-Box summary stats (visible when on 9-Box tab) -->
+    @if (activeTabIdx() === 0) {
+      <div class="nb-hero-stats">
+        <div class="nhs-item nhs-star">
+          <span nz-icon nzType="star" class="nhs-ico"></span>
+          <div>
+            <div class="nhs-val">{{ starCount() }}</div>
+            <div class="nhs-lbl">Ngôi sao</div>
+          </div>
+        </div>
+        <div class="nhs-divider"></div>
+        <div class="nhs-item nhs-total">
+          <span nz-icon nzType="team" class="nhs-ico"></span>
+          <div>
+            <div class="nhs-val">{{ totalInGrid() }}</div>
+            <div class="nhs-lbl">Tổng</div>
+          </div>
+        </div>
+        <div class="nhs-divider"></div>
+        <div class="nhs-item nhs-warn">
+          <span nz-icon nzType="warning" class="nhs-ico"></span>
+          <div>
+            <div class="nhs-val">{{ needsActionCount() }}</div>
+            <div class="nhs-lbl">Cần xử lý</div>
+          </div>
+        </div>
+      </div>
+    }
   </div>
 
-  <div class="toolbar" (click)="$event.stopPropagation()">
-    <div class="tb-left">
-      <nz-input-group [nzPrefix]="searchIco" class="search">
-        <input
-          nz-input
-          placeholder="Tìm nhân viên..."
-          [ngModel]="search()"
-          (ngModelChange)="onSearchChange($event)"
-        />
-      </nz-input-group>
-      <ng-template #searchIco><span nz-icon nzType="search" class="ico-muted"></span></ng-template>
+  <!-- ── Tab container ────────────────────────────────────────────────────── -->
+  <div class="talent-card">
+    <nz-tabs nzType="line" class="talent-tabs"
+             [nzSelectedIndex]="activeTabIdx()"
+             (nzSelectedIndexChange)="activeTabIdx.set($event)">
 
-      <button nz-button nzType="default" class="btn-filter" (click)="toggleFilters()">
-        <span nz-icon nzType="filter"></span>
-        <span>Bộ lọc</span>
-      </button>
+      <!-- ═══ Tab 1: 9-Box Grid ═══════════════════════════════════════════ -->
+      <nz-tab nzTitle="9-Box Grid">
 
-      <div class="sort">
-        <nz-select class="sort-select" [ngModel]="sortCol()"
-                   (ngModelChange)="sortCol.set($event); onSortChange()">
-          @for (opt of sortOptions; track opt.value) {
-            <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+        <div class="tab-toolbar">
+          <button class="btn-scale" (click)="openScaleModal()">
+            <span nz-icon nzType="sliders" class="btn-scale-ico"></span>
+            <span>Điều chỉnh thang đo</span>
+            @if (!isDefault()) {
+              <span class="btn-scale-dot"></span>
+            }
+          </button>
+        </div>
+
+        @if (nineboxLoading()) {
+          <div class="nb-loading"><nz-spin nzSimple></nz-spin></div>
+        } @else {
+          <div class="ninebox-wrap">
+            <!-- Y axis -->
+            <div class="axis-y-col">
+              <div class="axis-y-title">HIỆU SUẤT ▲</div>
+              <div class="axis-y">
+                <div class="ay-label">Cao</div>
+                <div class="ay-label">TB</div>
+                <div class="ay-label">Thấp</div>
+              </div>
+            </div>
+
+            <div class="ninebox-inner">
+              <!-- 3×3 grid -->
+              <div class="ninebox-grid">
+                @for (box of boxes; track box.num) {
+                  <div class="box-cell" [ngClass]="'tone-' + box.tone">
+                    <div class="box-head box-head-clickable" (click)="openBoxModal(box, $event)"
+                         nz-tooltip [nzTooltipTitle]="'Xem danh sách ' + box.label">
+                      <span class="box-num">{{ box.num }}</span>
+                      <div class="box-title-wrap">
+                        <div class="box-title">{{ box.label }}</div>
+                        <div class="box-sub">{{ box.sublabel }}</div>
+                      </div>
+                      <span class="box-count">{{ talentsInBox(box).length }}</span>
+                      <span nz-icon nzType="right" class="box-head-arrow"></span>
+                    </div>
+
+                    <div class="box-chips">
+                      @for (t of talentsInBox(box); track t.id) {
+                        <div class="chip chip-clickable"
+                             [title]="t.full_name + ' — ' + t.position"
+                             (click)="openTalentPreview(t.id, $event)">
+                          <app-avatar [name]="t.full_name" [size]="22"></app-avatar>
+                          <span class="chip-name">{{ lastName(t.full_name) }}</span>
+                        </div>
+                      }
+                      @if (!talentsInBox(box).length) {
+                        <div class="box-empty">
+                          <span nz-icon nzType="inbox"></span>
+                          Trống
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- X axis -->
+              <div class="axis-x-bot">
+                <div class="ax-label">Thấp</div>
+                <div class="ax-label">TB</div>
+                <div class="ax-label">Cao</div>
+              </div>
+              <div class="axis-x-title">TIỀM NĂNG ▶</div>
+            </div>
+          </div>
+        }
+      </nz-tab>
+
+      <!-- ═══ Tab 2: Danh sách nhân tài ══════════════════════════════════ -->
+      <nz-tab nzTitle="Danh sách">
+
+        <div class="toolbar" (click)="$event.stopPropagation()">
+          <div class="tb-left">
+            <nz-input-group [nzPrefix]="searchIco" class="search">
+              <input
+                nz-input
+                placeholder="Tìm nhân viên..."
+                [ngModel]="search()"
+                (ngModelChange)="onSearchChange($event)"
+              />
+            </nz-input-group>
+            <ng-template #searchIco><span nz-icon nzType="search" class="ico-muted"></span></ng-template>
+
+            <button nz-button nzType="default" class="btn-filter" (click)="toggleFilters()">
+              <span nz-icon nzType="filter"></span>
+              <span>Bộ lọc</span>
+            </button>
+
+            <div class="sort">
+              <nz-select class="sort-select" [ngModel]="sortCol()"
+                         (ngModelChange)="sortCol.set($event); onSortChange()">
+                @for (opt of sortOptions; track opt.value) {
+                  <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                }
+              </nz-select>
+              <button nz-button nzType="text" class="btn-sortdir" (click)="toggleSortDir()"
+                      [nzTooltipTitle]="sortDir()==='desc' ? 'Giảm dần' : 'Tăng dần'" nz-tooltip>
+                <span nz-icon [nzType]="sortDir()==='desc' ? 'arrow-down' : 'arrow-up'"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="tb-right">
+            <div class="mini-stat ms-blue">
+              <span nz-icon nzType="line-chart" class="ms-ico"></span>
+              <div class="ms-body">
+                <span class="lbl">Avg Score</span>
+                <span class="val">{{ avgOverall() }}</span>
+              </div>
+            </div>
+            <div class="mini-stat ms-red">
+              <span nz-icon nzType="warning" class="ms-ico"></span>
+              <div class="ms-body">
+                <span class="lbl">Rủi ro cao</span>
+                <span class="val">{{ highRiskCount() }}</span>
+              </div>
+            </div>
+          </div>
+
+          @if (showFilters()) {
+            <div class="filter-pop">
+              <div class="fp-row">
+                <div class="fp-label">Tầng</div>
+                <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                           [ngModel]="tier()" (ngModelChange)="tier.set($event); onFilterChange()">
+                  @for (t of tierOptions; track t) { <nz-option [nzValue]="t" [nzLabel]="t"></nz-option> }
+                </nz-select>
+              </div>
+
+              <div class="fp-row">
+                <div class="fp-label">Phòng ban</div>
+                <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" nzShowSearch
+                           [ngModel]="dept()" (ngModelChange)="dept.set($event); onFilterChange()">
+                  @for (d of deptOptions(); track d.id) {
+                    <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
+                  }
+                </nz-select>
+              </div>
+
+              <div class="fp-row">
+                <div class="fp-label">Readiness</div>
+                <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                           [ngModel]="readiness()" (ngModelChange)="readiness.set($event); onFilterChange()">
+                  @for (r of readinessOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
+                </nz-select>
+              </div>
+
+              <div class="fp-row">
+                <div class="fp-label">Rủi ro</div>
+                <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
+                           [ngModel]="riskBand()" (ngModelChange)="riskBand.set($event); onFilterChange()">
+                  @for (r of riskOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
+                </nz-select>
+              </div>
+
+              <div class="fp-actions">
+                <button nz-button nzType="default" class="fp-btn" (click)="reset()">Reset</button>
+                <button nz-button nzType="primary" class="fp-btn" (click)="closeFilters()">Áp dụng</button>
+              </div>
+            </div>
           }
-        </nz-select>
-        <button nz-button nzType="text" class="btn-sortdir" (click)="toggleSortDir()"
-                [nzTooltipTitle]="sortDir()==='desc' ? 'Giảm dần' : 'Tăng dần'" nz-tooltip>
-          <span nz-icon [nzType]="sortDir()==='desc' ? 'arrow-down' : 'arrow-up'"></span>
+        </div>
+
+        <nz-table
+          [nzData]="rows()"
+          [nzLoading]="loading() || fetching()"
+          [nzShowPagination]="false"
+          nzTableLayout="auto"
+          class="talent-tbl"
+        >
+          <thead>
+            <tr>
+              <th>Nhân viên</th>
+              <th>Phòng ban</th>
+              <th>Tầng</th>
+              <th>Điểm đánh giá</th>
+              <th>Overall</th>
+              <th>Khoảng cách năng lực</th>
+              <th>Readiness</th>
+              <th>Rủi ro rời đi</th>
+              <th nzAlign="center" nzWidth="44px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (t of rows(); track t.id) {
+              <tr class="t-row" (click)="navigate(t)">
+                <td>
+                  <div class="emp">
+                    <app-avatar [name]="t.full_name" [size]="36"></app-avatar>
+                    <div class="emp-meta">
+                      <div class="emp-name">{{ t.full_name }}</div>
+                      <div class="emp-sub">{{ t.position }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="dept">{{ t.department }}</td>
+                <td><app-tier-badge [tier]="t.talent_tier"></app-tier-badge></td>
+
+                <td>
+                  <div class="eval">
+                    <div class="eval-row">
+                      <div class="eval-lbl">Perf</div>
+                      <nz-progress [nzPercent]="t.performance_score" [nzShowInfo]="false" nzSize="small" class="bar perf"></nz-progress>
+                      <div class="eval-num">{{ t.performance_score }}</div>
+                    </div>
+                    <div class="eval-row">
+                      <div class="eval-lbl">Pot</div>
+                      <nz-progress [nzPercent]="t.potential_score" [nzShowInfo]="false" nzSize="small" class="bar pot"></nz-progress>
+                      <div class="eval-num">{{ t.potential_score }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <div class="overall">{{ overallScore(t) }}</div>
+                </td>
+
+                <td>
+                  @let gap = competencyGap(t);
+                  <span class="gap-pill" [ngClass]="'gap-' + gap.tone">{{ gap.label }}</span>
+                </td>
+
+                <td>
+                  <span class="ready-pill" [ngClass]="readinessClass(t.readiness_level)">{{ readinessLabel(t.readiness_level) }}</span>
+                </td>
+
+                <td>
+                  <div class="risk-cell">
+                    <span class="risk-pill" [ngClass]="riskLabel(t.risk_score ?? 0).cls">{{ riskLabel(t.risk_score ?? 0).text }}</span>
+                    @if ((t.risk_score ?? 0) >= 60) {
+                      @let reasons = departureReasons(t);
+                      @if (reasons.length > 0) {
+                        <div class="risk-reasons">
+                          @for (r of reasons; track r) {
+                            <span class="risk-reason-chip">{{ r }}</span>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                </td>
+
+                <td nzAlign="center" nzRight>
+                  <span class="row-chev" nz-icon nzType="right" nz-tooltip nzTooltipTitle="Xem hồ sơ"></span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+
+        @if (total() > PAGE_SIZE) {
+          <div class="pagination-row">
+            <span class="page-info">
+              {{ (page() - 1) * PAGE_SIZE + 1 }}–{{ page() * PAGE_SIZE > total() ? total() : page() * PAGE_SIZE }}
+              <span class="page-info-sep">của</span>
+              {{ total() }} nhân viên
+            </span>
+            <nz-pagination
+              [nzPageIndex]="page()"
+              [nzTotal]="total()"
+              [nzPageSize]="PAGE_SIZE"
+              [nzShowSizeChanger]="false"
+              [nzShowQuickJumper]="false"
+              (nzPageIndexChange)="onPageChange($event)"
+            ></nz-pagination>
+          </div>
+        }
+
+      </nz-tab>
+    </nz-tabs>
+  </div>
+
+</div>
+
+<!-- ══ Drawer: Điều chỉnh thang đo 9-Box ════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="showScaleModal()"
+  (nzOnClose)="closeScaleModal()"
+  nzPlacement="right"
+  [nzWidth]="640"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
+  [nzMaskClosable]="false"
+  nzWrapClassName="scale-drawer"
+>
+  <ng-container *nzDrawerContent>
+    <div class="m-hero">
+      <div class="m-hero-ico"><span nz-icon nzType="sliders"></span></div>
+      <div class="m-hero-text">
+        <div class="m-hero-title">Điều chỉnh thang đo 9-Box</div>
+        <div class="m-hero-sub">Thiết lập ngưỡng điểm để phân loại Hiệu suất và Tiềm năng</div>
+      </div>
+      <button type="button" class="m-hero-close" (click)="closeScaleModal()" title="Đóng">
+        <span nz-icon nzType="close"></span>
+      </button>
+    </div>
+
+    <div class="m-body">
+
+      <div class="scale-section">
+        <div class="scale-hdr">
+          <div class="scale-hdr-left">
+            <div class="scale-ico scale-ico-perf"><span nz-icon nzType="line-chart"></span></div>
+            <div>
+              <div class="scale-title">Hiệu suất (Performance)</div>
+              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
+            </div>
+          </div>
+          <div class="scale-cuts">
+            <span class="cut-pill">&lt; {{ perfDraft()[0] }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-mid">{{ perfDraft()[0] }}–{{ perfDraft()[1] - 1 }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-high">≥ {{ perfDraft()[1] }}</span>
+          </div>
+        </div>
+        <div class="slider-wrap">
+          <nz-slider nzRange [nzMin]="30" [nzMax]="100" [nzStep]="1"
+            [ngModel]="perfDraft()" (ngModelChange)="setPerfDraft($event)" class="scale-slider">
+          </nz-slider>
+        </div>
+        <div class="preview-row">
+          <div class="pv-chip pv-low">
+            <span class="pv-dot"></span><span class="pv-name">Thấp</span><span class="pv-count">{{ previewPerf().low }}</span>
+          </div>
+          <div class="pv-chip pv-mid">
+            <span class="pv-dot"></span><span class="pv-name">Trung bình</span><span class="pv-count">{{ previewPerf().mid }}</span>
+          </div>
+          <div class="pv-chip pv-high">
+            <span class="pv-dot"></span><span class="pv-name">Cao</span><span class="pv-count">{{ previewPerf().high }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scale-section">
+        <div class="scale-hdr">
+          <div class="scale-hdr-left">
+            <div class="scale-ico scale-ico-pot"><span nz-icon nzType="rocket"></span></div>
+            <div>
+              <div class="scale-title">Tiềm năng (Potential)</div>
+              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
+            </div>
+          </div>
+          <div class="scale-cuts">
+            <span class="cut-pill">&lt; {{ potDraft()[0] }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-mid">{{ potDraft()[0] }}–{{ potDraft()[1] - 1 }}</span>
+            <span class="cut-divider"></span>
+            <span class="cut-pill cut-high">≥ {{ potDraft()[1] }}</span>
+          </div>
+        </div>
+        <div class="slider-wrap">
+          <nz-slider nzRange [nzMin]="30" [nzMax]="100" [nzStep]="1"
+            [ngModel]="potDraft()" (ngModelChange)="setPotDraft($event)" class="scale-slider">
+          </nz-slider>
+        </div>
+        <div class="preview-row">
+          <div class="pv-chip pv-low">
+            <span class="pv-dot"></span><span class="pv-name">Thấp</span><span class="pv-count">{{ previewPot().low }}</span>
+          </div>
+          <div class="pv-chip pv-mid">
+            <span class="pv-dot"></span><span class="pv-name">Trung bình</span><span class="pv-count">{{ previewPot().mid }}</span>
+          </div>
+          <div class="pv-chip pv-high">
+            <span class="pv-dot"></span><span class="pv-name">Cao</span><span class="pv-count">{{ previewPot().high }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-footer">
+      <button nz-button class="m-btn m-btn-reset" (click)="resetScale()">
+        <span nz-icon nzType="reload"></span> Mặc định
+      </button>
+      <div class="m-footer-right">
+        <button nz-button class="m-btn m-btn-cancel" (click)="closeScaleModal()">Hủy</button>
+        <button nz-button nzType="primary" class="m-btn m-btn-apply" (click)="applyScale()">
+          <span nz-icon nzType="check"></span> Áp dụng
         </button>
       </div>
     </div>
+  </ng-container>
+</nz-drawer>
 
-    <div class="tb-right">
-      <div class="mini-stat ms-blue">
-        <span nz-icon nzType="line-chart" class="ms-ico"></span>
-        <div class="ms-body">
-          <span class="lbl">Avg Score</span>
-          <span class="val">{{ avgOverall() }}</span>
-        </div>
-      </div>
-      <div class="mini-stat ms-red">
-        <span nz-icon nzType="warning" class="ms-ico"></span>
-        <div class="ms-body">
-          <span class="lbl">Rủi ro cao</span>
-          <span class="val">{{ highRiskCount() }}</span>
-        </div>
-      </div>
-    </div>
-
-    @if (showFilters()) {
-      <div class="filter-pop">
-        <div class="fp-row">
-          <div class="fp-label">Tầng</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
-                     [ngModel]="tier()" (ngModelChange)="tier.set($event); onFilterChange()">
-            @for (t of tierOptions; track t) { <nz-option [nzValue]="t" [nzLabel]="t"></nz-option> }
-          </nz-select>
-        </div>
-
-        <div class="fp-row">
-          <div class="fp-label">Phòng ban</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" nzShowSearch
-                     [ngModel]="dept()" (ngModelChange)="dept.set($event); onFilterChange()">
-            @for (d of deptOptions(); track d.id) {
-              <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
-            }
-          </nz-select>
-        </div>
-
-        <div class="fp-row">
-          <div class="fp-label">Readiness</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
-                     [ngModel]="readiness()" (ngModelChange)="readiness.set($event); onFilterChange()">
-            @for (r of readinessOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
-          </nz-select>
-        </div>
-
-        <div class="fp-row">
-          <div class="fp-label">Rủi ro</div>
-          <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả"
-                     [ngModel]="riskBand()" (ngModelChange)="riskBand.set($event); onFilterChange()">
-            @for (r of riskOptions; track r) { <nz-option [nzValue]="r" [nzLabel]="r"></nz-option> }
-          </nz-select>
-        </div>
-
-        <div class="fp-actions">
-          <button nz-button nzType="default" class="fp-btn" (click)="reset()">Reset</button>
-          <button nz-button nzType="primary" class="fp-btn" (click)="closeFilters()">Áp dụng</button>
+<!-- ══ Drawer: Box detail ════════════════════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="boxModalOpen()"
+  (nzOnClose)="closeBoxModal()"
+  nzPlacement="right"
+  nzWidth="35%"
+  [nzTitle]="boxDrawerTitle"
+  [nzClosable]="true"
+  nzWrapClassName="box-detail-drawer"
+>
+  <ng-template #boxDrawerTitle>
+    @if (activeBox(); as box) {
+      <div class="bm-title-row">
+        <span class="bm-num" [ngClass]="'tone-' + box.tone">{{ box.num }}</span>
+        <div>
+          <div class="bm-title">{{ box.label }}</div>
+          <div class="bm-sub">{{ box.sublabel }} · {{ boxTalentsSorted().length }} người</div>
         </div>
       </div>
     }
-  </div>
+  </ng-template>
 
-  <div class="table-card">
-    <nz-table
-      [nzData]="rows()"
-      [nzLoading]="loading() || fetching()"
-      [nzShowPagination]="false"
-      nzTableLayout="auto"
-      class="talent-tbl"
-    >
-      <thead>
-        <tr>
-          <th>Nhân viên</th>
-          <th>Phòng ban</th>
-          <th>Tầng</th>
-          <th>Điểm đánh giá</th>
-          <th>Overall</th>
-          <th>Khoảng cách năng lực</th>
-          <th>Readiness</th>
-          <th>Rủi ro rời đi</th>
-          <th nzAlign="center" nzWidth="44px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (t of rows(); track t.id) {
-          <tr class="t-row" (click)="navigate(t)">
-            <td>
-              <div class="emp">
-                <app-avatar [name]="t.full_name" [size]="36"></app-avatar>
-                <div class="emp-meta">
-                  <div class="emp-name">{{ t.full_name }}</div>
-                  <div class="emp-sub">{{ t.position }}</div>
-                </div>
-              </div>
-            </td>
+  <ng-container *nzDrawerContent>
+    @if (activeBox(); as box) {
 
-            <td class="dept">{{ t.department }}</td>
-            <td><app-tier-badge [tier]="t.talent_tier"></app-tier-badge></td>
-
-            <td>
-              <div class="eval">
-                <div class="eval-row">
-                  <div class="eval-lbl">Perf</div>
-                  <nz-progress [nzPercent]="t.performance_score" [nzShowInfo]="false" nzSize="small" class="bar perf"></nz-progress>
-                  <div class="eval-num">{{ t.performance_score }}</div>
-                </div>
-                <div class="eval-row">
-                  <div class="eval-lbl">Pot</div>
-                  <nz-progress [nzPercent]="t.potential_score" [nzShowInfo]="false" nzSize="small" class="bar pot"></nz-progress>
-                  <div class="eval-num">{{ t.potential_score }}</div>
-                </div>
-              </div>
-            </td>
-
-            <td>
-              <div class="overall">{{ overallScore(t) }}</div>
-            </td>
-
-            <td>
-              @let gap = competencyGap(t);
-              <span class="gap-pill" [ngClass]="'gap-' + gap.tone">{{ gap.label }}</span>
-            </td>
-
-            <td>
-              <span class="ready-pill" [ngClass]="readinessClass(t.readiness_level)">{{ readinessLabel(t.readiness_level) }}</span>
-            </td>
-
-            <td>
-              <div class="risk-cell">
-                <span class="risk-pill" [ngClass]="riskLabel(t.risk_score ?? 0).cls">{{ riskLabel(t.risk_score ?? 0).text }}</span>
-                @if ((t.risk_score ?? 0) >= 60) {
-                  @let reasons = departureReasons(t);
-                  @if (reasons.length > 0) {
-                    <div class="risk-reasons">
-                      @for (r of reasons; track r) {
-                        <span class="risk-reason-chip">{{ r }}</span>
-                      }
+      @if (isStarBox(box.num)) {
+        <div class="bm-star-banner">
+          <span nz-icon nzType="trophy" class="bm-trophy-ico"></span>
+          <div class="bm-star-text">
+            <div class="bm-star-heading">Nhân tài xuất sắc</div>
+            <div class="bm-star-desc">Những ngôi sao dẫn đầu tổ chức về cả hiệu suất lẫn tiềm năng</div>
+          </div>
+        </div>
+        @if (boxHighlighted().length) {
+          <div class="bm-podium-wrap">
+            @for (t of podiumOrder(); track $index) {
+              @let rank = $index === 0 ? 2 : ($index === 1 ? 1 : 3);
+              <div class="bm-podium-col" [ngClass]="'podium-' + rank">
+                @if (t) {
+                  <div class="bm-podium-card" (click)="openTalentFromModal(t.id)">
+                    <div class="bm-pod-avatar">
+                      <app-avatar [name]="t.full_name" [size]="48"></app-avatar>
+                      <span class="bm-pod-medal">{{ rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉' }}</span>
                     </div>
-                  }
+                    <div class="bm-pod-name">{{ t.full_name }}</div>
+                    <div class="bm-pod-pos">{{ t.position }}</div>
+                    <div class="bm-pod-scores">
+                      <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
+                      <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
+                    </div>
+                  </div>
+                  <div class="bm-podium-base bm-podium-base-{{ rank }}">
+                    <span class="bm-podium-rank">{{ rank }}</span>
+                  </div>
                 }
               </div>
-            </td>
-
-            <td nzAlign="center" nzRight>
-              <span class="row-chev" nz-icon nzType="right" nz-tooltip nzTooltipTitle="Xem hồ sơ"></span>
-            </td>
-          </tr>
+            }
+          </div>
         }
-      </tbody>
-    </nz-table>
+      } @else if (isTopBox(box.num) && boxHighlighted().length) {
+        <div class="bm-section-label bm-section-top">
+          <span nz-icon nzType="rise"></span> Top 3 nổi bật
+        </div>
+        <div class="bm-highlight-row">
+          @for (t of boxHighlighted(); track t.id; let i = $index) {
+            <div class="bm-highlight-card bm-hc-top" (click)="openTalentFromModal(t.id)">
+              <div class="bm-hc-rank">{{ i + 1 }}</div>
+              <app-avatar [name]="t.full_name" [size]="40"></app-avatar>
+              <div class="bm-hc-info">
+                <div class="bm-hc-name">{{ t.full_name }}</div>
+                <div class="bm-hc-pos">{{ t.position }}</div>
+              </div>
+              <div class="bm-hc-scores">
+                <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
+                <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (isBottomBox(box.num) && boxHighlighted().length) {
+        <div class="bm-section-label bm-section-warn">
+          <span nz-icon nzType="warning"></span> Cần chú ý nhất
+        </div>
+        <div class="bm-highlight-row">
+          @for (t of boxHighlighted(); track t.id) {
+            <div class="bm-highlight-card bm-hc-warn" (click)="openTalentFromModal(t.id)">
+              <app-avatar [name]="t.full_name" [size]="40"></app-avatar>
+              <div class="bm-hc-info">
+                <div class="bm-hc-name">{{ t.full_name }}</div>
+                <div class="bm-hc-pos">{{ t.position }}</div>
+              </div>
+              <div class="bm-hc-scores">
+                <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
+                <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
 
-    <!-- Pagination -->
-    @if (total() > PAGE_SIZE) {
-      <div class="pagination-row">
-        <span class="page-info">
-          {{ (page() - 1) * PAGE_SIZE + 1 }}–{{ page() * PAGE_SIZE > total() ? total() : page() * PAGE_SIZE }}
-          <span class="page-info-sep">của</span>
-          {{ total() }} nhân viên
-        </span>
-        <nz-pagination
-          [nzPageIndex]="page()"
-          [nzTotal]="total()"
-          [nzPageSize]="PAGE_SIZE"
-          [nzShowSizeChanger]="false"
-          [nzShowQuickJumper]="false"
-          (nzPageIndexChange)="onPageChange($event)"
-        ></nz-pagination>
+      <div class="bm-section-label" [class.bm-section-top]="isStarBox(box.num)">
+        @if (isStarBox(box.num)) {
+          <span nz-icon nzType="unordered-list"></span> Tất cả
+        } @else if (isBottomBox(box.num)) {
+          <span nz-icon nzType="unordered-list"></span> Danh sách đầy đủ (điểm thấp nhất trước)
+        } @else {
+          <span nz-icon nzType="unordered-list"></span> Danh sách đầy đủ
+        }
       </div>
+      <div class="bm-list">
+        @for (t of boxTalentsSorted(); track t.id; let i = $index) {
+          <div class="bm-list-row" (click)="openTalentFromModal(t.id)">
+            <span class="bm-lr-rank">{{ i + 1 }}</span>
+            <app-avatar [name]="t.full_name" [size]="32"></app-avatar>
+            <div class="bm-lr-info">
+              <div class="bm-lr-name">{{ t.full_name }}</div>
+              <div class="bm-lr-pos">{{ t.position }} · {{ t.department }}</div>
+            </div>
+            <div class="bm-lr-scores">
+              <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
+              <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
+            </div>
+            <span nz-icon nzType="right" class="bm-lr-arrow"></span>
+          </div>
+        }
+        @if (!boxTalentsSorted().length) {
+          <div class="bm-empty">
+            <span nz-icon nzType="inbox"></span>
+            Chưa có nhân viên nào trong phân khúc này
+          </div>
+        }
+      </div>
+
     }
-  </div>
-</div>
+  </ng-container>
+</nz-drawer>
+
+<!-- ══ Drawer: Preview hồ sơ nhân tài ══════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="talentPreviewOpen()"
+  (nzOnClose)="closeTalentPreview()"
+  nzPlacement="right"
+  [nzWidth]="'calc(100vw - 240px)'"
+  nzTitle=""
+  [nzClosable]="false"
+  [nzMask]="true"
+  [nzMaskClosable]="true"
+  nzWrapClassName="talent-preview-drawer-wrap"
+>
+  <ng-container *nzDrawerContent>
+    <app-talent-preview
+      [talentId]="talentPreviewId()"
+      (closed)="closeTalentPreview()"
+      (openFull)="openFullTalent($event)"
+      (navigate)="switchPreview($event)"
+    ></app-talent-preview>
+  </ng-container>
+</nz-drawer>

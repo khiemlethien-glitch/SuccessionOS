@@ -72,7 +72,7 @@ export class AuthService {
       .from('user_profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       // Fallback: tạo profile tối thiểu từ Auth user metadata

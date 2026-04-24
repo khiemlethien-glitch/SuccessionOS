@@ -5,30 +5,30 @@
     <div class="hero-left">
       <div class="hero-crumb">Quản lý nhân tài</div>
       <h1 class="hero-title">Bản đồ Kế thừa</h1>
-      <p class="hero-sub">Phân loại nhân tài theo ma trận 9-Box và quản lý kế thừa vị trí</p>
+      <p class="hero-sub">Quản lý kế hoạch kế thừa và phân tích mật độ ứng viên theo vị trí then chốt</p>
     </div>
 
     <div class="hero-stats">
       <div class="hs-item hs-star">
-        <span nz-icon nzType="star" class="hs-ico"></span>
+        <span nz-icon nzType="apartment" class="hs-ico"></span>
         <div>
-          <div class="hs-val">{{ starCount() }}</div>
-          <div class="hs-lbl">Ngôi sao</div>
+          <div class="hs-val">{{ totalPositions() }}</div>
+          <div class="hs-lbl">Vị trí then chốt</div>
         </div>
       </div>
       <div class="hs-divider"></div>
       <div class="hs-item hs-total">
         <span nz-icon nzType="team" class="hs-ico"></span>
         <div>
-          <div class="hs-val">{{ totalInGrid() }}</div>
-          <div class="hs-lbl">Tổng</div>
+          <div class="hs-val">{{ positionsWithSuccessors() }}</div>
+          <div class="hs-lbl">Có kế thừa</div>
         </div>
       </div>
       <div class="hs-divider"></div>
       <div class="hs-item hs-warn">
         <span nz-icon nzType="warning" class="hs-ico"></span>
         <div>
-          <div class="hs-val">{{ needsActionCount() }}</div>
+          <div class="hs-val">{{ positionsEmpty() }}</div>
           <div class="hs-lbl">Cần xử lý</div>
         </div>
       </div>
@@ -41,80 +41,7 @@
              [nzSelectedIndex]="activeTabIndex()"
              (nzSelectedIndexChange)="activeTabIndex.set($event)">
 
-      <!-- ═══ Tab 1: 9-Box ═══════════════════════════════ -->
-      <nz-tab nzTitle="9-Box Grid">
-
-        <div class="tab-toolbar">
-          <button class="btn-scale" (click)="openScaleModal()">
-            <span nz-icon nzType="sliders" class="btn-scale-ico"></span>
-            <span>Điều chỉnh thang đo</span>
-            @if (!isDefault()) {
-              <span class="btn-scale-dot"></span>
-            }
-          </button>
-        </div>
-
-        <div class="ninebox-wrap">
-          <!-- Y axis title (rotated) + labels -->
-          <div class="axis-y-col">
-            <div class="axis-y-title">HIỆU SUẤT ▲</div>
-            <div class="axis-y">
-              <div class="ay-label">Cao</div>
-              <div class="ay-label">TB</div>
-              <div class="ay-label">Thấp</div>
-            </div>
-          </div>
-
-          <div class="ninebox-inner">
-            <!-- Grid 3×3 -->
-            <div class="ninebox-grid">
-              @for (box of boxes; track box.num) {
-                <div class="box-cell" [ngClass]="'tone-' + box.tone">
-                  <!-- Header — click to open box detail modal -->
-                  <div class="box-head box-head-clickable" (click)="openBoxModal(box, $event)"
-                       nz-tooltip [nzTooltipTitle]="'Xem danh sách ' + box.label">
-                    <span class="box-num">{{ box.num }}</span>
-                    <div class="box-title-wrap">
-                      <div class="box-title">{{ box.label }}</div>
-                      <div class="box-sub">{{ box.sublabel }}</div>
-                    </div>
-                    <span class="box-count">{{ talentsInBox(box).length }}</span>
-                    <span nz-icon nzType="right" class="box-head-arrow"></span>
-                  </div>
-
-                  <div class="box-chips">
-                    @for (t of talentsInBox(box); track t.id) {
-                      <!-- Chip — click to open talent preview drawer -->
-                      <div class="chip chip-clickable"
-                           [title]="t.full_name + ' — ' + t.position"
-                           (click)="openTalentPreview(t.id, $event)">
-                        <app-avatar [name]="t.full_name" [size]="22"></app-avatar>
-                        <span class="chip-name">{{ lastName(t.full_name) }}</span>
-                      </div>
-                    }
-                    @if (!talentsInBox(box).length) {
-                      <div class="box-empty">
-                        <span nz-icon nzType="inbox"></span>
-                        Trống
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-
-            <!-- X axis labels bottom -->
-            <div class="axis-x-bot">
-              <div class="ax-label">Thấp</div>
-              <div class="ax-label">TB</div>
-              <div class="ax-label">Cao</div>
-            </div>
-            <div class="axis-x-title">TIỀM NĂNG ▶</div>
-          </div>
-        </div>
-      </nz-tab>
-
-      <!-- ═══ Tab 2: Succession Map ══════════════════════ -->
+      <!-- ═══ Tab 1: Succession Map ══════════════════════ -->
       <nz-tab nzTitle="Succession Map">
         @if (viewModeBanner(); as vb) {
           <div class="view-banner" [ngClass]="'vb-' + vb.tone">
@@ -539,150 +466,6 @@
   </div>
 </div>
 
-<!-- ══ Drawer: Điều chỉnh thang đo ═════════════════════ -->
-<nz-drawer
-  [nzVisible]="showScaleModal()"
-  (nzOnClose)="closeScaleModal()"
-  nzPlacement="right"
-  [nzWidth]="640"
-  nzTitle=""
-  [nzClosable]="false"
-  [nzMask]="true"
-  [nzMaskClosable]="false"
-  nzWrapClassName="scale-drawer"
->
-  <ng-container *nzDrawerContent>
-    <div class="m-hero">
-      <div class="m-hero-ico"><span nz-icon nzType="sliders"></span></div>
-      <div class="m-hero-text">
-        <div class="m-hero-title">Điều chỉnh thang đo 9-Box</div>
-        <div class="m-hero-sub">Thiết lập ngưỡng điểm để phân loại Hiệu suất và Tiềm năng</div>
-      </div>
-      <button type="button" class="m-hero-close" (click)="closeScaleModal()" title="Đóng">
-        <span nz-icon nzType="close"></span>
-      </button>
-    </div>
-
-    <div class="m-body">
-
-      <!-- Performance -->
-      <div class="scale-section">
-        <div class="scale-hdr">
-          <div class="scale-hdr-left">
-            <div class="scale-ico scale-ico-perf"><span nz-icon nzType="line-chart"></span></div>
-            <div>
-              <div class="scale-title">Hiệu suất (Performance)</div>
-              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
-            </div>
-          </div>
-          <div class="scale-cuts">
-            <span class="cut-pill">&lt; {{ perfDraft()[0] }}</span>
-            <span class="cut-divider"></span>
-            <span class="cut-pill cut-mid">{{ perfDraft()[0] }}–{{ perfDraft()[1] - 1 }}</span>
-            <span class="cut-divider"></span>
-            <span class="cut-pill cut-high">≥ {{ perfDraft()[1] }}</span>
-          </div>
-        </div>
-
-        <div class="slider-wrap">
-          <nz-slider
-            nzRange
-            [nzMin]="30"
-            [nzMax]="100"
-            [nzStep]="1"
-            [ngModel]="perfDraft()"
-            (ngModelChange)="setPerfDraft($event)"
-            class="scale-slider"
-          ></nz-slider>
-        </div>
-
-        <div class="preview-row">
-          <div class="pv-chip pv-low">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Thấp</span>
-            <span class="pv-count">{{ previewPerf().low }}</span>
-          </div>
-          <div class="pv-chip pv-mid">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Trung bình</span>
-            <span class="pv-count">{{ previewPerf().mid }}</span>
-          </div>
-          <div class="pv-chip pv-high">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Cao</span>
-            <span class="pv-count">{{ previewPerf().high }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Potential -->
-      <div class="scale-section">
-        <div class="scale-hdr">
-          <div class="scale-hdr-left">
-            <div class="scale-ico scale-ico-pot"><span nz-icon nzType="rocket"></span></div>
-            <div>
-              <div class="scale-title">Tiềm năng (Potential)</div>
-              <div class="scale-sub">Kéo để đặt ngưỡng cắt giữa 3 mức</div>
-            </div>
-          </div>
-          <div class="scale-cuts">
-            <span class="cut-pill">&lt; {{ potDraft()[0] }}</span>
-            <span class="cut-divider"></span>
-            <span class="cut-pill cut-mid">{{ potDraft()[0] }}–{{ potDraft()[1] - 1 }}</span>
-            <span class="cut-divider"></span>
-            <span class="cut-pill cut-high">≥ {{ potDraft()[1] }}</span>
-          </div>
-        </div>
-
-        <div class="slider-wrap">
-          <nz-slider
-            nzRange
-            [nzMin]="30"
-            [nzMax]="100"
-            [nzStep]="1"
-            [ngModel]="potDraft()"
-            (ngModelChange)="setPotDraft($event)"
-            class="scale-slider"
-          ></nz-slider>
-        </div>
-
-        <div class="preview-row">
-          <div class="pv-chip pv-low">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Thấp</span>
-            <span class="pv-count">{{ previewPot().low }}</span>
-          </div>
-          <div class="pv-chip pv-mid">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Trung bình</span>
-            <span class="pv-count">{{ previewPot().mid }}</span>
-          </div>
-          <div class="pv-chip pv-high">
-            <span class="pv-dot"></span>
-            <span class="pv-name">Cao</span>
-            <span class="pv-count">{{ previewPot().high }}</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="m-footer">
-      <button nz-button class="m-btn m-btn-reset" (click)="resetScale()">
-        <span nz-icon nzType="reload"></span>
-        Mặc định
-      </button>
-      <div class="m-footer-right">
-        <button nz-button class="m-btn m-btn-cancel" (click)="closeScaleModal()">Hủy</button>
-        <button nz-button nzType="primary" class="m-btn m-btn-apply" (click)="applyScale()">
-          <span nz-icon nzType="check"></span>
-          Áp dụng
-        </button>
-      </div>
-    </div>
-  </ng-container>
-</nz-drawer>
-
 <!-- ══ Drawer: Chi tiết vị trí ═════════════════════════ -->
 <nz-drawer
   [nzVisible]="positionDrawerOpen()"
@@ -813,153 +596,6 @@
           </div>
         }
       </div>
-    }
-  </ng-container>
-</nz-drawer>
-
-<!-- ══ Drawer: Box detail (35% từ phải) ════════════════════════ -->
-<nz-drawer
-  [nzVisible]="boxModalOpen()"
-  (nzOnClose)="closeBoxModal()"
-  nzPlacement="right"
-  nzWidth="35%"
-  [nzTitle]="boxDrawerTitle"
-  [nzClosable]="true"
-  nzWrapClassName="box-detail-drawer"
->
-  <ng-template #boxDrawerTitle>
-    @if (activeBox(); as box) {
-      <div class="bm-title-row">
-        <span class="bm-num" [ngClass]="'tone-' + box.tone">{{ box.num }}</span>
-        <div>
-          <div class="bm-title">{{ box.label }}</div>
-          <div class="bm-sub">{{ box.sublabel }} · {{ boxTalentsSorted().length }} người</div>
-        </div>
-      </div>
-    }
-  </ng-template>
-
-  <ng-container *nzDrawerContent>
-    @if (activeBox(); as box) {
-
-      <!-- ═══ Box 9: Ngôi sao tương lai — Vinh danh ═══ -->
-      @if (isStarBox(box.num)) {
-
-        <div class="bm-star-banner">
-          <span nz-icon nzType="trophy" class="bm-trophy-ico"></span>
-          <div class="bm-star-text">
-            <div class="bm-star-heading">Nhân tài xuất sắc</div>
-            <div class="bm-star-desc">Những ngôi sao dẫn đầu tổ chức về cả hiệu suất lẫn tiềm năng</div>
-          </div>
-        </div>
-
-        @if (boxHighlighted().length) {
-          <div class="bm-podium-wrap">
-            @for (t of podiumOrder(); track $index) {
-              @let rank = $index === 0 ? 2 : ($index === 1 ? 1 : 3);
-              <div class="bm-podium-col" [ngClass]="'podium-' + rank">
-                @if (t) {
-                  <div class="bm-podium-card" (click)="openTalentFromModal(t.id)">
-                    <div class="bm-pod-avatar">
-                      <app-avatar [name]="t.full_name" [size]="48"></app-avatar>
-                      <span class="bm-pod-medal">{{ rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉' }}</span>
-                    </div>
-                    <div class="bm-pod-name">{{ t.full_name }}</div>
-                    <div class="bm-pod-pos">{{ t.position }}</div>
-                    <div class="bm-pod-scores">
-                      <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
-                      <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
-                    </div>
-                  </div>
-                  <div class="bm-podium-base bm-podium-base-{{ rank }}">
-                    <span class="bm-podium-rank">{{ rank }}</span>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
-      }
-
-      <!-- ═══ Top boxes: top 3 highlight ═══ -->
-      @else if (isTopBox(box.num) && boxHighlighted().length) {
-        <div class="bm-section-label bm-section-top">
-          <span nz-icon nzType="rise"></span> Top 3 nổi bật
-        </div>
-        <div class="bm-highlight-row">
-          @for (t of boxHighlighted(); track t.id; let i = $index) {
-            <div class="bm-highlight-card bm-hc-top" (click)="openTalentFromModal(t.id)">
-              <div class="bm-hc-rank">{{ i + 1 }}</div>
-              <app-avatar [name]="t.full_name" [size]="40"></app-avatar>
-              <div class="bm-hc-info">
-                <div class="bm-hc-name">{{ t.full_name }}</div>
-                <div class="bm-hc-pos">{{ t.position }}</div>
-              </div>
-              <div class="bm-hc-scores">
-                <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
-                <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- ═══ Bottom boxes: cần chú ý ═══ -->
-      @else if (isBottomBox(box.num) && boxHighlighted().length) {
-        <div class="bm-section-label bm-section-warn">
-          <span nz-icon nzType="warning"></span> Cần chú ý nhất
-        </div>
-        <div class="bm-highlight-row">
-          @for (t of boxHighlighted(); track t.id) {
-            <div class="bm-highlight-card bm-hc-warn" (click)="openTalentFromModal(t.id)">
-              <app-avatar [name]="t.full_name" [size]="40"></app-avatar>
-              <div class="bm-hc-info">
-                <div class="bm-hc-name">{{ t.full_name }}</div>
-                <div class="bm-hc-pos">{{ t.position }}</div>
-              </div>
-              <div class="bm-hc-scores">
-                <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
-                <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- ═══ Full list ═══ -->
-      <div class="bm-section-label" [class.bm-section-top]="isStarBox(box.num)">
-        @if (isStarBox(box.num)) {
-          <span nz-icon nzType="unordered-list"></span> Tất cả
-        } @else if (isBottomBox(box.num)) {
-          <span nz-icon nzType="unordered-list"></span> Danh sách đầy đủ (điểm thấp nhất trước)
-        } @else {
-          <span nz-icon nzType="unordered-list"></span> Danh sách đầy đủ
-        }
-      </div>
-      <div class="bm-list">
-        @for (t of boxTalentsSorted(); track t.id; let i = $index) {
-          <div class="bm-list-row" (click)="openTalentFromModal(t.id)">
-            <span class="bm-lr-rank">{{ i + 1 }}</span>
-            <app-avatar [name]="t.full_name" [size]="32"></app-avatar>
-            <div class="bm-lr-info">
-              <div class="bm-lr-name">{{ t.full_name }}</div>
-              <div class="bm-lr-pos">{{ t.position }} · {{ t.department }}</div>
-            </div>
-            <div class="bm-lr-scores">
-              <span class="bm-score bm-score-perf">★ {{ t.performance_score }}</span>
-              <span class="bm-score bm-score-pot">⬆ {{ t.potential_score }}</span>
-            </div>
-            <span nz-icon nzType="right" class="bm-lr-arrow"></span>
-          </div>
-        }
-        @if (!boxTalentsSorted().length) {
-          <div class="bm-empty">
-            <span nz-icon nzType="inbox"></span>
-            Chưa có nhân viên nào trong phân khúc này
-          </div>
-        }
-      </div>
-
     }
   </ng-container>
 </nz-drawer>

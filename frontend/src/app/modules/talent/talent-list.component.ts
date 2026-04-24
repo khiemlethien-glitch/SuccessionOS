@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSelectModule } from 'ng-zorro-antd/select';
@@ -11,31 +11,62 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzSliderModule } from 'ng-zorro-antd/slider';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { EmployeeService } from '../../core/services/data/employee.service';
+import { SuccessionService } from '../../core/services/data/succession.service';
 import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
+import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
 type SortCol  = 'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
 type SortDir  = 'desc' | 'asc';
 type RiskBand = 'High' | 'Med' | 'Low';
 type ReadinessUi = 'Sẵn sàng ngay' | '1-2 năm' | '3-5 năm';
 
+interface BoxDef {
+  row: number;
+  col: number;
+  label: string;
+  sublabel: string;
+  tone: 'star' | 'great' | 'core' | 'risk' | 'watch' | 'low';
+  num: number;
+}
+
+const DEFAULT_PERF: [number, number] = [70, 85];
+const DEFAULT_POT:  [number, number] = [70, 85];
+
 @Component({
   selector: 'app-talent-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, NzTableModule, NzInputModule, NzSelectModule,
-    NzButtonModule, NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
-    NzPaginationModule, AvatarComponent, TierBadgeComponent],
+  imports: [
+    CommonModule, FormsModule,
+    NzTableModule, NzInputModule, NzSelectModule, NzButtonModule,
+    NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
+    NzPaginationModule, NzTabsModule, NzDrawerModule, NzSliderModule,
+    AvatarComponent, TierBadgeComponent, TalentPreviewDrawerComponent,
+  ],
   templateUrl: './talent-list.component.html',
   styleUrl: './talent-list.component.scss',
+  host: { ngSkipHydration: 'true' },
 })
 export class TalentListComponent implements OnInit {
-  // ─── Page data ────────────────────────────────────────────────────────────
-  rows       = signal<Talent[]>([]);
-  total      = signal(0);
-  loading    = signal(true);
-  fetching   = signal(false);   // spinner nhỏ khi chuyển trang / filter
+
+  // ─── Active tab (0 = 9-Box, 1 = List) ────────────────────────────────────
+  activeTabIdx = signal(0);
+
+  // ─── List tab: page data ───────────────────────────────────────────────────
+  rows     = signal<Talent[]>([]);
+  total    = signal(0);
+  loading  = signal(true);
+  fetching = signal(false);
+
+  // ─── 9-Box tab: data ──────────────────────────────────────────────────────
+  nineboxTalents  = signal<Talent[]>([]);
+  nineboxLoading  = signal(true);
 
   // ─── Pagination ────────────────────────────────────────────────────────────
   readonly PAGE_SIZE = 50;
@@ -44,10 +75,9 @@ export class TalentListComponent implements OnInit {
   // ─── Filters ───────────────────────────────────────────────────────────────
   search    = signal('');
   tier      = signal<TalentTier | null>(null);
-  dept      = signal<string | null>(null);        // department_id
+  dept      = signal<string | null>(null);
   readiness = signal<ReadinessUi | null>(null);
   riskBand  = signal<RiskBand | null>(null);
-
   showFilters = signal(false);
 
   // ─── Sort ──────────────────────────────────────────────────────────────────
@@ -55,10 +85,10 @@ export class TalentListComponent implements OnInit {
   sortDir = signal<SortDir>('desc');
 
   // ─── Filter options ────────────────────────────────────────────────────────
-  deptOptions   = signal<{ id: string; name: string }[]>([]);
-  tierOptions: TalentTier[]     = ['Nòng cốt', 'Tiềm năng', 'Kế thừa'];
+  deptOptions: ReturnType<typeof signal<{ id: string; name: string }[]>> = signal([]);
+  tierOptions: TalentTier[]       = ['Nòng cốt', 'Tiềm năng', 'Kế thừa'];
   readinessOptions: ReadinessUi[] = ['Sẵn sàng ngay', '1-2 năm', '3-5 năm'];
-  riskOptions: RiskBand[]       = ['High', 'Med', 'Low'];
+  riskOptions: RiskBand[]         = ['High', 'Med', 'Low'];
   sortOptions: { label: string; value: SortCol }[] = [
     { label: 'Overall Score',  value: 'overall_score'     },
     { label: 'Performance',    value: 'performance_score' },
@@ -67,50 +97,137 @@ export class TalentListComponent implements OnInit {
     { label: 'Tên',            value: 'full_name'         },
   ];
 
-  // ─── Stats (từ current page) ───────────────────────────────────────────────
+  // ─── List stats ────────────────────────────────────────────────────────────
   readonly totalCount    = computed(() => this.total());
   readonly avgOverall    = computed(() => {
     const list = this.rows();
     if (!list.length) return 0;
     return Math.round(list.reduce((s, t) => s + this.overallScore(t), 0) / list.length);
   });
-  readonly highRiskCount = computed(() => this.rows().filter(t => (t.risk_score ?? 0) >= 60).length);
+  readonly highRiskCount = computed(() =>
+    this.rows().filter(t => (t.risk_score ?? 0) >= 60).length);
 
-  // ─── Positions (kept for backward compat, load riêng nếu cần) ─────────────
+  // ─── 9-Box: thang đo signals ──────────────────────────────────────────────
+  perfThresholds = signal<[number, number]>([...DEFAULT_PERF]);
+  potThresholds  = signal<[number, number]>([...DEFAULT_POT]);
+  perfDraft      = signal<[number, number]>([...DEFAULT_PERF]);
+  potDraft       = signal<[number, number]>([...DEFAULT_POT]);
+  showScaleModal = signal(false);
+
+  // ─── 9-Box: modal signals ─────────────────────────────────────────────────
+  activeBox    = signal<BoxDef | null>(null);
+  boxModalOpen = signal(false);
+
+  private TOP_BOXES    = new Set([5, 6, 7]);
+  private BOTTOM_BOXES = new Set([1, 2, 4]);
+  private STAR_BOX     = 9;
+
+  // ─── Talent preview drawer ────────────────────────────────────────────────
+  talentPreviewId   = signal<string | null>(null);
+  talentPreviewOpen = signal(false);
+  private savedUrl  = '';
+
+  // ─── 9-Box definitions ────────────────────────────────────────────────────
+  boxes: BoxDef[] = [
+    { row:3, col:1, num:7, label:'Ngôi sao tiềm ẩn',   sublabel:'Hiệu suất cao · Tiềm năng thấp', tone:'risk'  },
+    { row:3, col:2, num:8, label:'Nhân tài nổi bật',   sublabel:'Hiệu suất cao · Tiềm năng TB',   tone:'great' },
+    { row:3, col:3, num:9, label:'Ngôi sao tương lai', sublabel:'Hiệu suất cao · Tiềm năng cao',   tone:'star'  },
+    { row:2, col:1, num:4, label:'Nhân viên vững',     sublabel:'Hiệu suất TB · Tiềm năng thấp',  tone:'watch' },
+    { row:2, col:2, num:5, label:'Nhân tài cốt lõi',   sublabel:'Hiệu suất TB · Tiềm năng TB',    tone:'core'  },
+    { row:2, col:3, num:6, label:'Lãnh đạo tiềm năng', sublabel:'Hiệu suất TB · Tiềm năng cao',   tone:'great' },
+    { row:1, col:1, num:1, label:'Cần cải thiện',      sublabel:'Hiệu suất thấp · Tiềm năng thấp',tone:'low'   },
+    { row:1, col:2, num:2, label:'Tiềm năng ẩn',       sublabel:'Hiệu suất thấp · Tiềm năng TB',  tone:'watch' },
+    { row:1, col:3, num:3, label:'Enigma',             sublabel:'Hiệu suất thấp · Tiềm năng cao', tone:'risk'  },
+  ];
+
+  // ─── 9-Box computeds ──────────────────────────────────────────────────────
+  readonly totalInGrid = computed(() => this.nineboxTalents().length);
+  readonly starCount   = computed(() => this.nineboxTalents().filter(t =>
+    this.scoreTier(t.performance_score ?? 0, this.perfThresholds()) === 3 &&
+    this.scoreTier(t.potential_score   ?? 0, this.potThresholds())  === 3
+  ).length);
+  readonly needsActionCount = computed(() => this.nineboxTalents().filter(t =>
+    this.scoreTier(t.performance_score ?? 0, this.perfThresholds()) === 1
+  ).length);
+
+  readonly previewPerf = computed(() => {
+    const [lo, hi] = this.perfDraft();
+    const list = this.nineboxTalents();
+    return {
+      low:  list.filter(t => (t.performance_score ?? 0) < lo).length,
+      mid:  list.filter(t => (t.performance_score ?? 0) >= lo && (t.performance_score ?? 0) < hi).length,
+      high: list.filter(t => (t.performance_score ?? 0) >= hi).length,
+    };
+  });
+  readonly previewPot = computed(() => {
+    const [lo, hi] = this.potDraft();
+    const list = this.nineboxTalents();
+    return {
+      low:  list.filter(t => (t.potential_score ?? 0) < lo).length,
+      mid:  list.filter(t => (t.potential_score ?? 0) >= lo && (t.potential_score ?? 0) < hi).length,
+      high: list.filter(t => (t.potential_score ?? 0) >= hi).length,
+    };
+  });
+
+  readonly boxTalentsSorted = computed<Talent[]>(() => {
+    const box = this.activeBox();
+    if (!box) return [];
+    const list = this.nineboxTalents().filter(t => (t as any).box === box.num);
+    if (this.isBottomBox(box.num))
+      return [...list].sort((a, b) => this.combined(a) - this.combined(b));
+    return [...list].sort((a, b) => this.combined(b) - this.combined(a));
+  });
+  readonly boxHighlighted = computed<Talent[]>(() => this.boxTalentsSorted().slice(0, 3));
+  readonly podiumOrder    = computed<(Talent | null)[]>(() => {
+    const h = this.boxHighlighted();
+    return [h[1] ?? null, h[0] ?? null, h[2] ?? null];
+  });
+  readonly isDefault = computed(() => {
+    const p = this.perfThresholds(), q = this.potThresholds();
+    return p[0] === DEFAULT_PERF[0] && p[1] === DEFAULT_PERF[1]
+        && q[0] === DEFAULT_POT[0]  && q[1] === DEFAULT_POT[1];
+  });
+
+  // ─── Backward compat ──────────────────────────────────────────────────────
   positions = signal<KeyPosition[]>([]);
 
-  private employeeSvc = inject(EmployeeService);
+  private employeeSvc   = inject(EmployeeService);
+  private successionSvc = inject(SuccessionService);
+  private msg           = inject(NzMessageService);
   private _searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(private router: Router, private route: ActivatedRoute) {}
+  constructor(
+    private router: Router,
+    private route:  ActivatedRoute,
+    private location: Location,
+  ) {}
 
   async ngOnInit(): Promise<void> {
-    // Đọc queryParam từ dashboard (vd: ?filter=high-risk)
     const filterParam = this.route.snapshot.queryParamMap.get('filter');
-    if (filterParam === 'high-risk') {
-      this.riskBand.set('High');
-    }
+    if (filterParam === 'high-risk') this.riskBand.set('High');
 
-    // Load dept options + first page in parallel
-    const [depts] = await Promise.all([
+    const [depts, nineBox] = await Promise.all([
       this.employeeSvc.getDeptOptions(),
+      this.successionSvc.getNineBox().catch(() => []),
       this.fetchPage(),
     ]);
     this.deptOptions.set(depts);
+    this.nineboxTalents.set(nineBox as any);
+    this.nineboxLoading.set(false);
     this.loading.set(false);
   }
 
-  // ─── Fetch một page từ server ──────────────────────────────────────────────
+  // ─── List: fetch one page ─────────────────────────────────────────────────
   private async fetchPage(): Promise<void> {
     this.fetching.set(true);
     const res = await this.employeeSvc.getPaginated({
       page:         this.page(),
       pageSize:     this.PAGE_SIZE,
-      search:       this.search() || undefined,
-      departmentId: this.dept()   || undefined,
-      talentTier:   this.tier()   || undefined,
+      search:       this.search()    || undefined,
+      departmentId: this.dept()      || undefined,
+      talentTier:   this.tier()      || undefined,
       readiness:    this.readinessToDb(this.readiness()),
-      riskBand:     this.riskBand() || undefined,
+      riskBand:     this.riskBand()  || undefined,
       sortCol:      this.sortCol(),
       sortDir:      this.sortDir(),
     });
@@ -120,55 +237,136 @@ export class TalentListComponent implements OnInit {
     this.loading.set(false);
   }
 
-  // ─── Filter / sort triggers → reset về page 1 ─────────────────────────────
   onSearchChange(val: string): void {
     this.search.set(val);
     if (this._searchTimer) clearTimeout(this._searchTimer);
     this._searchTimer = setTimeout(() => { this.page.set(1); this.fetchPage(); }, 350);
   }
-
   onFilterChange(): void { this.page.set(1); this.fetchPage(); }
-  onSortChange(): void   { this.page.set(1); this.fetchPage(); }
-
+  onSortChange():   void { this.page.set(1); this.fetchPage(); }
   onPageChange(p: number): void { this.page.set(p); this.fetchPage(); }
-
   toggleSortDir(): void {
     this.sortDir.set(this.sortDir() === 'desc' ? 'asc' : 'desc');
     this.onSortChange();
   }
-
   reset(): void {
-    this.search.set('');
-    this.tier.set(null);
-    this.dept.set(null);
-    this.readiness.set(null);
-    this.riskBand.set(null);
-    this.sortCol.set('overall_score');
-    this.sortDir.set('desc');
-    this.page.set(1);
-    this.fetchPage();
+    this.search.set(''); this.tier.set(null); this.dept.set(null);
+    this.readiness.set(null); this.riskBand.set(null);
+    this.sortCol.set('overall_score'); this.sortDir.set('desc');
+    this.page.set(1); this.fetchPage();
   }
-
   toggleFilters(): void { this.showFilters.set(!this.showFilters()); }
-  closeFilters(): void  { this.showFilters.set(false); }
+  closeFilters():  void { this.showFilters.set(false); }
 
-  // ─── Readiness label ↔ DB value ───────────────────────────────────────────
-  private readinessToDb(ui: ReadinessUi | null): string | undefined {
-    if (ui === 'Sẵn sàng ngay') return 'Ready Now';
-    if (ui === '1-2 năm')       return 'Ready in 1 Year';
-    if (ui === '3-5 năm')       return 'Ready in 2 Years';
-    return undefined;
+  // ─── 9-Box: classification ────────────────────────────────────────────────
+  private scoreTier(score: number, thresholds: [number, number]): 1 | 2 | 3 {
+    if (score >= thresholds[1]) return 3;
+    if (score >= thresholds[0]) return 2;
+    return 1;
+  }
+  talentsInBox(b: BoxDef): Talent[] {
+    return this.nineboxTalents().filter(t => (t as any).box === b.num);
+  }
+  private combined(t: Talent): number {
+    return ((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2;
+  }
+  isStarBox(num: number)   { return num === this.STAR_BOX; }
+  isTopBox(num: number)    { return this.TOP_BOXES.has(num); }
+  isBottomBox(num: number) { return this.BOTTOM_BOXES.has(num); }
+
+  // ─── 9-Box: scale modal ───────────────────────────────────────────────────
+  openScaleModal(): void {
+    this.perfDraft.set([...this.perfThresholds()]);
+    this.potDraft.set([...this.potThresholds()]);
+    this.showScaleModal.set(true);
+  }
+  closeScaleModal(): void { this.showScaleModal.set(false); }
+  applyScale(): void {
+    this.perfThresholds.set([...this.perfDraft()]);
+    this.potThresholds.set([...this.potDraft()]);
+    this.closeScaleModal();
+    this.msg.success('Đã cập nhật thang đo 9-Box');
+  }
+  resetScale(): void {
+    this.perfDraft.set([...DEFAULT_PERF]);
+    this.potDraft.set([...DEFAULT_POT]);
+  }
+  setPerfDraft(value: number[] | null): void {
+    if (value && value.length === 2) this.perfDraft.set([value[0], value[1]]);
+  }
+  setPotDraft(value: number[] | null): void {
+    if (value && value.length === 2) this.potDraft.set([value[0], value[1]]);
   }
 
-  // ── Departure reasons ──────────────────────────────────────────────────────
+  // ─── 9-Box: box detail drawer ─────────────────────────────────────────────
+  openBoxModal(box: BoxDef, ev?: Event): void {
+    ev?.stopPropagation();
+    this.activeBox.set(box);
+    this.boxModalOpen.set(true);
+  }
+  closeBoxModal():             void { this.boxModalOpen.set(false); this.activeBox.set(null); }
+  openTalentFromModal(id: string): void { this.closeBoxModal(); this.openTalentPreview(id); }
+
+  // ─── Talent preview drawer ────────────────────────────────────────────────
+  openTalentPreview(id: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!id) return;
+    if (!this.talentPreviewOpen()) this.savedUrl = this.location.path() || this.router.url;
+    this.location.go(`/talent/${id}`);
+    this.talentPreviewId.set(id);
+    this.talentPreviewOpen.set(true);
+  }
+  closeTalentPreview(): void {
+    if (this.savedUrl) this.location.go(this.savedUrl);
+    this.savedUrl = '';
+    this.talentPreviewOpen.set(false);
+    this.talentPreviewId.set(null);
+  }
+  switchPreview(id: string): void {
+    if (!id) return;
+    this.location.go(`/talent/${id}`);
+    this.talentPreviewId.set(id);
+  }
+  openFullTalent(id: string): void {
+    this.savedUrl = '';
+    this.talentPreviewOpen.set(false);
+    this.talentPreviewId.set(null);
+    this.router.navigate(['/talent', id]);
+  }
+  lastName(fullName: string): string {
+    return fullName.trim().split(/\s+/).pop() ?? fullName;
+  }
+
+  // ─── List helpers ─────────────────────────────────────────────────────────
+  navigate(t: Talent): void { this.router.navigate(['/talent', t.id]); }
+
+  perfStatus(s: number): 'success' | 'normal' | 'exception' {
+    return s >= 85 ? 'success' : s < 60 ? 'exception' : 'normal';
+  }
+  overallScore(t: Talent): number {
+    return Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
+  }
+  readinessLabel(r: string): ReadinessUi {
+    if (r === 'Ready Now')       return 'Sẵn sàng ngay';
+    if (r === 'Ready in 1 Year') return '1-2 năm';
+    return '3-5 năm';
+  }
+  readinessClass(r: string): 'ready-now' | 'ready-1y' | 'ready-2y' {
+    if (r === 'Ready Now')       return 'ready-now';
+    if (r === 'Ready in 1 Year') return 'ready-1y';
+    return 'ready-2y';
+  }
+  riskLabel(score: number): { band: RiskBand; text: string; cls: string } {
+    if (score >= 60) return { band: 'High', text: `High • ${score}`, cls: 'risk-high' };
+    if (score >= 30) return { band: 'Med',  text: `Med • ${score}`,  cls: 'risk-med'  };
+    return             { band: 'Low',  text: `Low • ${score}`,  cls: 'risk-low'  };
+  }
   departureReasons(t: Talent): string[] {
     if (t.departure_reasons && t.departure_reasons.length) return t.departure_reasons;
     if ((t.risk_score ?? 0) >= 60 && t.years_of_experience >= 20) return ['Sắp nghỉ hưu'];
     if ((t.risk_score ?? 0) >= 60) return ['Cần làm rõ nguyên nhân'];
     return [];
   }
-
-  // ── Competency gap vs target (avg shortfall; 0 = meets target)
   competencyGap(t: Talent): { gap: number; tone: 'good' | 'mid' | 'bad'; label: string } {
     const actual = {
       technical:   t.competencies?.technical    ?? 0,
@@ -186,36 +384,13 @@ export class TalentListComponent implements OnInit {
     const shortfall = keys.reduce((s, k) => s + Math.max(0, (target[k] ?? 0) - actual[k]), 0);
     const gap = Math.round(shortfall / keys.length);
     if (gap <= 0) return { gap: 0, tone: 'good', label: 'Đạt' };
-    if (gap <= 5) return { gap, tone: 'mid', label: `Thiếu ${gap}` };
-    return { gap, tone: 'bad', label: `Thiếu ${gap}` };
+    if (gap <= 5) return { gap, tone: 'mid',  label: `Thiếu ${gap}` };
+    return           { gap, tone: 'bad',  label: `Thiếu ${gap}` };
   }
-
-  navigate(t: Talent): void { this.router.navigate(['/talent', t.id]); }
-
-  perfStatus(s: number): 'success' | 'normal' | 'exception' {
-    return s >= 85 ? 'success' : s < 60 ? 'exception' : 'normal';
+  private readinessToDb(ui: ReadinessUi | null): string | undefined {
+    if (ui === 'Sẵn sàng ngay') return 'Ready Now';
+    if (ui === '1-2 năm')       return 'Ready in 1 Year';
+    if (ui === '3-5 năm')       return 'Ready in 2 Years';
+    return undefined;
   }
-
-  overallScore(t: Talent): number {
-    return Math.round(((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2);
-  }
-
-  readinessLabel(r: string): ReadinessUi {
-    if (r === 'Ready Now') return 'Sẵn sàng ngay';
-    if (r === 'Ready in 1 Year') return '1-2 năm';
-    return '3-5 năm';
-  }
-
-  readinessClass(r: string): 'ready-now' | 'ready-1y' | 'ready-2y' {
-    if (r === 'Ready Now') return 'ready-now';
-    if (r === 'Ready in 1 Year') return 'ready-1y';
-    return 'ready-2y';
-  }
-
-  riskLabel(score: number): { band: RiskBand; text: string; cls: string } {
-    if (score >= 60) return { band: 'High', text: `High • ${score}`, cls: 'risk-high' };
-    if (score >= 30) return { band: 'Med', text: `Med • ${score}`, cls: 'risk-med' };
-    return { band: 'Low', text: `Low • ${score}`, cls: 'risk-low' };
-  }
-
 }

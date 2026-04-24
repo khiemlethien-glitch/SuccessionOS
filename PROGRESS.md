@@ -1,7 +1,21 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-24 — Seed 200 nhân viên mới (full data 100%) ✅
+> Cập nhật lần cuối: 2026-04-24 — Refactor: xóa 9-Box Grid khỏi succession page ✅
+
+---
+
+## ⚡ Refactor: xóa 9-Box Grid khỏi succession page (2026-04-24) — ✅ DONE
+
+### Files đã thay đổi
+- `succession.component.ts` — xóa `BoxDef` interface, `DEFAULT_PERF/POT` constants, `NzSliderModule`, tất cả signals/computed/methods liên quan 9-box. Thêm `totalPositions`, `positionsWithSuccessors`, `positionsEmpty` computed. `activeTabIndex` mặc định 0 = Succession Map. Deep-link `tab=map` set index 0.
+- `succession.component.html` — xóa Tab 9-Box Grid (tab 1 cũ), scale drawer, box-detail drawer. Hero stats mới dùng position-based metrics. Subtitle cập nhật.
+
+### Kết quả
+- Succession Map là tab 0 (mặc định)
+- Mật độ kế thừa là tab 1
+- Hero stats: Vị trí then chốt / Có kế thừa / Cần xử lý (thay vì Ngôi sao / Tổng / Cần xử lý)
+- 0 stale references còn sót lại trong cả 2 file
 
 ---
 

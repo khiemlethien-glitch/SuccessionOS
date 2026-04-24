@@ -7,7 +7,6 @@ import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzModalModule } from 'ng-zorro-antd/modal';
@@ -20,18 +19,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Talent, SuccessionPlan, KeyPosition, Successor, ReadinessLevel } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
-
-interface BoxDef {
-  row: number;      // 1=low perf, 3=high perf
-  col: number;      // 1=low pot,  3=high pot
-  label: string;
-  sublabel: string;
-  tone: 'star' | 'great' | 'core' | 'risk' | 'watch' | 'low';
-  num: number;
-}
-
-const DEFAULT_PERF: [number, number] = [70, 85];
-const DEFAULT_POT:  [number, number] = [70, 85];
 
 interface TreeNode {
   positionId: string;
@@ -75,7 +62,7 @@ interface DeptDensity {
   imports: [
     CommonModule, FormsModule, RouterLink,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
-    NzDrawerModule, NzSliderModule, NzButtonModule, NzSelectModule,
+    NzDrawerModule, NzButtonModule, NzSelectModule,
     NzModalModule, NzTooltipModule,
     AvatarComponent, TalentPreviewDrawerComponent,
   ],
@@ -91,19 +78,7 @@ export class SuccessionComponent implements OnInit {
   plans     = signal<SuccessionPlan[]>([]);
   positions = signal<KeyPosition[]>([]);
 
-  // ─── Scale thresholds ──────────────────────────────
-  // [lowMidCutoff, midHighCutoff]  e.g. [70, 85] means:
-  // score < 70 → tier 1, 70-84 → tier 2, ≥85 → tier 3
-  perfThresholds = signal<[number, number]>([...DEFAULT_PERF]);
-  potThresholds  = signal<[number, number]>([...DEFAULT_POT]);
-
-  // Draft values used inside modal (committed on Apply)
-  perfDraft = signal<[number, number]>([...DEFAULT_PERF]);
-  potDraft  = signal<[number, number]>([...DEFAULT_POT]);
-
-  showScaleModal = signal(false);
-
-  // ─── Active tab: 0 = 9-Box, 1 = Succession Map ───────────────
+  // ─── Active tab: 0 = Succession Map ─────────────────────────
   activeTabIndex = signal(0);
 
   // ─── Succession Map view mode ─────────────────────────────────
@@ -563,19 +538,6 @@ export class SuccessionComponent implements OnInit {
       .sort((a, b) => b.positions.length - a.positions.length);
   });
 
-  // 9-box definitions — row=performance, col=potential
-  boxes: BoxDef[] = [
-    { row:3, col:1, num:7, label:'Ngôi sao tiềm ẩn',   sublabel:'Hiệu suất cao · Tiềm năng thấp', tone:'risk'  },
-    { row:3, col:2, num:8, label:'Nhân tài nổi bật',   sublabel:'Hiệu suất cao · Tiềm năng TB',   tone:'great' },
-    { row:3, col:3, num:9, label:'Ngôi sao tương lai', sublabel:'Hiệu suất cao · Tiềm năng cao',   tone:'star'  },
-    { row:2, col:1, num:4, label:'Nhân viên vững',     sublabel:'Hiệu suất TB · Tiềm năng thấp',  tone:'watch' },
-    { row:2, col:2, num:5, label:'Nhân tài cốt lõi',   sublabel:'Hiệu suất TB · Tiềm năng TB',    tone:'core'  },
-    { row:2, col:3, num:6, label:'Lãnh đạo tiềm năng', sublabel:'Hiệu suất TB · Tiềm năng cao',   tone:'great' },
-    { row:1, col:1, num:1, label:'Cần cải thiện',      sublabel:'Hiệu suất thấp · Tiềm năng thấp',tone:'low'   },
-    { row:1, col:2, num:2, label:'Tiềm năng ẩn',       sublabel:'Hiệu suất thấp · Tiềm năng TB',  tone:'watch' },
-    { row:1, col:3, num:3, label:'Enigma',             sublabel:'Hiệu suất thấp · Tiềm năng cao', tone:'risk'  },
-  ];
-
   private employeeSvc = inject(EmployeeService);
   private positionSvc = inject(KeyPositionService);
   private successionSvc = inject(SuccessionService);
@@ -666,7 +628,7 @@ export class SuccessionComponent implements OnInit {
     const positionId = params.get('positionId');
 
     if (tab === 'map') {
-      this.activeTabIndex.set(1);   // chuyển sang tab Succession Map
+      this.activeTabIndex.set(0);   // chuyển sang tab Succession Map
 
       if (positionId) {
         // Tìm node trong cây đã build và mở drawer
@@ -690,138 +652,10 @@ export class SuccessionComponent implements OnInit {
     }
   }
 
-  // ─── Scoring ───────────────────────────────────────
-  private tier(score: number, thresholds: [number, number]): 1 | 2 | 3 {
-    if (score >= thresholds[1]) return 3;
-    if (score >= thresholds[0]) return 2;
-    return 1;
-  }
-
-  talentsInBox(b: BoxDef): Talent[] {
-    // Nine-box dùng field `box` (1-9) từ view v_nine_box thay vì compute từ thresholds
-    return this.talents().filter(t => (t as any).box === b.num);
-  }
-
-  readonly totalInGrid = computed(() => this.talents().length);
-  readonly starCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 3 &&
-    this.tier(t.potential_score ?? 0,  this.potThresholds())  === 3
-  ).length);
-  readonly needsActionCount = computed(() => this.talents().filter(t =>
-    this.tier(t.performance_score ?? 0, this.perfThresholds()) === 1
-  ).length);
-
-  // ─── Preview counts for each tier while editing thresholds ────
-  readonly previewPerf = computed(() => {
-    const [lo, hi] = this.perfDraft();
-    const list = this.talents();
-    return {
-      low:  list.filter(t => (t.performance_score ?? 0) < lo).length,
-      mid:  list.filter(t => (t.performance_score ?? 0) >= lo && (t.performance_score ?? 0) < hi).length,
-      high: list.filter(t => (t.performance_score ?? 0) >= hi).length,
-    };
-  });
-  readonly previewPot = computed(() => {
-    const [lo, hi] = this.potDraft();
-    const list = this.talents();
-    return {
-      low:  list.filter(t => (t.potential_score ?? 0) < lo).length,
-      mid:  list.filter(t => (t.potential_score ?? 0) >= lo && (t.potential_score ?? 0) < hi).length,
-      high: list.filter(t => (t.potential_score ?? 0) >= hi).length,
-    };
-  });
-
-  // ─── Modal actions ─────────────────────────────────
-  openScaleModal(): void {
-    this.perfDraft.set([...this.perfThresholds()]);
-    this.potDraft.set([...this.potThresholds()]);
-    this.showScaleModal.set(true);
-  }
-
-  closeScaleModal(): void {
-    this.showScaleModal.set(false);
-  }
-
-  applyScale(): void {
-    this.perfThresholds.set([...this.perfDraft()]);
-    this.potThresholds.set([...this.potDraft()]);
-    this.closeScaleModal();
-    this.msg.success('Đã cập nhật thang đo 9-Box');
-  }
-
-  resetScale(): void {
-    this.perfDraft.set([...DEFAULT_PERF]);
-    this.potDraft.set([...DEFAULT_POT]);
-  }
-
-  setPerfDraft(value: number[] | null): void {
-    if (value && value.length === 2) this.perfDraft.set([value[0], value[1]]);
-  }
-  setPotDraft(value: number[] | null): void {
-    if (value && value.length === 2) this.potDraft.set([value[0], value[1]]);
-  }
-
-  isDefault = computed(() => {
-    const p = this.perfThresholds();
-    const q = this.potThresholds();
-    return p[0] === DEFAULT_PERF[0] && p[1] === DEFAULT_PERF[1]
-        && q[0] === DEFAULT_POT[0]  && q[1] === DEFAULT_POT[1];
-  });
-
-  // ─── Box detail modal ──────────────────────────────
-  activeBox     = signal<BoxDef | null>(null);
-  boxModalOpen  = signal(false);
-
-  /** Boxes where we highlight TOP performers */
-  private TOP_BOXES    = new Set([5, 6, 7]);
-  /** Boxes where we highlight BOTTOM performers (needs attention) */
-  private BOTTOM_BOXES = new Set([1, 2, 4]);
-  /** Special hall-of-fame box */
-  private STAR_BOX     = 9;
-
-  isStarBox(num: number)   { return num === this.STAR_BOX; }
-  isTopBox(num: number)    { return this.TOP_BOXES.has(num); }
-  isBottomBox(num: number) { return this.BOTTOM_BOXES.has(num); }
-
-  private combined(t: Talent) {
-    return ((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2;
-  }
-
-  /** Sorted talents for the active box modal */
-  readonly boxTalentsSorted = computed<Talent[]>(() => {
-    const box = this.activeBox();
-    if (!box) return [];
-    const list = this.talents().filter(t => (t as any).box === box.num);
-    if (this.isBottomBox(box.num)) {
-      return [...list].sort((a, b) => this.combined(a) - this.combined(b));
-    }
-    return [...list].sort((a, b) => this.combined(b) - this.combined(a));
-  });
-
-  /** Top 3 (or bottom 3 for low boxes) */
-  readonly boxHighlighted = computed<Talent[]>(() => this.boxTalentsSorted().slice(0, 3));
-
-  /** Podium order: [2nd, 1st, 3rd] for the star box visual */
-  readonly podiumOrder = computed<(Talent | null)[]>(() => {
-    const h = this.boxHighlighted();
-    return [h[1] ?? null, h[0] ?? null, h[2] ?? null];
-  });
-
-  openBoxModal(box: BoxDef, ev?: Event): void {
-    ev?.stopPropagation();
-    this.activeBox.set(box);
-    this.boxModalOpen.set(true);
-  }
-
-  closeBoxModal(): void {
-    this.boxModalOpen.set(false);
-    this.activeBox.set(null);
-  }
-
-  openTalentFromModal(id: string): void {
-    this.closeBoxModal();
-    this.openTalentPreview(id);
-  }
+  // ─── Hero stats ───────────────────────────────────────────────
+  readonly totalPositions = computed(() => this.positions().length);
+  readonly positionsWithSuccessors = computed(() => this.positionDensity().filter(p => p.total > 0).length);
+  readonly positionsEmpty = computed(() => this.positionDensity().filter(p => p.total === 0).length);
 
   // ─── Misc ──────────────────────────────────────────
   readinessLabel(r: string): string {
