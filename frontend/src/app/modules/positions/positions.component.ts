@@ -697,6 +697,8 @@ export class PositionsComponent implements OnInit {
   }
 
   async openFindSuccessor(): Promise<void> {
+    // Ẩn drawer để tránh layered UI (viewingPosition vẫn giữ để modal dùng)
+    this.showAddModal.set(false);
     this.showFindSuccessor.set(true);
     if (this.fsAllCandidates().length === 0) {
       this.fsLoading.set(true);
@@ -712,6 +714,10 @@ export class PositionsComponent implements OnInit {
     this.showFindSuccessor.set(false);
     this.fsSelectedIds.set(new Set());
     this.fsPage.set(1);
+    // Mở lại drawer nếu đang xem một vị trí
+    if (this.viewingPosition()) {
+      this.showAddModal.set(true);
+    }
   }
 
   toggleFsSelect(id: string, ev?: MouseEvent): void {
