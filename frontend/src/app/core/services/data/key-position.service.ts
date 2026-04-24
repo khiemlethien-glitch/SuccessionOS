@@ -25,8 +25,9 @@ export class KeyPositionService {
 
     let rows = (posRes.data ?? []).map(p => ({
       ...p,
-      department:     deptMap.get(p.department_id)    ?? '—',
-      current_holder: empMap.get(p.current_holder_id) ?? '—',
+      // Fallback chain: department_id lookup → p.department text col → '—'
+      department:     deptMap.get(p.department_id) ?? p.department ?? p.department_name ?? '—',
+      current_holder: empMap.get(p.current_holder_id) ?? p.current_holder ?? p.holder_name ?? '—',
       parent_id:      p.parent_position_id,
       successors:     [],
     }));

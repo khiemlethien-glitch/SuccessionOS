@@ -111,6 +111,11 @@ import {
   ThunderboltOutline,
   PlusCircleOutline,
   LoadingOutline,
+  // Competency extra icons (new)
+  ProjectOutline,
+  HeartOutline,
+  SmileOutline,
+  ScheduleOutline,
 } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
@@ -157,6 +162,8 @@ const icons = [
   // Content
   BookOutline, FileTextOutline, CalendarOutline,
   ExperimentOutline, ThunderboltOutline, PlusCircleOutline, LoadingOutline,
+  // Competency extra icons
+  ProjectOutline, HeartOutline, SmileOutline, ScheduleOutline,
 ];
 
 export const appConfig: ApplicationConfig = {

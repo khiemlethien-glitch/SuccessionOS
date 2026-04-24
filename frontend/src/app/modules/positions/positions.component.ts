@@ -147,7 +147,33 @@ export class PositionsComponent implements OnInit {
     { key: 'negotiation',     label: 'Đàm phán',             icon: 'team' },
     { key: 'riskManagement',  label: 'Quản lý rủi ro',       icon: 'safety' },
     { key: 'innovation',      label: 'Đổi mới sáng tạo',     icon: 'rocket' },
+    { key: 'projectMgmt',     label: 'Quản lý dự án',        icon: 'project' },
+    { key: 'coaching',        label: 'Coaching & Mentoring',  icon: 'heart' },
+    { key: 'dataAnalysis',    label: 'Phân tích dữ liệu',    icon: 'bar-chart' },
+    { key: 'customerFocus',   label: 'Định hướng khách hàng', icon: 'smile' },
+    { key: 'planning',        label: 'Lập kế hoạch',         icon: 'schedule' },
   ];
+
+  /** Resolve icon cho competency key/tên đầy đủ từ DB — keyword matching */
+  private resolveCompIcon(key: string): string {
+    const s = key.toLowerCase();
+    if (s.includes('lãnh đạo') || s.includes('leadership'))       return 'crown';
+    if (s.includes('kỹ thuật') || s.includes('technical'))        return 'tool';
+    if (s.includes('giao tiếp') || s.includes('communicat'))      return 'message';
+    if (s.includes('chiến lược') || s.includes('strateg'))        return 'aim';
+    if (s.includes('tài chính') || s.includes('financ'))          return 'dollar';
+    if (s.includes('rủi ro') || s.includes('risk'))               return 'safety';
+    if (s.includes('dự án') || s.includes('project'))             return 'project';
+    if (s.includes('đàm phán') || s.includes('negot'))            return 'team';
+    if (s.includes('đổi mới') || s.includes('innovat'))           return 'rocket';
+    if (s.includes('giải quyết') || s.includes('problem'))        return 'bulb';
+    if (s.includes('thích nghi') || s.includes('adapt'))          return 'sync';
+    if (s.includes('coaching') || s.includes('mentor'))           return 'heart';
+    if (s.includes('phân tích') || s.includes('analys'))          return 'bar-chart';
+    if (s.includes('khách hàng') || s.includes('customer'))       return 'smile';
+    if (s.includes('kế hoạch') || s.includes('plan'))             return 'schedule';
+    return 'tool';
+  }
 
   availableCompetencies = signal<Competency[]>([...this.allCompetencies]);
   selectedCompetencies  = signal<Competency[]>([]);
@@ -339,8 +365,12 @@ export class PositionsComponent implements OnInit {
     if (!p) return [];
     const scores = p.competency_scores ?? {};
     return (p.required_competencies ?? []).map(key => {
-      const meta = this.allCompetencies.find(c => c.key === key);
-      return { key, label: meta?.label ?? key, icon: meta?.icon ?? 'tool', score: scores[key] ?? null };
+      // Tìm theo key chính xác trước, rồi theo label (case-insensitive)
+      const meta = this.allCompetencies.find(c => c.key === key)
+                ?? this.allCompetencies.find(c => c.label.toLowerCase() === key.toLowerCase());
+      const label = meta?.label ?? key;                  // DB-stored name đã human-readable → dùng thẳng
+      const icon  = meta?.icon  ?? this.resolveCompIcon(key); // keyword match thay vì luôn 'tool'
+      return { key, label, icon, score: scores[key] ?? null };
     });
   });
 
