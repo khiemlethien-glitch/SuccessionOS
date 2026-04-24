@@ -261,6 +261,27 @@ export class PositionsComponent implements OnInit {
     this.positions.set(positions as any);
     this.plans.set(plans as any);
 
+    // Deep-link từ Succession module: ?gapPos=<posId>&gapEmp=<empId>&gapName=<name>
+    const gapPosId     = this.route.snapshot.queryParamMap.get('gapPos');
+    const gapEmpId     = this.route.snapshot.queryParamMap.get('gapEmp');
+    const gapEmpName   = this.route.snapshot.queryParamMap.get('gapName')      ?? '—';
+    const gapReadiness = this.route.snapshot.queryParamMap.get('gapReadiness') ?? 'Ready Now';
+    const gapScore     = this.route.snapshot.queryParamMap.get('gapScore');
+
+    if (gapPosId && gapEmpId) {
+      const targetPos = (positions as any[]).find(p => p.id === gapPosId);
+      if (targetPos) {
+        this.openPositionView(targetPos as any);
+        await this.openGapPanel({
+          talent_id:   gapEmpId,
+          talent_name: gapEmpName,
+          readiness:   gapReadiness,
+          priority:    1,
+          gap_score:   gapScore !== null ? Number(gapScore) : null,
+        });
+      }
+    }
+
     // Departments: prefer departments table → positions fallback → v_employees fallback
     if (!depts.error && depts.data?.length) {
       this.allDepts.set(depts.data as DeptOpt[]);

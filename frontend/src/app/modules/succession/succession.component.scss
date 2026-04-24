@@ -2094,3 +2094,41 @@
 .smvh-child-content {
   margin-top: 22px; // clears the connector lines
 }
+
+// ── Gap Analysis links (từ Succession → Positions) ──────────────
+.pd-succ-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.pd-succ-gap {
+  background: #f0f4ff !important;
+  color: #6366f1 !important;
+  border-color: #c7d2fe !important;
+  text-decoration: none;
+  &:hover {
+    background: #e0e7ff !important;
+    color: #4f46e5 !important;
+  }
+}
+
+.dd-gap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f0f4ff;
+  color: #6366f1;
+  font-size: 13px;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-right: 2px;
+  transition: background .15s, color .15s;
+  &:hover {
+    background: #e0e7ff;
+    color: #4f46e5;
+  }
+}

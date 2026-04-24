@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -73,7 +73,7 @@ interface DeptDensity {
   selector: 'app-succession',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
+    CommonModule, FormsModule, RouterLink,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
     NzDrawerModule, NzSliderModule, NzButtonModule, NzSelectModule,
     NzModalModule, NzTooltipModule,

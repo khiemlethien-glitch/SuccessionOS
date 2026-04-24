@@ -814,11 +814,19 @@
                     </span>
                   </div>
                 </div>
-                @if (s.talent) {
-                  <button class="pd-succ-link" (click)="openTalentPreview(s.talent.id, $event)" title="Xem hồ sơ">
-                    <span nz-icon nzType="arrow-right"></span>
-                  </button>
-                }
+                <div class="pd-succ-actions">
+                  @if (s.talent) {
+                    <button class="pd-succ-link" (click)="openTalentPreview(s.talent.id, $event)" title="Xem hồ sơ">
+                      <span nz-icon nzType="user"></span>
+                    </button>
+                  }
+                  <a class="pd-succ-link pd-succ-gap"
+                     [routerLink]="['/positions']"
+                     [queryParams]="{ gapPos: node.positionId, gapEmp: s.talent_id, gapName: s.talent_name, gapReadiness: s.readiness, gapScore: s.gap_score }"
+                     title="Phân tích năng lực (Gap)">
+                    <span nz-icon nzType="rise"></span>
+                  </a>
+                </div>
               </li>
             }
           </ul>
@@ -1056,6 +1064,14 @@
                   }
                 </div>
               </div>
+              <a class="dd-gap-btn"
+                 [routerLink]="['/positions']"
+                 [queryParams]="{ gapPos: pos.positionId, gapEmp: s.talent_id, gapName: s.talent_name, gapReadiness: s.readiness, gapScore: s.gap_score }"
+                 (click)="$event.stopPropagation()"
+                 title="Phân tích Gap năng lực"
+                 nz-tooltip nzTooltipTitle="Xem Gap Analysis">
+                <span nz-icon nzType="rise"></span>
+              </a>
               <span nz-icon nzType="right" class="dd-arrow"></span>
             </div>
           }
