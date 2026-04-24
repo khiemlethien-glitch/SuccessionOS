@@ -43,6 +43,7 @@ interface TreeNode {
   successors: Successor[];  // from matching SuccessionPlan, or []
   children: TreeNode[];
   depth: number;
+  isDeptGroup?: boolean;
 }
 
 interface PositionDensity {
@@ -413,7 +414,7 @@ export class SuccessionComponent implements OnInit {
           children:          [],
           depth:             0,
           isDeptGroup:       true,
-        } as any);
+        });
       }
 
       const child = nodeById.get(p.id)!;
@@ -499,6 +500,11 @@ export class SuccessionComponent implements OnInit {
     if (node.successors.length <= this.COLLAPSE_THRESHOLD) return 0;
     if (this.isExpanded(node.positionId)) return 0;
     return node.successors.length - this.COLLAPSE_THRESHOLD;
+  }
+
+  /** Count how many child positions have zero successors (for dept-group header warning). */
+  countEmpty(children: TreeNode[]): number {
+    return children.filter(c => c.successors.length === 0).length;
   }
 
   // 9-box definitions — row=performance, col=potential

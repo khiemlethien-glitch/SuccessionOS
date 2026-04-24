@@ -129,150 +129,113 @@
           </div>
         }
 
-        <div class="smap smap-tree">
-          @if (treeRoots().length === 0 && isRestrictedView()) {
-            <div class="smap-empty-view">
-              <span nz-icon nzType="inbox"></span>
-              <div class="sev-title">Chưa có vị trí nào thuộc phạm vi của bạn</div>
-              <div class="sev-sub">Team của bạn chưa được định nghĩa vị trí then chốt hoặc bạn chưa được gán làm ứng viên kế thừa</div>
-            </div>
-          }
+        @if (treeRoots().length === 0 && isRestrictedView()) {
+          <div class="smap-empty-view">
+            <span nz-icon nzType="inbox"></span>
+            <div class="sev-title">Chưa có vị trí nào thuộc phạm vi của bạn</div>
+            <div class="sev-sub">Team của bạn chưa được định nghĩa vị trí then chốt hoặc bạn chưa được gán làm ứng viên kế thừa</div>
+          </div>
+        }
 
+        <!-- ── SMV: card-grid layout ─────────────────────────────── -->
+        <div class="smv-root">
           @for (root of treeRoots(); track root.positionId) {
-            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
+            <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: root }"></ng-container>
           }
+        </div>
 
-          <!-- Recursive template: compact row + gated details -->
-          <ng-template #nodeTpl let-node>
-            <div class="tree-node" [style.--depth]="node.depth" [class.tree-root]="node.depth === 0"
-                 [class.tree-dept-group]="node.isDeptGroup"
-                 [id]="'tree-node-' + node.positionId">
+        <!-- Node template: dept-group section OR standalone position card -->
+        <ng-template #smvNodeTpl let-node>
+          @if (node.isDeptGroup) {
+            <section class="smv-dept">
+              <div class="smv-dept-hdr">
+                <span nz-icon nzType="bank" class="smv-dept-ico"></span>
+                <span class="smv-dept-name">{{ node.title }}</span>
+                <span class="smv-dept-badge">{{ node.children.length }}</span>
+                @if (countEmpty(node.children) > 0) {
+                  <span class="smv-dept-warn">
+                    <span nz-icon nzType="warning"></span>
+                    {{ countEmpty(node.children) }} chưa có kế thừa
+                  </span>
+                }
+              </div>
+              <div class="smv-grid">
+                @for (child of node.children; track child.positionId) {
+                  <ng-container *ngTemplateOutlet="smvCardTpl; context: { $implicit: child }"></ng-container>
+                }
+              </div>
+            </section>
+          } @else {
+            <ng-container *ngTemplateOutlet="smvCardTpl; context: { $implicit: node }"></ng-container>
+          }
+        </ng-template>
 
-              <!-- Dept group virtual header (fallback khi chưa có parent_position_id) -->
-              @if (node.isDeptGroup) {
-                <div class="dept-group-header" (click)="toggleNode(node.positionId)">
-                  <span nz-icon nzType="right" class="tr-chevron"
-                        [class.is-expanded]="isNodeExpanded(node.positionId)"></span>
-                  <span nz-icon nzType="bank" class="dg-ico"></span>
-                  <span class="dg-title">{{ node.title }}</span>
-                  <span class="dg-count">{{ node.children.length }} vị trí</span>
-                </div>
-                @if (isNodeExpanded(node.positionId)) {
-                  <div class="tree-children tree-children-dept">
-                    @for (child of node.children; track child.positionId) {
-                      <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
-                    }
+        <!-- Card template: single position card with always-visible successor rows -->
+        <ng-template #smvCardTpl let-pos>
+          <div class="smv-card smv-crit-{{ criticalTone(pos.critical_level) }}"
+               [id]="'smv-card-' + pos.positionId">
+            <div class="smv-crit-bar"></div>
+
+            <!-- Card header: title / holder + info button -->
+            <div class="smv-card-head">
+              <div class="smv-card-meta">
+                <div class="smv-card-title">{{ pos.title }}</div>
+                @if (pos.current_holder) {
+                  <div class="smv-card-holder">
+                    <span nz-icon nzType="user" class="smv-holder-ico"></span>
+                    {{ pos.current_holder }}
+                  </div>
+                } @else {
+                  <div class="smv-card-holder smv-holder-vacant">
+                    <span nz-icon nzType="user-add"></span>
+                    Chưa có người đảm nhiệm
                   </div>
                 }
-              } @else {
-
-              <!-- Compact clickable row — always visible -->
-              <div
-                role="button"
-                tabindex="0"
-                class="tree-row"
-                [ngClass]="['crit-' + criticalTone(node.critical_level), isNodeExpanded(node.positionId) ? 'is-expanded' : '']"
-                (click)="toggleNode(node.positionId)"
-                (keydown.enter)="toggleNode(node.positionId)"
-                (keydown.space)="$event.preventDefault(); toggleNode(node.positionId)"
-              >
-                <span nz-icon nzType="right" class="tr-chevron"></span>
-                <span class="tr-dot"></span>
-                <div class="tr-badge"><span nz-icon nzType="apartment"></span></div>
-                <div class="tr-main">
-                  <div class="tr-title">{{ node.title }}</div>
-                  <div class="tr-sub">
-                    {{ node.department }}
-                    @if (node.current_holder) { · {{ node.current_holder }} }
-                  </div>
-                </div>
-                <div class="tr-stats">
-                  @if (node.children.length) {
-                    <span class="tr-pill tr-pill-children">{{ node.children.length }} cấp dưới</span>
-                  }
-                  <span class="tr-pill" [class.tr-pill-zero]="!node.successors.length">
-                    @if (!node.successors.length) {
-                      <span nz-icon nzType="warning"></span>
-                    }
-                    {{ node.successors.length }} kế thừa
-                  </span>
-                  <button
-                    type="button"
-                    class="tr-info"
-                    (click)="openPositionDrawer(node, $event)"
-                    nz-tooltip
-                    nzTooltipTitle="Xem chi tiết vị trí"
-                  >
-                    <span nz-icon nzType="info-circle"></span>
-                  </button>
-                </div>
               </div>
+              <button type="button" class="smv-info-btn"
+                (click)="openPositionDrawer(pos, $event)"
+                nz-tooltip nzTooltipTitle="Chi tiết vị trí">
+                <span nz-icon nzType="info-circle"></span>
+              </button>
+            </div>
 
-              <!-- Expanded details: successors + children -->
-              @if (isNodeExpanded(node.positionId)) {
-                <div class="tree-details">
-
-                  @if (node.successors.length) {
-                    @let shown = successorsToShow(node);
-                    <div class="succ-pipeline" [style.--n]="shown.length + (hiddenCount(node) > 0 ? 1 : 0)">
-                      @for (s of shown; track s.talent_id) {
-                        <div class="succ-node" [ngClass]="'rd-' + readinessTone(s.readiness)">
-                          <span class="sn-priority">#{{ s.priority }}</span>
-                          <div class="sn-avatar">
-                            <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
-                          </div>
-                          <div class="sn-name">{{ s.talent_name }}</div>
-                          <div class="sn-meta">
-                            <span class="sn-gap">
-                              <span nz-icon nzType="line-chart"></span>
-                              Gap {{ s.gap_score }}
-                            </span>
-                          </div>
-                          <span class="sn-ready">
-                            <span class="sn-ready-dot"></span>
-                            {{ readinessLabel(s.readiness) }}
-                          </span>
-                        </div>
-                      }
-                      @if (hiddenCount(node) > 0) {
-                        <button type="button" class="succ-more" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
-                          <div class="sm-circle"><span nz-icon nzType="plus"></span></div>
-                          <div class="sm-text">
-                            <div class="sm-count">+{{ hiddenCount(node) }}</div>
-                            <div class="sm-label">Xem thêm</div>
-                          </div>
-                        </button>
-                      }
-                    </div>
-                    @if (node.successors.length > 3 && isExpanded(node.positionId)) {
-                      <div class="succ-collapse-wrap">
-                        <button type="button" class="succ-collapse" (click)="toggleExpand(node.positionId); $event.stopPropagation()">
-                          <span nz-icon nzType="arrow-up"></span>
-                          Thu gọn danh sách kế thừa
-                        </button>
-                      </div>
-                    }
-                  } @else {
-                    <div class="tree-empty-line">
-                      <span nz-icon nzType="warning"></span>
-                      Chưa có kế hoạch kế thừa cho vị trí này — cần tuyển hoặc phát triển nội bộ
-                    </div>
-                  }
-
-                  @if (node.children.length) {
-                    <div class="tree-children">
-                      @for (child of node.children; track child.positionId) {
-                        <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
-                      }
-                    </div>
-                  }
+            <!-- Successor rows: always visible, no expand needed -->
+            <div class="smv-succ-list">
+              @if (pos.successors.length === 0) {
+                <div class="smv-no-succ">
+                  <span nz-icon nzType="warning"></span>
+                  Chưa có kế thừa — cần bổ sung
                 </div>
-              }
-
+              } @else {
+                @for (s of pos.successors; track s.talent_id) {
+                  <div class="smv-succ-row smv-rd-{{ readinessTone(s.readiness) }}"
+                       role="button"
+                       (click)="openTalentPreview(s.talent_id, $event)">
+                    <span class="smv-rank">#{{ s.priority }}</span>
+                    <app-avatar [name]="s.talent_name" [size]="26"></app-avatar>
+                    <span class="smv-succ-name">{{ s.talent_name }}</span>
+                    <span class="smv-ready-pill smv-pill-{{ readinessTone(s.readiness) }}">{{ readinessLabel(s.readiness) }}</span>
+                  </div>
+                }
               }
             </div>
-          </ng-template>
-        </div>
+
+            <!-- Child positions (real hierarchy, if any) -->
+            @if (pos.children.length > 0) {
+              <div class="smv-card-children">
+                <div class="smv-child-label">
+                  <span nz-icon nzType="apartment"></span>
+                  {{ pos.children.length }} vị trí cấp dưới
+                </div>
+                <div class="smv-child-grid">
+                  @for (child of pos.children; track child.positionId) {
+                    <ng-container *ngTemplateOutlet="smvCardTpl; context: { $implicit: child }"></ng-container>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </ng-template>
       </nz-tab>
 
       <!-- ═══ Tab 3: Mật độ kế thừa ═════════════════════ -->
