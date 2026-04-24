@@ -1626,6 +1626,36 @@
 .dd-arrow    { color: #d1d5db; font-size: 12px; }
 
 
+// ═══════════════ SMV View Toggle ═════════════════════════════════════════
+
+.smv-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.smv-vt-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px;
+  border: none; border-radius: 8px;
+  font-size: 12.5px; font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transition: all .15s;
+
+  &.smv-vt-active {
+    background: #fff;
+    color: #4f46e5;
+    box-shadow: 0 1px 4px rgba(0,0,0,.10);
+  }
+  .anticon { font-size: 13px; }
+}
+
 // ═══════════════ Succession Map View — Vertical Org Tree ════════════════
 
 .smv-root {
@@ -1816,3 +1846,251 @@
   .anticon { font-size: 14px; }
 }
 
+// ─── Junction toggle button (sits on the tree border-left) ────
+// top = padding-top of container (6px) + ::before top of first child (28px) = 34px
+.smv-jctn-wrap {
+  position: absolute;
+  left: -1px;                 // center on the 2px border-left
+  top: 34px;                  // aligns with the first horizontal connector line
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+// When collapsed (no children rendered), keep enough height so border-left + button show
+.smv-tree:not(:has(.smv-node)),
+.smv-children:not(:has(.smv-node)) {
+  min-height: 44px;
+}
+
+.smv-jctn-btn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #c7d2fe;
+  background: #fff;
+  color: #6366f1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+
+  &:hover {
+    border-color: #6366f1;
+    background: #eef2ff;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+  }
+  .anticon { font-size: 9px; font-weight: 700; }
+}
+
+
+// ═══════════════ SMV Horizontal Org Chart (smvh-*) ═══════════════════════
+
+.smvh-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 8px 4px 32px;
+}
+
+// When there are multiple roots (dept-group fallback), lay them out vertically
+.smvh-forest {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  min-width: max-content;
+}
+
+// ─── Each item: position card + children row below ────────────
+.smvh-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+// ─── Position card ────────────────────────────────────────────
+.smvh-card {
+  width: 196px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  transition: box-shadow .15s;
+  &:hover { box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+}
+
+// Dark header: colour varies by critical level
+.smvh-card-head {
+  padding: 10px 10px 9px;
+  text-align: center;
+  position: relative;
+  background: #1e3a5f;  // default: medium/low
+}
+.smvh-crit-critical .smvh-card-head { background: #7f1d1d; }
+.smvh-crit-high     .smvh-card-head { background: #78350f; }
+.smvh-crit-medium   .smvh-card-head { background: #1e3a5f; }
+.smvh-crit-low      .smvh-card-head { background: #374151; }
+
+.smvh-pos-title {
+  font-size: 12px; font-weight: 700; color: #fff;
+  line-height: 1.3; padding-right: 18px; // space for info btn
+}
+.smvh-pos-holder {
+  font-size: 11px; color: rgba(255,255,255,.70);
+  margin-top: 4px; font-weight: 500;
+}
+.smvh-info-btn {
+  position: absolute; top: 7px; right: 7px;
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  border: 1px solid rgba(255,255,255,.3); border-radius: 5px;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.8);
+  cursor: pointer; font-size: 11px;
+  transition: background .12s;
+  &:hover { background: rgba(255,255,255,.25); }
+}
+
+// Successor list
+.smvh-card-succ {
+  background: #fff;
+  padding: 8px 10px 6px;
+}
+.smvh-succ-hdr {
+  font-size: 9.5px; font-weight: 700; color: #6b7280;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.smvh-succ-row {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: background .1s;
+  &:hover { background: #f8fafc; }
+}
+.smvh-rd-bar {
+  width: 4px; align-self: stretch; flex-shrink: 0;
+  border-radius: 2px; margin-top: 2px;
+  min-height: 14px;
+}
+.smvh-rd-green  .smvh-rd-bar { background: #10b981; }
+.smvh-rd-amber  .smvh-rd-bar { background: #f59e0b; }
+.smvh-rd-orange .smvh-rd-bar { background: #ef4444; }
+
+.smvh-succ-info { min-width: 0; }
+.smvh-succ-name  { font-size: 11.5px; font-weight: 600; color: #111827; line-height: 1.3; }
+.smvh-succ-label { font-size: 10px; color: #6b7280; margin-top: 1px; }
+
+// Empty: add button
+.smvh-card-empty {
+  background: #fafafa;
+  padding: 8px 10px;
+  text-align: center;
+}
+.smvh-add-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px dashed #d1d5db; border-radius: 6px;
+  color: #9ca3af; font-size: 11px; font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  &:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+  .anticon { font-size: 12px; }
+}
+
+// Dept group root card (minimal pill-style)
+.smvh-dept-card {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px;
+  background: linear-gradient(90deg, #eef2ff, #f0f4ff);
+  border: 1px solid #e0e7ff; border-radius: 10px;
+  font-size: 13px; font-weight: 700; color: #1e1b4b;
+  .anticon { font-size: 14px; color: #6366f1; }
+}
+.smvh-dept-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  background: #e0e7ff; color: #4f46e5;
+  border-radius: 999px; font-size: 11px; font-weight: 700;
+}
+
+// ─── Tree connectors ──────────────────────────────────────────
+
+// Split stem with junction toggle button in the middle
+.smvh-stem-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.smvh-stem-seg {
+  width: 2px; height: 10px;
+  background: #c7d2fe;
+  flex-shrink: 0;
+}
+.smvh-jctn-btn {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #c7d2fe;
+  background: #fff;
+  color: #6366f1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+
+  &:hover {
+    border-color: #6366f1;
+    background: #eef2ff;
+    box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+  }
+  .anticon { font-size: 9px; font-weight: 700; }
+}
+
+// Row of children
+.smvh-children-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+// Each child column handles its own connector lines
+.smvh-child-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 14px;
+
+  // Horizontal bar segment at the top
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: #c7d2fe;
+  }
+  // First child: only right half of horizontal bar
+  &:first-child::before { left: 50%; }
+  // Last child: only left half of horizontal bar
+  &:last-child::before  { right: 50%; }
+  // Single child: no horizontal bar at all
+  &:only-child::before  { display: none; }
+
+  // Vertical drop from horizontal bar to card
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    width: 2px; height: 22px;
+    background: #c7d2fe;
+    transform: translateX(-50%);
+  }
+  // Single child: full stem from parent (no horizontal bar)
+  &:only-child::after { height: 22px; }
+}
+
+.smvh-child-content {
+  margin-top: 22px; // clears the connector lines
+}

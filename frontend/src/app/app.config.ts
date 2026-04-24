@@ -13,6 +13,7 @@ import {
   // Layout / Shell
   MenuFoldOutline,
   MenuUnfoldOutline,
+  MenuOutline,
   BellOutline,
   // Sidebar navigation
   DashboardOutline,
@@ -36,6 +37,7 @@ import {
   ExclamationCircleOutline,
   // Actions / CRUD
   PlusOutline,
+  MinusOutline,
   EditOutline,
   DeleteOutline,
   EyeOutline,
@@ -89,6 +91,26 @@ import {
   KeyOutline,
   // Succession
   InfoCircleOutline,
+  PartitionOutline,
+  // Navigation / misc
+  DownOutline,
+  UpOutline,
+  HistoryOutline,
+  CopyOutline,
+  LinkOutline,
+  SaveOutline,
+  // Charts / data
+  RadarChartOutline,
+  RiseOutline,
+  ForkOutline,
+  // Content
+  BookOutline,
+  FileTextOutline,
+  CalendarOutline,
+  ExperimentOutline,
+  ThunderboltOutline,
+  PlusCircleOutline,
+  LoadingOutline,
 } from '@ant-design/icons-angular/icons';
 
 import { routes } from './app.routes';
@@ -97,7 +119,7 @@ registerLocaleData(vi);
 
 const icons = [
   // Layout / Shell
-  MenuFoldOutline, MenuUnfoldOutline, BellOutline,
+  MenuFoldOutline, MenuUnfoldOutline, MenuOutline, BellOutline,
   // Sidebar navigation
   DashboardOutline, TeamOutline, ApartmentOutline, ClusterOutline,
   SolutionOutline, StarOutline, UserAddOutline, AuditOutline,
@@ -106,7 +128,7 @@ const icons = [
   // Dashboard KPI
   UserOutline, SafetyCertificateOutline, WarningOutline, ClockCircleOutline, ExclamationCircleOutline,
   // Actions / CRUD
-  PlusOutline, EditOutline, DeleteOutline, EyeOutline,
+  PlusOutline, MinusOutline, EditOutline, DeleteOutline, EyeOutline,
   EyeInvisibleOutline,
   SearchOutline, UploadOutline, ExportOutline, LockOutline, CloseCircleOutline,
   // Status / misc
@@ -127,7 +149,14 @@ const icons = [
   // Talent
   KeyOutline,
   // Succession
-  InfoCircleOutline,
+  InfoCircleOutline, PartitionOutline,
+  // Navigation / misc
+  DownOutline, UpOutline, HistoryOutline, CopyOutline, LinkOutline, SaveOutline,
+  // Charts / data
+  RadarChartOutline, RiseOutline, ForkOutline,
+  // Content
+  BookOutline, FileTextOutline, CalendarOutline,
+  ExperimentOutline, ThunderboltOutline, PlusCircleOutline, LoadingOutline,
 ];
 
 export const appConfig: ApplicationConfig = {

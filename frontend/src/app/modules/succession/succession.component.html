@@ -137,12 +137,39 @@
           </div>
         }
 
-        <!-- ── SMV: vertical org-tree, always expanded ──────────── -->
-        <div class="smv-root">
-          @for (root of treeRoots(); track root.positionId) {
-            <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: root }"></ng-container>
-          }
+        <!-- ── View toggle ──────────────────────────────────────── -->
+        <div class="smv-view-toggle">
+          <button type="button" class="smv-vt-btn" [class.smv-vt-active]="smvViewMode() === 'tree'"
+            (click)="smvViewMode.set('tree')">
+            <span nz-icon nzType="partition"></span>
+            Cây dọc
+          </button>
+          <button type="button" class="smv-vt-btn" [class.smv-vt-active]="smvViewMode() === 'org'"
+            (click)="smvViewMode.set('org')">
+            <span nz-icon nzType="cluster"></span>
+            Sơ đồ ngang
+          </button>
         </div>
+
+        <!-- ── View 1: Vertical org-tree ───────────────────────── -->
+        @if (smvViewMode() === 'tree') {
+          <div class="smv-root">
+            @for (root of treeRoots(); track root.positionId) {
+              <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: root }"></ng-container>
+            }
+          </div>
+        }
+
+        <!-- ── View 2: Horizontal org chart ────────────────────── -->
+        @if (smvViewMode() === 'org') {
+          <div class="smvh-wrap">
+            <div class="smvh-forest">
+              @for (root of treeRoots(); track root.positionId) {
+                <ng-container *ngTemplateOutlet="smvhNodeTpl; context: { $implicit: root }"></ng-container>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Recursive node template -->
         <ng-template #smvNodeTpl let-node>
@@ -162,8 +189,17 @@
                 }
               </div>
               <div class="smv-tree">
-                @for (child of node.children; track child.positionId) {
-                  <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: child }"></ng-container>
+                <div class="smv-jctn-wrap">
+                  <button type="button" class="smv-jctn-btn"
+                    (click)="toggleCollapse(node.positionId, $event)"
+                    nz-tooltip [nzTooltipTitle]="isCollapsed(node.positionId) ? 'Mở rộng' : 'Thu gọn'">
+                    <span nz-icon [nzType]="isCollapsed(node.positionId) ? 'plus' : 'minus'"></span>
+                  </button>
+                </div>
+                @if (!isCollapsed(node.positionId)) {
+                  @for (child of node.children; track child.positionId) {
+                    <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: child }"></ng-container>
+                  }
                 }
               </div>
             </section>
@@ -219,13 +255,129 @@
                 }
               </div>
 
-              <!-- Child positions: recursive, indented with tree line -->
+              <!-- Child positions: toggle button on the junction line -->
               @if (node.children.length > 0) {
                 <div class="smv-children">
-                  @for (child of node.children; track child.positionId) {
-                    <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: child }"></ng-container>
+                  <div class="smv-jctn-wrap">
+                    <button type="button" class="smv-jctn-btn"
+                      (click)="toggleCollapse(node.positionId, $event)"
+                      nz-tooltip [nzTooltipTitle]="isCollapsed(node.positionId) ? 'Mở rộng' : 'Thu gọn'">
+                      <span nz-icon [nzType]="isCollapsed(node.positionId) ? 'plus' : 'minus'"></span>
+                    </button>
+                  </div>
+                  @if (!isCollapsed(node.positionId)) {
+                    @for (child of node.children; track child.positionId) {
+                      <ng-container *ngTemplateOutlet="smvNodeTpl; context: { $implicit: child }"></ng-container>
+                    }
                   }
                 </div>
+              }
+
+            </div>
+          }
+
+        </ng-template>
+
+        <!-- ══ Horizontal org-chart template ════════════════════ -->
+        <ng-template #smvhNodeTpl let-node>
+
+          @if (node.isDeptGroup) {
+            <!-- Dept group root: compact header + children in a row -->
+            <div class="smvh-item">
+              <div class="smvh-dept-card">
+                <span nz-icon nzType="bank"></span>
+                <span>{{ node.title }}</span>
+                <span class="smvh-dept-count">{{ node.children.length }}</span>
+              </div>
+              @if (node.children.length > 0) {
+                <div class="smvh-stem-wrap">
+                  <div class="smvh-stem-seg"></div>
+                  <button type="button" class="smvh-jctn-btn"
+                    (click)="toggleCollapse(node.positionId, $event)"
+                    nz-tooltip [nzTooltipTitle]="isCollapsed(node.positionId) ? 'Mở rộng' : 'Thu gọn'">
+                    <span nz-icon [nzType]="isCollapsed(node.positionId) ? 'plus' : 'minus'"></span>
+                  </button>
+                  <div class="smvh-stem-seg"></div>
+                </div>
+                @if (!isCollapsed(node.positionId)) {
+                  <div class="smvh-children-row">
+                    @for (child of node.children; track child.positionId) {
+                      <div class="smvh-child-col">
+                        <div class="smvh-child-content">
+                          <ng-container *ngTemplateOutlet="smvhNodeTpl; context: { $implicit: child }"></ng-container>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+
+          } @else {
+            <!-- Position node: dark header card + successors + children row -->
+            <div class="smvh-item" [id]="'smvh-' + node.positionId">
+
+              <div class="smvh-card smvh-crit-{{ criticalTone(node.critical_level) }}">
+                <!-- Dark header -->
+                <div class="smvh-card-head">
+                  <div class="smvh-pos-title">{{ node.title }}</div>
+                  <div class="smvh-pos-holder">{{ node.current_holder || '—' }}</div>
+                  <button type="button" class="smvh-info-btn"
+                    (click)="openPositionDrawer(node, $event)"
+                    nz-tooltip nzTooltipTitle="Chi tiết vị trí">
+                    <span nz-icon nzType="info-circle"></span>
+                  </button>
+                </div>
+
+                <!-- Successor list -->
+                @if (node.successors.length > 0) {
+                  <div class="smvh-card-succ">
+                    <div class="smvh-succ-hdr">Ứng viên kế thừa</div>
+                    @for (s of node.successors; track s.talent_id) {
+                      <div class="smvh-succ-row smvh-rd-{{ readinessTone(s.readiness) }}"
+                           role="button"
+                           (click)="openTalentPreview(s.talent_id, $event)">
+                        <div class="smvh-rd-bar"></div>
+                        <div class="smvh-succ-info">
+                          <div class="smvh-succ-name">{{ s.talent_name }}</div>
+                          <div class="smvh-succ-label">{{ readinessLabel(s.readiness) }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="smvh-card-empty">
+                    <button type="button" class="smvh-add-btn"
+                      (click)="openPositionDrawer(node, $event)">
+                      <span nz-icon nzType="plus-circle"></span>
+                      Thêm kế thừa
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <!-- Children: split stem + toggle button + horizontal row -->
+              @if (node.children.length > 0) {
+                <div class="smvh-stem-wrap">
+                  <div class="smvh-stem-seg"></div>
+                  <button type="button" class="smvh-jctn-btn"
+                    (click)="toggleCollapse(node.positionId, $event)"
+                    nz-tooltip [nzTooltipTitle]="isCollapsed(node.positionId) ? 'Mở rộng' : 'Thu gọn'">
+                    <span nz-icon [nzType]="isCollapsed(node.positionId) ? 'plus' : 'minus'"></span>
+                  </button>
+                  <div class="smvh-stem-seg"></div>
+                </div>
+                @if (!isCollapsed(node.positionId)) {
+                  <div class="smvh-children-row">
+                    @for (child of node.children; track child.positionId) {
+                      <div class="smvh-child-col">
+                        <div class="smvh-child-content">
+                          <ng-container *ngTemplateOutlet="smvhNodeTpl; context: { $implicit: child }"></ng-container>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
               }
 
             </div>

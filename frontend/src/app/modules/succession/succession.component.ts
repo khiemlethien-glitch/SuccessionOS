@@ -106,6 +106,24 @@ export class SuccessionComponent implements OnInit {
   // ─── Active tab: 0 = 9-Box, 1 = Succession Map ───────────────
   activeTabIndex = signal(0);
 
+  // ─── Succession Map view mode ─────────────────────────────────
+  smvViewMode = signal<'tree' | 'org'>('tree');
+
+  // ─── Collapse state for both SMV views (collapsed = children hidden) ──
+  collapsedNodes = signal<Set<string>>(new Set());
+
+  toggleCollapse(positionId: string, ev?: Event): void {
+    ev?.stopPropagation();
+    const next = new Set(this.collapsedNodes());
+    if (next.has(positionId)) next.delete(positionId);
+    else next.add(positionId);
+    this.collapsedNodes.set(next);
+  }
+
+  isCollapsed(positionId: string): boolean {
+    return this.collapsedNodes().has(positionId);
+  }
+
   // ─── Succession Map: role-based filter + collapse state ──────
   // Tree-level: which org-tree nodes are expanded (click to drill down)
   expandedNodes = signal<Set<string>>(new Set());
