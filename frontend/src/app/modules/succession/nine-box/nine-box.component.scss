@@ -411,6 +411,151 @@
   display: flex; flex-wrap: wrap; gap: 6px;
 }
 
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+.nb-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px 0;
+}
+
+// ── Cell info icon (ⓘ) ───────────────────────────────────────────────────────
+.nb-cell-info-btn {
+  position: absolute;
+  top: 7px; right: 36px;       // left of the count badge
+  font-size: 13px;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 4;
+  transition: color .12s;
+  &:hover { color: #6366f1; }
+}
+
+// ── Cell description popover ──────────────────────────────────────────────────
+.nb-cell-popover {
+  max-width: 260px;
+  .ncp-desc {
+    font-size: 12.5px; color: #374151; line-height: 1.5;
+    margin: 0 0 8px;
+  }
+  .ncp-act-lbl {
+    font-size: 11px; font-weight: 700; color: #6366f1;
+    margin: 0 0 4px;
+  }
+  .ncp-actions {
+    font-size: 12px; color: #6b7280; line-height: 1.5;
+    margin: 0;
+  }
+}
+
+// ── Employee avatar hover card ────────────────────────────────────────────────
+.nb-emp-hover {
+  min-width: 180px; max-width: 220px;
+  .neh-name {
+    font-size: 13px; font-weight: 700; color: #0f172a;
+    margin-bottom: 2px;
+  }
+  .neh-role {
+    font-size: 11.5px; color: #64748b;
+    margin-bottom: 6px;
+  }
+  .neh-dept {
+    font-size: 11px; color: #6b7280;
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 6px;
+    [nz-icon] { font-size: 11px; }
+  }
+  .neh-scores {
+    display: flex; gap: 10px;
+    font-size: 12px; color: #374151;
+    margin-bottom: 6px;
+    .neh-y b { color: #6366f1; }
+    .neh-x b { color: #8b5cf6; }
+  }
+  .neh-risk { margin-top: 2px; }
+}
+
+// ── Employee dept line (inside emp drawer right column) ───────────────────────
+.nb-emp-dept {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #374151;
+  [nz-icon] { color: #9ca3af; }
+}
+
+// ── Config drawer: global styles ──────────────────────────────────────────────
+::ng-deep .nb-cfg-drawer {
+  .ant-drawer-body { padding: 20px 20px 80px !important; }
+}
+
+.cfg-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; color: #4f46e5;
+  text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: 16px;
+  [nz-icon] { font-size: 14px; }
+}
+
+.cfg-row {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-bottom: 14px;
+}
+
+.cfg-lbl {
+  font-size: 13px; font-weight: 600; color: #374151;
+}
+
+.cfg-hint {
+  font-size: 11px; font-weight: 400; color: #9ca3af;
+  margin-left: 6px;
+}
+
+.cfg-thresh-row {
+  display: flex; align-items: center; gap: 10px;
+  nz-input-number { width: 100px; }
+}
+
+.cfg-thresh-sep {
+  font-size: 16px; color: #9ca3af; font-weight: 300;
+}
+
+.cfg-radio-vert {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Cell blocks in config drawer
+.cfg-cell-block {
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 12px 14px 6px;
+  margin-bottom: 12px;
+  background: #fafafa;
+}
+
+.cfg-cell-hd {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cfg-cell-num {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: #e0e7ff; color: #4f46e5;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0;
+}
+
+.cfg-cell-preview {
+  font-size: 13px; font-weight: 700; color: #0f172a;
+}
+
+.cfg-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 20px 0 8px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 16px;
+}
+
 // ── nz-drawer: Box detail (global styles via nzWrapClassName) ────────────────
 ::ng-deep .nb-box-drawer {
   .ant-drawer-body { padding: 16px !important; }

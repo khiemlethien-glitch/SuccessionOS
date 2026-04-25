@@ -56,11 +56,19 @@ export class SuccessionService {
   }
 
   private async _fetchNineBox() {
-    const { data, error } = await this.sb
-      .from('v_nine_box')
-      .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box');
-    if (error) { console.error('[SuccessionService.getNineBox]', error); return []; }
-    return data ?? [];
+    const [boxRes, deptRes] = await Promise.all([
+      this.sb.from('v_nine_box')
+        .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box'),
+      this.sb.from('departments').select('id, name'),
+    ]);
+    if (boxRes.error) { console.error('[SuccessionService.getNineBox]', boxRes.error); return []; }
+    const deptMap = new Map<string, string>(
+      (deptRes.data ?? []).map((d: { id: string; name: string }) => [d.id, d.name])
+    );
+    return (boxRes.data ?? []).map((r: any) => ({
+      ...r,
+      department_name: deptMap.get(r.department_id) ?? '—',
+    }));
   }
 
   async upsertPlan(payload: any) {

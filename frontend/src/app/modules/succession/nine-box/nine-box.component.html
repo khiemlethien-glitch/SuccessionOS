@@ -1,3 +1,11 @@
+<!-- ══ Toolbar ════════════════════════════════════════════════════ -->
+<div class="nb-toolbar">
+  <button nz-button nzSize="small" (click)="openConfig()">
+    <span nz-icon nzType="setting"></span>
+    Cấu hình 9-Grid
+  </button>
+</div>
+
 <div class="nb-root">
 
   <!-- ══ Y-axis ══════════════════════════════════════════════════ -->
@@ -5,7 +13,7 @@
     <span class="nb-y-lbl">Cao</span>
     <span class="nb-y-lbl">TB</span>
     <span class="nb-y-lbl">Thấp</span>
-    <span class="nb-y-arrow">↑ Hiệu suất</span>
+    <span class="nb-y-arrow">↑ {{ config().yAxisTitle }}</span>
   </div>
 
   <!-- ══ Grid + X-axis ═══════════════════════════════════════════ -->
@@ -24,9 +32,30 @@
           <!-- Count badge -->
           <span class="nb-count">{{ cell.employees.length }}</span>
 
+          <!-- Info icon (ⓘ) — shown when description is configured -->
+          @if (cellCfg(cell.id).description) {
+            <span class="nb-cell-info-btn"
+                  nz-popover
+                  [nzPopoverContent]="cellDescTpl"
+                  nzPopoverTrigger="hover"
+                  nzPopoverPlacement="rightTop"
+                  (click)="$event.stopPropagation()">
+              <span nz-icon nzType="info-circle" nzTheme="outline"></span>
+            </span>
+            <ng-template #cellDescTpl>
+              <div class="nb-cell-popover">
+                <p class="ncp-desc">{{ cellCfg(cell.id).description }}</p>
+                @if (cellCfg(cell.id).actions) {
+                  <p class="ncp-act-lbl">💡 Hành động đề xuất</p>
+                  <p class="ncp-actions">{{ cellCfg(cell.id).actions }}</p>
+                }
+              </div>
+            </ng-template>
+          }
+
           <!-- Cell name + subtitle -->
-          <div class="nb-cell-name">{{ cell.name }}</div>
-          <div class="nb-cell-sub">{{ cell.sub }}</div>
+          <div class="nb-cell-name">{{ cellCfg(cell.id).name }}</div>
+          <div class="nb-cell-sub">{{ cellCfg(cell.id).sub }}</div>
 
           <div class="nb-divider"></div>
 
@@ -35,10 +64,34 @@
             <div class="nb-av-wrap">
               @for (emp of cell.employees.slice(0, 14); track emp.id) {
                 <div class="nb-av"
-                     [nz-tooltip]="emp.name"
+                     nz-popover
+                     [nzPopoverContent]="empHoverTpl"
+                     nzPopoverTrigger="hover"
+                     nzPopoverPlacement="top"
                      (click)="openEmpFromAvatar(emp, $event)">
                   {{ emp.initials }}
                 </div>
+                <ng-template #empHoverTpl>
+                  <div class="nb-emp-hover">
+                    <div class="neh-name">{{ emp.name }}</div>
+                    <div class="neh-role">{{ emp.role }}</div>
+                    @if (emp.department !== '—') {
+                      <div class="neh-dept">
+                        <span nz-icon nzType="bank" nzTheme="outline"></span>
+                        {{ emp.department }}
+                      </div>
+                    }
+                    <div class="neh-scores">
+                      <span class="neh-y">{{ config().yAxisTitle }}: <b>{{ emp.perf }}</b></span>
+                      <span class="neh-x">{{ config().xAxisTitle }}: <b>{{ emp.pot }}</b></span>
+                    </div>
+                    @if (emp.riskBand && emp.riskBand !== '—') {
+                      <div class="neh-risk">
+                        <nz-tag [nzColor]="riskColor(emp.riskBand)" style="margin:0">{{ emp.riskBand }}</nz-tag>
+                      </div>
+                    }
+                  </div>
+                </ng-template>
               }
               @if (cell.employees.length > 14) {
                 <div class="nb-av nb-av-more">+{{ cell.employees.length - 14 }}</div>
@@ -60,7 +113,7 @@
       <span class="nb-x-lbl">Thấp</span>
       <span class="nb-x-lbl">TB</span>
       <span class="nb-x-lbl">Cao</span>
-      <span class="nb-x-arrow">Tiềm năng →</span>
+      <span class="nb-x-arrow">{{ config().xAxisTitle }} →</span>
     </div>
 
   </div><!-- /nb-grid-col -->
@@ -76,7 +129,7 @@
   <div class="nb-scatter">
     <div class="nb-scatter-hd">
       <div>
-        <div class="nb-scatter-title">{{ sc.name }}</div>
+        <div class="nb-scatter-title">{{ cellCfg(sc.id).name }}</div>
         <div class="nb-scatter-sub">{{ sc.employees.length }} nhân viên</div>
       </div>
       <button class="nb-x-btn" (click)="closeScatter()">×</button>
@@ -87,8 +140,8 @@
       <div class="nb-sg-h"></div>
       <div class="nb-sg-v"></div>
       <!-- Axis corner labels -->
-      <span class="nb-sa nb-sa-tl">H.suất</span>
-      <span class="nb-sa nb-sa-br">T.năng</span>
+      <span class="nb-sa nb-sa-tl">{{ config().yAxisTitle }}</span>
+      <span class="nb-sa nb-sa-br">{{ config().xAxisTitle }}</span>
       <span class="nb-sa nb-sa-tr">Cao</span>
       <span class="nb-sa nb-sa-bl">Thấp</span>
       <!-- Dots -->
@@ -96,7 +149,7 @@
         <div class="nb-dot"
              [style.left.%]="dotX(emp, sc)"
              [style.top.%]="dotY(emp, sc)"
-             [nz-tooltip]="emp.name + ' · H' + emp.perf + ' T' + emp.pot"
+             [nz-tooltip]="emp.name + ' · Y:' + emp.perf + ' X:' + emp.pot"
              (click)="openEmpFromCell(emp)">
           {{ emp.initials }}
         </div>
@@ -122,8 +175,8 @@
       <div class="bm-title-row">
         <span class="bm-num" [ngClass]="'tone-' + cellTone(cell.id)">{{ cell.id }}</span>
         <div>
-          <div class="bm-title">{{ cell.name }}</div>
-          <div class="bm-sub">{{ cell.sub }} · {{ cell.employees.length }} người</div>
+          <div class="bm-title">{{ cellCfg(cell.id).name }}</div>
+          <div class="bm-sub">{{ cellCfg(cell.id).sub }} · {{ cell.employees.length }} người</div>
         </div>
       </div>
     }
@@ -301,7 +354,7 @@
         <div class="nb-bars-lg">
           <div class="nb-bar-row-lg">
             <div class="nb-bar-meta">
-              <span class="nb-bar-lbl-lg">Hiệu suất</span>
+              <span class="nb-bar-lbl-lg">{{ config().yAxisTitle }}</span>
               <span class="nb-bar-val-lg nb-val-perf">{{ emp.perf }}</span>
             </div>
             <div class="nb-bar-track-lg">
@@ -310,7 +363,7 @@
           </div>
           <div class="nb-bar-row-lg">
             <div class="nb-bar-meta">
-              <span class="nb-bar-lbl-lg">Tiềm năng</span>
+              <span class="nb-bar-lbl-lg">{{ config().xAxisTitle }}</span>
               <span class="nb-bar-val-lg nb-val-pot">{{ emp.pot }}</span>
             </div>
             <div class="nb-bar-track-lg">
@@ -337,6 +390,15 @@
           </div>
         </div>
 
+        <!-- Department -->
+        @if (emp.department && emp.department !== '—') {
+          <div class="nb-emp-col-label" style="margin-top:20px">Phòng ban</div>
+          <div class="nb-emp-dept">
+            <span nz-icon nzType="bank" nzTheme="outline"></span>
+            {{ emp.department }}
+          </div>
+        }
+
         @if (emp.tags.length) {
           <div class="nb-emp-col-label" style="margin-top:20px">Phân loại</div>
           <div class="nb-tags">
@@ -350,3 +412,143 @@
     </div><!-- /nb-emp-cols -->
   </div>
 }
+
+<!-- ══ Config Drawer ════════════════════════════════════════════ -->
+<nz-drawer
+  [nzVisible]="configOpen()"
+  (nzOnClose)="closeConfig()"
+  nzTitle="Cấu hình 9-Grid"
+  nzPlacement="right"
+  nzWidth="520px"
+  [nzZIndex]="1600"
+  [nzMask]="true"
+  nzWrapClassName="nb-cfg-drawer"
+>
+  <ng-container *nzDrawerContent>
+
+    <!-- ── Section: Trục ──────────────────────────────────── -->
+    <div class="cfg-section-title">
+      <span nz-icon nzType="column-width"></span>
+      Trục & Nguồn dữ liệu
+    </div>
+
+    <!-- Y axis -->
+    <div class="cfg-row">
+      <label class="cfg-lbl">Tiêu đề trục Y <span class="cfg-hint">(dọc — hàng)</span></label>
+      <input nz-input [(ngModel)]="draft.yAxisTitle" placeholder="Hiệu suất">
+    </div>
+    <div class="cfg-row">
+      <label class="cfg-lbl">Trường nguồn trục Y</label>
+      <nz-select [(ngModel)]="draft.yField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
+    </div>
+    <div class="cfg-row">
+      <label class="cfg-lbl">
+        Ngưỡng trục Y
+        <span class="cfg-hint">Thấp &lt; {{ draft.yLo }} ≤ TB &lt; {{ draft.yHi }} ≤ Cao</span>
+      </label>
+      <div class="cfg-thresh-row">
+        <nz-input-number
+          [(ngModel)]="draft.yLo"
+          [nzMin]="1" [nzMax]="draft.yHi - 1" [nzStep]="1"
+          nzPlaceHolder="Thấp→TB">
+        </nz-input-number>
+        <span class="cfg-thresh-sep">→</span>
+        <nz-input-number
+          [(ngModel)]="draft.yHi"
+          [nzMin]="draft.yLo + 1" [nzMax]="99" [nzStep]="1"
+          nzPlaceHolder="TB→Cao">
+        </nz-input-number>
+      </div>
+    </div>
+
+    <nz-divider></nz-divider>
+
+    <!-- X axis -->
+    <div class="cfg-row">
+      <label class="cfg-lbl">Tiêu đề trục X <span class="cfg-hint">(ngang — cột)</span></label>
+      <input nz-input [(ngModel)]="draft.xAxisTitle" placeholder="Tiềm năng">
+    </div>
+    <div class="cfg-row">
+      <label class="cfg-lbl">Trường nguồn trục X</label>
+      <nz-select [(ngModel)]="draft.xField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
+    </div>
+    <div class="cfg-row">
+      <label class="cfg-lbl">
+        Ngưỡng trục X
+        <span class="cfg-hint">Thấp &lt; {{ draft.xLo }} ≤ TB &lt; {{ draft.xHi }} ≤ Cao</span>
+      </label>
+      <div class="cfg-thresh-row">
+        <nz-input-number
+          [(ngModel)]="draft.xLo"
+          [nzMin]="1" [nzMax]="draft.xHi - 1" [nzStep]="1"
+          nzPlaceHolder="Thấp→TB">
+        </nz-input-number>
+        <span class="cfg-thresh-sep">→</span>
+        <nz-input-number
+          [(ngModel)]="draft.xHi"
+          [nzMin]="draft.xLo + 1" [nzMax]="99" [nzStep]="1"
+          nzPlaceHolder="TB→Cao">
+        </nz-input-number>
+      </div>
+    </div>
+
+    <nz-divider></nz-divider>
+
+    <!-- Placement rule -->
+    <div class="cfg-row">
+      <label class="cfg-lbl">Quy tắc xếp ô</label>
+      <nz-radio-group [(ngModel)]="draft.placementRule" class="cfg-radio-vert">
+        <label nz-radio nzValue="auto">Tự động tính từ điểm + ngưỡng</label>
+        <label nz-radio nzValue="db_box">Dùng cột "box" từ database (ưu tiên DB, fallback auto)</label>
+      </nz-radio-group>
+    </div>
+
+    <nz-divider></nz-divider>
+
+    <!-- ── Section: Cells ─────────────────────────────────── -->
+    <div class="cfg-section-title">
+      <span nz-icon nzType="appstore"></span>
+      Tên & Mô tả 9 ô
+    </div>
+
+    @for (id of cellOrder; track id) {
+      <div class="cfg-cell-block">
+        <div class="cfg-cell-hd">
+          <span class="cfg-cell-num">{{ id }}</span>
+          <span class="cfg-cell-preview">{{ draft.cells[id]?.name }}</span>
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Tên ô</label>
+          <input nz-input [(ngModel)]="draft.cells[id].name">
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Mô tả ngắn <span class="cfg-hint">(hiển thị dưới tên)</span></label>
+          <input nz-input [(ngModel)]="draft.cells[id].sub">
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Mô tả chi tiết <span class="cfg-hint">(hiện khi hover ⓘ)</span></label>
+          <textarea nz-input [(ngModel)]="draft.cells[id].description"
+                    [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Hành động đề xuất</label>
+          <textarea nz-input [(ngModel)]="draft.cells[id].actions"
+                    [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
+        </div>
+      </div>
+    }
+
+    <!-- Footer -->
+    <div class="cfg-footer">
+      <button nz-button nzType="default" (click)="resetConfig()">
+        <span nz-icon nzType="reload"></span>
+        Đặt lại mặc định
+      </button>
+      <button nz-button nzType="primary" (click)="applyConfig()">
+        <span nz-icon nzType="check"></span>
+        Áp dụng
+      </button>
+    </div>
+
+  </ng-container>
+</nz-drawer>
