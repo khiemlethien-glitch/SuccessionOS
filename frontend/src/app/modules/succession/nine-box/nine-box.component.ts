@@ -4,6 +4,8 @@ import { RouterLink } from '@angular/router';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface NbEmployee {
@@ -58,11 +60,19 @@ function getInitials(name: string): string {
 
 function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
 
+/** Compute box number 1–9 from perf + pot scores using equal thirds (0–33 / 34–66 / 67–100).
+ *  Used as fallback when the DB's `box` column is null or out-of-range. */
+function computeBox(perf: number, pot: number): number {
+  const pTier = perf >= 67 ? 3 : perf >= 34 ? 2 : 1;
+  const qTier = pot  >= 67 ? 3 : pot  >= 34 ? 2 : 1;
+  return (pTier - 1) * 3 + qTier;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 @Component({
   selector: 'app-nine-box',
   standalone: true,
-  imports: [CommonModule, RouterLink, NzIconModule, NzTagModule, NzTooltipModule],
+  imports: [CommonModule, RouterLink, NzIconModule, NzTagModule, NzTooltipModule, NzDrawerModule, AvatarComponent],
   templateUrl: './nine-box.component.html',
   styleUrl: './nine-box.component.scss',
   host: { ngSkipHydration: 'true' },
@@ -76,14 +86,18 @@ export class NineBoxComponent implements OnChanges {
   ngOnChanges(): void {
     const empMap = new Map<number, NbEmployee[]>();
     for (const t of this.rawTalents) {
-      const box = t.box as number;
-      if (!box || box < 1 || box > 9) continue;
+      const perf = Math.round(t.performance_score ?? 0);
+      const pot  = Math.round(t.potential_score   ?? 0);
+      // Prefer DB's box if valid; fall back to client-side computation from scores
+      const dbBox = t.box as number;
+      const box = (dbBox >= 1 && dbBox <= 9) ? dbBox : computeBox(perf, pot);
+      if (box < 1 || box > 9) continue;
       const emp: NbEmployee = {
         id:         t.id,
         name:       t.full_name ?? '—',
         initials:   getInitials(t.full_name ?? ''),
-        perf:       Math.round(t.performance_score ?? 0),
-        pot:        Math.round(t.potential_score ?? 0),
+        perf,
+        pot,
         role:       t.position ?? t.talent_tier ?? '—',
         tags:       [t.talent_tier, t.risk_band].filter(Boolean),
         stability:  RISK_STABILITY[t.risk_band]   ?? 50,
@@ -109,12 +123,30 @@ export class NineBoxComponent implements OnChanges {
   scatterCell     = signal<CellDef | null>(null);
   activeEmployee  = signal<NbEmployee | null>(null);
 
-  hasOverlay = computed(() => !!this.activeCell() || !!this.activeEmployee());
+  // Show overlay when anything is open — dims grid but stays below scatter+drawer
+  hasOverlay = computed(() => !!this.scatterCell() || !!this.activeCell() || !!this.activeEmployee());
 
   // Top-3 by total score for the active cell drawer
   top3 = computed<NbEmployee[]>(() =>
     (this.activeCell()?.employees ?? []).slice(0, 3)
   );
+
+  // Podium order: 2nd · 1st · 3rd (for star box display)
+  podiumOrder = computed<(NbEmployee | null)[]>(() => {
+    const h = this.top3();
+    return [h[1] ?? null, h[0] ?? null, h[2] ?? null];
+  });
+
+  // ── Box category helpers ──────────────────────────────────────
+  isStarCell  = (id: number) => id === 9;
+  isTopCell   = (id: number) => [6, 7, 8].includes(id);
+  isBottomCell= (id: number) => [1, 2, 4].includes(id);
+
+  private readonly TONE_MAP: Record<number, string> = {
+    9: 'star', 8: 'great', 6: 'great', 5: 'core',
+    7: 'risk', 4: 'watch', 3: 'risk', 2: 'watch', 1: 'low',
+  };
+  cellTone(id: number): string { return this.TONE_MAP[id] ?? 'core'; }
 
   // ── Actions ───────────────────────────────────────────────────
   openCell(cell: CellDef): void {
@@ -132,7 +164,8 @@ export class NineBoxComponent implements OnChanges {
   /** Clicked employee row inside cell drawer */
   openEmpFromCell(emp: NbEmployee): void {
     this.activeEmployee.set(emp);
-    this.activeCell.set(null);   // close cell drawer; scatter stays
+    this.scatterCell.set(null); // close scatter — employee drawer takes the space
+    setTimeout(() => this.activeCell.set(null), 50);
   }
 
   /** Clicked avatar directly on the grid */
@@ -154,8 +187,10 @@ export class NineBoxComponent implements OnChanges {
   onOverlayClick(): void {
     if (this.activeEmployee()) {
       this.closeEmployee();
-    } else {
+    } else if (this.activeCell()) {
       this.closeCell();
+    } else {
+      this.closeScatter();
     }
   }
 

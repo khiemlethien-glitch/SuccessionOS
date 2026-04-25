@@ -20,7 +20,6 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Talent, SuccessionPlan, KeyPosition, Successor, ReadinessLevel } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
-import { NineBoxComponent } from './nine-box/nine-box.component';
 
 interface TreeNode {
   positionId: string;
@@ -67,7 +66,7 @@ interface DeptDensity {
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
     NzDrawerModule, NzButtonModule, NzSelectModule, NzTreeSelectModule,
     NzModalModule, NzTooltipModule,
-    AvatarComponent, TalentPreviewDrawerComponent, NineBoxComponent,
+    AvatarComponent, TalentPreviewDrawerComponent,
   ],
   templateUrl: './succession.component.html',
   styleUrl: './succession.component.scss',

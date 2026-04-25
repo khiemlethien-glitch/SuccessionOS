@@ -22,6 +22,7 @@ import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
+import { NineBoxComponent } from '../succession/nine-box/nine-box.component';
 
 type SortCol  = 'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
 type SortDir  = 'desc' | 'asc';
@@ -49,7 +50,7 @@ const DEFAULT_POT:  [number, number] = [70, 85];
     NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
     NzPaginationModule, NzTabsModule, NzDrawerModule, NzSliderModule,
     NzTreeSelectModule,
-    AvatarComponent, TierBadgeComponent, TalentPreviewDrawerComponent,
+    AvatarComponent, TierBadgeComponent, TalentPreviewDrawerComponent, NineBoxComponent,
   ],
   templateUrl: './talent-list.component.html',
   styleUrl: './talent-list.component.scss',
@@ -117,8 +118,10 @@ export class TalentListComponent implements OnInit {
   showScaleModal = signal(false);
 
   // ─── 9-Box: modal signals ─────────────────────────────────────────────────
-  activeBox    = signal<BoxDef | null>(null);
-  boxModalOpen = signal(false);
+  activeBox         = signal<BoxDef | null>(null);
+  boxModalOpen      = signal(false);
+  scatterOpen       = signal(false);         // scatter panel beside drawer
+  drawerEmpSelected = signal<Talent | null>(null); // employee detail in drawer
 
   private TOP_BOXES    = new Set([5, 6, 7]);
   private BOTTOM_BOXES = new Set([1, 2, 4]);
@@ -174,7 +177,7 @@ export class TalentListComponent implements OnInit {
   readonly boxTalentsSorted = computed<Talent[]>(() => {
     const box = this.activeBox();
     if (!box) return [];
-    const list = this.nineboxTalents().filter(t => (t as any).box === box.num);
+    const list = this.nineboxTalents().filter(t => this._boxNum(t) === box.num);
     if (this.isBottomBox(box.num))
       return [...list].sort((a, b) => this.combined(a) - this.combined(b));
     return [...list].sort((a, b) => this.combined(b) - this.combined(a));
@@ -269,8 +272,14 @@ export class TalentListComponent implements OnInit {
     if (score >= thresholds[0]) return 2;
     return 1;
   }
+  /** Compute box number (1–9) client-side from current thresholds */
+  private _boxNum(t: Talent): number {
+    const pTier = this.scoreTier(t.performance_score ?? 0, this.perfThresholds());
+    const qTier = this.scoreTier(t.potential_score   ?? 0, this.potThresholds());
+    return (pTier - 1) * 3 + qTier;
+  }
   talentsInBox(b: BoxDef): Talent[] {
-    return this.nineboxTalents().filter(t => (t as any).box === b.num);
+    return this.nineboxTalents().filter(t => this._boxNum(t) === b.num);
   }
   private combined(t: Talent): number {
     return ((t.performance_score ?? 0) + (t.potential_score ?? 0)) / 2;
@@ -308,9 +317,75 @@ export class TalentListComponent implements OnInit {
     ev?.stopPropagation();
     this.activeBox.set(box);
     this.boxModalOpen.set(true);
+    this.scatterOpen.set(true);
+    this.drawerEmpSelected.set(null);
   }
-  closeBoxModal():             void { this.boxModalOpen.set(false); this.activeBox.set(null); }
+  closeBoxModal(): void {
+    this.boxModalOpen.set(false);
+    this.activeBox.set(null);
+    this.scatterOpen.set(false);
+    this.drawerEmpSelected.set(null);
+  }
+  closeScatterPanel(): void { this.scatterOpen.set(false); }
   openTalentFromModal(id: string): void { this.closeBoxModal(); this.openTalentPreview(id); }
+
+  /** Select an employee inside the drawer → show detail + radar */
+  selectEmpInDrawer(t: Talent, ev?: Event): void {
+    ev?.stopPropagation();
+    this.drawerEmpSelected.set(t);
+  }
+  backToDrawerList(): void { this.drawerEmpSelected.set(null); }
+
+  // ─── Scatter dot positions (clamped 8%–88% within the cell's sub-range) ──
+  private _scatterRange(level: number, thresholds: [number, number]): [number, number] {
+    if (level === 1) return [0, thresholds[0]];
+    if (level === 2) return [thresholds[0], thresholds[1]];
+    return [thresholds[1], 100];
+  }
+  scatterDotX(t: Talent): number {
+    const box = this.activeBox();
+    if (!box) return 48;
+    const [min, max] = this._scatterRange(box.col, this.potThresholds());
+    const v = Math.max(min, Math.min(max, t.potential_score ?? 0));
+    return max === min ? 48 : 8 + (v - min) / (max - min) * 80;
+  }
+  scatterDotY(t: Talent): number {
+    const box = this.activeBox();
+    if (!box) return 48;
+    const [min, max] = this._scatterRange(box.row, this.perfThresholds());
+    const v = Math.max(min, Math.min(max, t.performance_score ?? 0));
+    return max === min ? 48 : 88 - (v - min) / (max - min) * 80;
+  }
+
+  // ─── Radar chart helpers ──────────────────────────────────────────────────
+  readonly radarBgPts   = '75,19 131,75 75,131 19,75';
+  readonly radarRingPts = [0.75, 0.5, 0.25].map(f => {
+    const r = 56 * f;
+    return `${75},${75-r} ${75+r},${75} ${75},${75+r} ${75-r},${75}`;
+  });
+  readonly radarAxes: [number,number,number,number][] = [
+    [75,75,75,19],[75,75,131,75],[75,75,75,131],[75,75,19,75],
+  ];
+  private _riskStab(t: Talent): number {
+    const rb = (t as any).risk_band;
+    return rb === 'Low' ? 82 : rb === 'High' ? 22 : 52;
+  }
+  private _tierComp(t: Talent): number {
+    return t.talent_tier === 'Nòng cốt' ? 88 : t.talent_tier === 'Tiềm năng' ? 70 : 50;
+  }
+  radarPts(t: Talent): string {
+    const r = 56; const cx = 75; const cy = 75;
+    const pot  = (t.potential_score   ?? 0) / 100 * r;
+    const perf = (t.performance_score ?? 0) / 100 * r;
+    const stab = this._riskStab(t)  / 100 * r;
+    const comp = this._tierComp(t)  / 100 * r;
+    return `${cx},${cy-pot} ${cx+perf},${cy} ${cx},${cy+stab} ${cx-comp},${cy}`;
+  }
+  getInitials(name: string): string {
+    const p = (name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return '?';
+    return p.length === 1 ? p[0][0].toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase();
+  }
 
   // ─── Talent preview drawer ────────────────────────────────────────────────
   openTalentPreview(id: string, ev?: Event): void {

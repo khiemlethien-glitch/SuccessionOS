@@ -1,7 +1,35 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Org chart hierarchy fix (migration SQL ready, chờ user chạy)
+> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: restore old drawer design (nz-drawer + podium/highlight/list)
+
+---
+
+## ⚡ 9-Box Grid — Fix empty data (2026-04-25) — ✅ DONE
+
+### Vấn đề
+- `NineBoxComponent` ở tab "9-Box Grid" trên trang `/talent` hiển thị **0 nhân viên** trong mọi cell.
+- Root cause: `SuccessionService.getNineBox()` query trên `v_nine_box` bao gồm column `position` không tồn tại trong view → PostgREST trả về lỗi → service catch → return `[]` → `nineboxTalents` rỗng.
+
+### Fix
+- Bỏ `position` khỏi `.select()` trong `_fetchNineBox()`:
+  ```ts
+  // Before:
+  .select('id, full_name, position, performance_score, ...')
+  // After:
+  .select('id, full_name, performance_score, ...')
+  ```
+- `NineBoxComponent` đã có fallback: `t.position ?? t.talent_tier ?? '—'` → khi `position` undefined, hiển thị `talent_tier`.
+
+### Files thay đổi
+- `frontend/src/app/core/services/data/succession.service.ts` — bỏ `position` khỏi select
+
+### Kiến trúc 9-Box hiện tại (Talent page, tab index 0)
+- **Data source**: `v_nine_box` (500 rows từ Supabase) — không bị RLS block
+- **Component**: `NineBoxComponent` (standalone) ở `modules/succession/nine-box/`
+- **Wiring**: `talent-list.component.ts` gọi `successionSvc.getNineBox()` → pass vào `[rawTalents]`
+- **Box placement**: ưu tiên DB `box` column → fallback `computeBox(perf, pot)` client-side (equal thirds 0–33/34–66/67–100)
+- **UI**: scatter panel (fixed right:340px) + cell drawer (fixed right:0 width:320px) + employee detail + radar SVG 4-axis
 
 ---
 
