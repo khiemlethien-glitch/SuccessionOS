@@ -272,14 +272,14 @@ export class NineBoxComponent implements OnChanges {
         initials:   getInitials(t.full_name ?? ''),
         perf:       yScore,
         pot:        xScore,
-        role:       t.position ?? t.talent_tier ?? '—',
+        role:       t.position      ?? t.talent_tier ?? '—',
         tags:       [t.talent_tier, t.risk_band].filter(Boolean),
         stability:  RISK_STABILITY[t.risk_band]    ?? 50,
         competency: TIER_COMPETENCY[t.talent_tier] ?? 50,
         department: t.department_name  ?? '—',
         riskBand:   t.risk_band        ?? '—',
-        empCode:    t.employee_code    ?? null,
-        readiness:  t.readiness        ?? null,
+        empCode:    null,
+        readiness:  t.readiness_level  ?? null,
       };
       const list = empMap.get(box) ?? [];
       list.push(emp);
