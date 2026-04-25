@@ -1,7 +1,7 @@
 <!-- ══ Toolbar ════════════════════════════════════════════════════ -->
 <div class="nb-toolbar">
-  <button nz-button nzSize="small" (click)="openConfig()">
-    <span nz-icon nzType="setting"></span>
+  <button class="nb-cfg-btn" (click)="openConfig()">
+    <span class="nb-cfg-btn-ico" nz-icon nzType="setting" nzTheme="fill"></span>
     Cấu hình 9-Grid
   </button>
 </div>
@@ -425,127 +425,148 @@
   nzWrapClassName="nb-cfg-drawer"
 >
   <ng-container *nzDrawerContent>
+    <div class="cfg-body">
 
-    <!-- ── Section: Trục ──────────────────────────────────── -->
-    <div class="cfg-section-title">
-      <span nz-icon nzType="column-width"></span>
-      Trục & Nguồn dữ liệu
-    </div>
-
-    <!-- Y axis -->
-    <div class="cfg-row">
-      <label class="cfg-lbl">Tiêu đề trục Y <span class="cfg-hint">(dọc — hàng)</span></label>
-      <input nz-input [(ngModel)]="draft.yAxisTitle" placeholder="Hiệu suất">
-    </div>
-    <div class="cfg-row">
-      <label class="cfg-lbl">Trường nguồn trục Y</label>
-      <nz-select [(ngModel)]="draft.yField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
-    </div>
-    <div class="cfg-row">
-      <label class="cfg-lbl">
-        Ngưỡng trục Y
-        <span class="cfg-hint">Thấp &lt; {{ draft.yLo }} ≤ TB &lt; {{ draft.yHi }} ≤ Cao</span>
-      </label>
-      <div class="cfg-thresh-row">
-        <nz-input-number
-          [(ngModel)]="draft.yLo"
-          [nzMin]="1" [nzMax]="draft.yHi - 1" [nzStep]="1"
-          nzPlaceHolder="Thấp→TB">
-        </nz-input-number>
-        <span class="cfg-thresh-sep">→</span>
-        <nz-input-number
-          [(ngModel)]="draft.yHi"
-          [nzMin]="draft.yLo + 1" [nzMax]="99" [nzStep]="1"
-          nzPlaceHolder="TB→Cao">
-        </nz-input-number>
+      <!-- ── Section: Trục ──────────────────────────────────── -->
+      <div class="cfg-section-title">
+        <span nz-icon nzType="column-width"></span>
+        Trục & Nguồn dữ liệu
       </div>
-    </div>
 
-    <nz-divider></nz-divider>
-
-    <!-- X axis -->
-    <div class="cfg-row">
-      <label class="cfg-lbl">Tiêu đề trục X <span class="cfg-hint">(ngang — cột)</span></label>
-      <input nz-input [(ngModel)]="draft.xAxisTitle" placeholder="Tiềm năng">
-    </div>
-    <div class="cfg-row">
-      <label class="cfg-lbl">Trường nguồn trục X</label>
-      <nz-select [(ngModel)]="draft.xField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
-    </div>
-    <div class="cfg-row">
-      <label class="cfg-lbl">
-        Ngưỡng trục X
-        <span class="cfg-hint">Thấp &lt; {{ draft.xLo }} ≤ TB &lt; {{ draft.xHi }} ≤ Cao</span>
-      </label>
-      <div class="cfg-thresh-row">
-        <nz-input-number
-          [(ngModel)]="draft.xLo"
-          [nzMin]="1" [nzMax]="draft.xHi - 1" [nzStep]="1"
-          nzPlaceHolder="Thấp→TB">
-        </nz-input-number>
-        <span class="cfg-thresh-sep">→</span>
-        <nz-input-number
-          [(ngModel)]="draft.xHi"
-          [nzMin]="draft.xLo + 1" [nzMax]="99" [nzStep]="1"
-          nzPlaceHolder="TB→Cao">
-        </nz-input-number>
-      </div>
-    </div>
-
-    <nz-divider></nz-divider>
-
-    <!-- Placement rule -->
-    <div class="cfg-row">
-      <label class="cfg-lbl">Quy tắc xếp ô</label>
-      <nz-radio-group [(ngModel)]="draft.placementRule" class="cfg-radio-vert">
-        <label nz-radio nzValue="auto">Tự động tính từ điểm + ngưỡng</label>
-        <label nz-radio nzValue="db_box">Dùng cột "box" từ database (ưu tiên DB, fallback auto)</label>
-      </nz-radio-group>
-    </div>
-
-    <nz-divider></nz-divider>
-
-    <!-- ── Section: Cells ─────────────────────────────────── -->
-    <div class="cfg-section-title">
-      <span nz-icon nzType="appstore"></span>
-      Tên & Mô tả 9 ô
-    </div>
-
-    @for (id of cellOrder; track id) {
-      <div class="cfg-cell-block">
-        <div class="cfg-cell-hd">
-          <span class="cfg-cell-num">{{ id }}</span>
-          <span class="cfg-cell-preview">{{ draft.cells[id]?.name }}</span>
+      <!-- Y axis card -->
+      <div class="cfg-axis-card">
+        <div class="cfg-axis-title">
+          <span class="cfg-axis-badge y">Y</span>
+          Trục dọc (Hàng)
         </div>
         <div class="cfg-row">
-          <label class="cfg-lbl">Tên ô</label>
-          <input nz-input [(ngModel)]="draft.cells[id].name">
+          <label class="cfg-lbl">Tiêu đề hiển thị</label>
+          <input nz-input [(ngModel)]="draft.yAxisTitle" placeholder="Hiệu suất">
         </div>
         <div class="cfg-row">
-          <label class="cfg-lbl">Mô tả ngắn <span class="cfg-hint">(hiển thị dưới tên)</span></label>
-          <input nz-input [(ngModel)]="draft.cells[id].sub">
+          <label class="cfg-lbl">Trường dữ liệu</label>
+          <nz-select [(ngModel)]="draft.yField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
         </div>
         <div class="cfg-row">
-          <label class="cfg-lbl">Mô tả chi tiết <span class="cfg-hint">(hiện khi hover ⓘ)</span></label>
-          <textarea nz-input [(ngModel)]="draft.cells[id].description"
-                    [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
-        </div>
-        <div class="cfg-row">
-          <label class="cfg-lbl">Hành động đề xuất</label>
-          <textarea nz-input [(ngModel)]="draft.cells[id].actions"
-                    [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
+          <label class="cfg-lbl">
+            Ngưỡng phân tầng
+            <span class="cfg-hint">Thấp / TB / Cao</span>
+          </label>
+          <div class="cfg-thresh-row">
+            <span class="cfg-thresh-label">Thấp</span>
+            <nz-input-number [(ngModel)]="draft.yLo"
+              [nzMin]="1" [nzMax]="draft.yHi - 1" [nzStep]="1">
+            </nz-input-number>
+            <span class="cfg-thresh-sep">·</span>
+            <nz-input-number [(ngModel)]="draft.yHi"
+              [nzMin]="draft.yLo + 1" [nzMax]="99" [nzStep]="1">
+            </nz-input-number>
+            <span class="cfg-thresh-label">Cao</span>
+          </div>
         </div>
       </div>
-    }
 
-    <!-- Footer -->
+      <!-- X axis card -->
+      <div class="cfg-axis-card">
+        <div class="cfg-axis-title">
+          <span class="cfg-axis-badge x">X</span>
+          Trục ngang (Cột)
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Tiêu đề hiển thị</label>
+          <input nz-input [(ngModel)]="draft.xAxisTitle" placeholder="Tiềm năng">
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">Trường dữ liệu</label>
+          <nz-select [(ngModel)]="draft.xField" [nzOptions]="fieldOptions" style="width:100%"></nz-select>
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-lbl">
+            Ngưỡng phân tầng
+            <span class="cfg-hint">Thấp / TB / Cao</span>
+          </label>
+          <div class="cfg-thresh-row">
+            <span class="cfg-thresh-label">Thấp</span>
+            <nz-input-number [(ngModel)]="draft.xLo"
+              [nzMin]="1" [nzMax]="draft.xHi - 1" [nzStep]="1">
+            </nz-input-number>
+            <span class="cfg-thresh-sep">·</span>
+            <nz-input-number [(ngModel)]="draft.xHi"
+              [nzMin]="draft.xLo + 1" [nzMax]="99" [nzStep]="1">
+            </nz-input-number>
+            <span class="cfg-thresh-label">Cao</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placement rule -->
+      <div class="cfg-row" style="margin-bottom:0">
+        <label class="cfg-lbl">Quy tắc xếp ô</label>
+      </div>
+      <div class="cfg-rule-card">
+        <nz-radio-group [(ngModel)]="draft.placementRule" class="cfg-radio-vert">
+          <label nz-radio nzValue="auto" class="cfg-radio-opt">
+            <span class="cfg-radio-text">
+              <span class="cfg-radio-main">Tự động theo ngưỡng</span>
+              <span class="cfg-radio-sub">Tính từ điểm số + ngưỡng đã cấu hình phía trên</span>
+            </span>
+          </label>
+          <label nz-radio nzValue="db_box" class="cfg-radio-opt">
+            <span class="cfg-radio-text">
+              <span class="cfg-radio-main">Dùng cột "box" từ database</span>
+              <span class="cfg-radio-sub">Ưu tiên giá trị DB, fallback sang tự động nếu null</span>
+            </span>
+          </label>
+        </nz-radio-group>
+      </div>
+
+      <!-- ── Section: Cells ─────────────────────────────────── -->
+      <div class="cfg-section-title" style="margin-top:8px">
+        <span nz-icon nzType="appstore"></span>
+        Tên & Mô tả 9 ô lưới
+      </div>
+
+      <div class="cfg-cells-grid">
+        @for (id of cellOrder; track id) {
+          <div class="cfg-cell-block">
+            <div class="cfg-cell-hd">
+              <span class="cfg-cell-num">{{ id }}</span>
+              <span class="cfg-cell-preview">{{ draft.cells[id]?.name }}</span>
+            </div>
+            <div class="cfg-cell-fields">
+              <div class="cfg-row">
+                <label class="cfg-lbl">Tên ô</label>
+                <input nz-input [(ngModel)]="draft.cells[id].name">
+              </div>
+              <div class="cfg-row">
+                <label class="cfg-lbl">Mô tả ngắn <span class="cfg-hint">dưới tên ô</span></label>
+                <input nz-input [(ngModel)]="draft.cells[id].sub">
+              </div>
+              <div class="cfg-row">
+                <label class="cfg-lbl">Mô tả chi tiết <span class="cfg-hint">hover ⓘ</span></label>
+                <textarea nz-input [(ngModel)]="draft.cells[id].description"
+                          [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
+              </div>
+              <div class="cfg-row">
+                <label class="cfg-lbl">Hành động đề xuất</label>
+                <textarea nz-input [(ngModel)]="draft.cells[id].actions"
+                          [nzAutosize]="{minRows:2, maxRows:4}"></textarea>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+    </div><!-- /cfg-body -->
+
+    <!-- Sticky footer -->
     <div class="cfg-footer">
-      <button nz-button nzType="default" (click)="resetConfig()">
+      <button class="cfg-footer-reset" (click)="resetConfig()">
         <span nz-icon nzType="reload"></span>
         Đặt lại mặc định
       </button>
-      <button nz-button nzType="primary" (click)="applyConfig()">
-        <span nz-icon nzType="check"></span>
+      <button class="cfg-footer-apply" (click)="applyConfig()">
+        <span nz-icon nzType="check-circle" nzTheme="fill"></span>
         Áp dụng
       </button>
     </div>
