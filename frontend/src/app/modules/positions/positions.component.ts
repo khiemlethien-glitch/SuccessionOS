@@ -128,14 +128,25 @@ export class PositionsComponent implements OnInit {
     return this.allEmployees().filter(e => e.department_id === deptId);
   });
 
-  /** Auto-suggest holder khi chọn dept + title: tìm employee khớp cả 2. */
-  private autoHolder = computed<EmpOpt | null>(() => {
-    const d = this.draft();
-    if (!d.department || !d.title) return null;
-    return this.allEmployees().find(e =>
-      e.department_id === d.department && e.position === d.title
-    ) ?? null;
+  /**
+   * Khi chọn title từ dropdown → tìm nhân viên duy nhất đang giữ chức danh đó.
+   * Dùng để auto-fill dept + holder và lock 2 field này.
+   */
+  readonly titleMatchedEmployee = computed<EmpOpt | null>(() => {
+    const title = this.draft().title;
+    if (!title) return null;
+    const matches = this.allEmployees().filter(e => e.position === title);
+    return matches.length >= 1 ? matches[0] : null;
   });
+
+  /**
+   * Fields phòng ban + đương nhiệm bị lock khi:
+   *   - đang ở CREATE mode VÀ title khớp với nhân viên trong hệ thống
+   * Trong EDIT mode vẫn có thể chỉnh sửa (e.g., đương nhiệm mới thay thế).
+   */
+  readonly isFieldLocked = computed<boolean>(() =>
+    !this.isEditMode() && this.titleMatchedEmployee() !== null
+  );
 
   readonly allCompetencies: Competency[] = [
     { key: 'technical',       label: 'Chuyên môn kỹ thuật',  icon: 'tool' },
@@ -570,13 +581,55 @@ export class PositionsComponent implements OnInit {
 
   updateDraft<K extends keyof NewPositionDraft>(key: K, value: NewPositionDraft[K]): void {
     this.draft.update(d => ({ ...d, [key]: value }));
-    // Auto-fill đương nhiệm khi chọn title hoặc dept thay đổi và người dùng chưa gán manual
-    if (key === 'title' || key === 'department') {
-      const suggested = this.autoHolder();
-      if (suggested) {
-        this.draft.update(d => ({ ...d, current_holder: suggested.full_name, current_holder_id: suggested.id }));
-      }
+    if (key === 'title') {
+      this._applyTitleAutoFill(value as string);
     }
+  }
+
+  /** Khi chọn title: auto-fill + lock dept/holder; load comps từ vị trí đã có nếu match. */
+  private _applyTitleAutoFill(title: string): void {
+    if (!title) {
+      // Title bị xóa → reset dept + holder
+      this.draft.update(d => ({ ...d, department: null, current_holder: '', current_holder_id: null }));
+      return;
+    }
+    // titleMatchedEmployee computed đã cập nhật vì draft.title đã được set
+    const emp = this.titleMatchedEmployee();
+    if (emp) {
+      this.draft.update(d => ({
+        ...d,
+        department:        emp.department_id ?? null,
+        current_holder:    emp.full_name,
+        current_holder_id: emp.id,
+      }));
+    }
+    // Nếu đã có key_position với title này → auto-load competencies + scores
+    const existingPos = this.positions().find(p => p.title === title);
+    if (existingPos) {
+      this._loadCompetenciesFromPosition(existingPos);
+    }
+  }
+
+  /** Load competencies + target scores từ một KeyPosition đã có vào form state. */
+  private _loadCompetenciesFromPosition(pos: KeyPosition): void {
+    const rawKeys = pos.required_competencies ?? [];
+    const matched = rawKeys
+      .map(r => this.resolveCompMeta(r))
+      .filter((m): m is Competency => m !== undefined);
+    const seen = new Set<string>();
+    const dedup = matched.filter(c => seen.has(c.key) ? false : (seen.add(c.key), true));
+    this.selectedCompetencies.set(dedup);
+    this.availableCompetencies.set(this.allCompetencies.filter(c => !seen.has(c.key)));
+
+    // Load + canonicalize scores
+    const raw = pos.competency_scores ?? {};
+    const canon: Record<string, number> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v == null) continue;
+      const meta = this.resolveCompMeta(k);
+      canon[meta?.key ?? k] = v as number;
+    }
+    this.competencyScores.set(canon);
   }
 
   /** Khi user chọn employee từ dropdown "Đương nhiệm" — lưu cả id + name. */
@@ -864,6 +917,22 @@ export class PositionsComponent implements OnInit {
     if (r === 'Ready Now') return '#52c41a';
     if (r === 'Ready in 1 Year') return '#1890ff';
     return '#faad14';
+  }
+
+  /**
+   * Tạo vị trí mới rồi mở ngay Find Successor modal.
+   * Chỉ dùng ở CREATE mode.
+   */
+  async submitAndFindSuccessor(): Promise<void> {
+    if (!this.canSubmit()) return;
+    const titleToFind = this.draft().title.trim();
+    await this.submit(); // tạo vị trí + thêm vào positions() + đóng form
+    // Tìm vị trí vừa tạo theo title để set viewingPosition cho Find Successor
+    const newPos = this.positions().find(p => p.title === titleToFind);
+    if (newPos) {
+      this.viewingPosition.set(newPos);
+      await this.openFindSuccessor();
+    }
   }
 
   async submit(): Promise<void> {

@@ -461,32 +461,62 @@
               <nz-option [nzValue]="t" [nzLabel]="t"></nz-option>
             }
           </nz-select>
+
+          <!-- Auto-fill notice -->
+          @if (isFieldLocked()) {
+            <div class="m-autofill-banner">
+              <span nz-icon nzType="check-circle" nzTheme="fill" class="m-af-ico"></span>
+              Tự động điền từ hồ sơ nhân viên
+              <span class="m-af-sep">·</span>
+              <strong>{{ titleMatchedEmployee()?.full_name }}</strong>
+            </div>
+          }
         </div>
 
         <!-- Row 2: Dept + Holder -->
         <div class="m-row-2">
           <div class="m-field">
-            <label class="m-label"><span class="m-label-dot"></span> Phòng ban <span class="m-req">*</span></label>
-            <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn phòng ban…"
-              [ngModel]="draft().department" (ngModelChange)="updateDraft('department', $event)">
-              @for (d of allDepts(); track d.id) {
-                <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
+            <label class="m-label">
+              <span class="m-label-dot"></span> Phòng ban <span class="m-req">*</span>
+              @if (isFieldLocked()) {
+                <span class="m-locked-chip"><span nz-icon nzType="lock"></span> Cố định</span>
               }
-            </nz-select>
+            </label>
+            @if (isFieldLocked()) {
+              <div class="m-locked-val">
+                <span nz-icon nzType="bank" class="m-locked-ico"></span>
+                {{ allDepts().find(d => d.id === draft().department)?.name ?? '—' }}
+              </div>
+            } @else {
+              <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn phòng ban…"
+                [ngModel]="draft().department" (ngModelChange)="updateDraft('department', $event)">
+                @for (d of allDepts(); track d.id) {
+                  <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
+                }
+              </nz-select>
+            }
           </div>
           <div class="m-field">
             <label class="m-label">
               <span class="m-label-dot"></span> Đương nhiệm <span class="m-req">*</span>
-              @if (draft().current_holder_id && empOptionsForDept().length > 0) {
-                <span class="m-hint">Đã tự gợi ý từ phòng ban</span>
+              @if (isFieldLocked()) {
+                <span class="m-locked-chip"><span nz-icon nzType="lock"></span> Cố định</span>
               }
             </label>
-            <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn nhân viên đang giữ vị trí…"
-              [ngModel]="draft().current_holder_id" (ngModelChange)="selectHolder($event)">
-              @for (e of empOptionsForDept(); track e.id) {
-                <nz-option [nzValue]="e.id" [nzLabel]="e.full_name + ' — ' + e.position"></nz-option>
-              }
-            </nz-select>
+            @if (isFieldLocked()) {
+              <div class="m-locked-val">
+                <app-avatar [name]="draft().current_holder" [size]="22"></app-avatar>
+                <span class="m-locked-name">{{ draft().current_holder }}</span>
+                <span class="m-locked-pos">{{ titleMatchedEmployee()?.position }}</span>
+              </div>
+            } @else {
+              <nz-select class="m-sel" nzShowSearch nzAllowClear nzPlaceHolder="Chọn nhân viên đang giữ vị trí…"
+                [ngModel]="draft().current_holder_id" (ngModelChange)="selectHolder($event)">
+                @for (e of empOptionsForDept(); track e.id) {
+                  <nz-option [nzValue]="e.id" [nzLabel]="e.full_name + ' — ' + e.position"></nz-option>
+                }
+              </nz-select>
+            }
           </div>
         </div>
 
@@ -632,6 +662,23 @@
         }
         <div class="m-footer-right">
           <button nz-button nzType="default" class="m-btn m-btn-cancel" (click)="exitToView()">Hủy</button>
+
+          <!-- EDIT mode: Tìm người kế nhiệm standalone -->
+          @if (isEditMode()) {
+            <button nz-button nzType="default" class="m-btn m-btn-successor"
+              (click)="openFindSuccessor()">
+              <span nz-icon nzType="search"></span> Tìm người kế nhiệm
+            </button>
+          }
+
+          <!-- CREATE mode: Tạo & Tìm người kế nhiệm (kết hợp 2 bước) -->
+          @if (!isEditMode()) {
+            <button nz-button nzType="default" class="m-btn m-btn-successor"
+              [disabled]="!canSubmit()" (click)="submitAndFindSuccessor()">
+              <span nz-icon nzType="team"></span> Tạo & Tìm kế nhiệm
+            </button>
+          }
+
           <button nz-button nzType="primary" class="m-btn m-btn-submit"
             [disabled]="!canSubmit()" (click)="submit()">
             <span nz-icon nzType="check"></span> {{ submitLabel() }}
