@@ -351,13 +351,18 @@
             </div>
             <div class="dc-group dc-filter">
               <span class="dc-label">Phòng ban</span>
-              <nz-select class="dc-sel" [ngModel]="densityDeptFilter()"
-                         (ngModelChange)="densityDeptFilter.set($event)"
-                         nzAllowClear nzPlaceHolder="Tất cả">
-                @for (d of densityDeptOptions(); track d) {
-                  <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
-                }
-              </nz-select>
+              <nz-tree-select
+                class="dc-sel dc-tree-sel"
+                [nzNodes]="densityDeptNodes()"
+                [ngModel]="densityDeptFilter()"
+                (ngModelChange)="densityDeptFilter.set($event)"
+                nzCheckable
+                nzShowSearch
+                nzAllowClear
+                nzDefaultExpandAll
+                nzPlaceHolder="Tất cả"
+                nzShowCheckedStrategy="SHOW_ALL"
+              ></nz-tree-select>
             </div>
             <!-- Legend -->
             <div class="dc-legend">

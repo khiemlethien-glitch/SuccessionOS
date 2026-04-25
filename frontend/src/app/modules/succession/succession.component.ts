@@ -9,10 +9,11 @@ import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { EmployeeService } from '../../core/services/data/employee.service';
+import { EmployeeService, DeptTreeNode } from '../../core/services/data/employee.service';
 import { KeyPositionService } from '../../core/services/data/key-position.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { AuthService } from '../../core/auth/auth.service';
@@ -37,6 +38,7 @@ interface PositionDensity {
   positionId:    string;
   positionTitle: string;
   department:    string;
+  department_id: string;
   criticalLevel: string;
   currentHolder: string;
   readyNow:      number;
@@ -62,7 +64,7 @@ interface DeptDensity {
   imports: [
     CommonModule, FormsModule, RouterLink,
     NzTabsModule, NzTagModule, NzIconModule, NzCollapseModule,
-    NzDrawerModule, NzButtonModule, NzSelectModule,
+    NzDrawerModule, NzButtonModule, NzSelectModule, NzTreeSelectModule,
     NzModalModule, NzTooltipModule,
     AvatarComponent, TalentPreviewDrawerComponent,
   ],
@@ -234,8 +236,8 @@ export class SuccessionComponent implements OnInit {
   // ─── Density tab: configurable thresholds ─────────────────────────────────
   densityTargetReadyNow = signal(2);   // ngưỡng minimum Ready Now
   densityTargetTotal    = signal(7);   // ngưỡng minimum tổng ứng viên
-  densityDeptFilter     = signal('');  // '' = all depts
-  densityDeptOptions    = signal<string[]>([]);   // full dept list from API
+  densityDeptFilter     = signal<string[]>([]);     // [] = all depts
+  densityDeptNodes      = signal<DeptTreeNode[]>([]); // tree nodes for tree-select
 
   // Drill-down drawer
   densityDrawerOpen = signal(false);
@@ -271,9 +273,10 @@ export class SuccessionComponent implements OnInit {
       else                                                  tone = 'low';
 
       return {
-        positionId: pos.id,
+        positionId:    pos.id,
         positionTitle: pos.title,
         department:    pos.department ?? '—',
+        department_id: pos.department_id ?? '',
         criticalLevel: pos.critical_level ?? '—',
         currentHolder: pos.current_holder ?? '—',
         readyNow, ready1Year, ready2Years, total, successors, tone,
@@ -290,7 +293,7 @@ export class SuccessionComponent implements OnInit {
 
     for (const row of rows) {
       const dept = row.department || 'Khác';
-      if (filter && dept !== filter) continue;
+      if (filter.length > 0 && !filter.includes(row.department_id)) continue;
       const list = map.get(dept) ?? [];
       list.push(row);
       map.set(dept, list);
@@ -616,10 +619,10 @@ export class SuccessionComponent implements OnInit {
       const positions = await this.positionSvc.getAll();
       this.positions.set(positions as any);
     } catch {}
-    // Dept list for density filter dropdown
+    // Dept tree for density filter tree-select
     try {
-      const depts = await this.employeeSvc.getDeptOptions();
-      this.densityDeptOptions.set(depts.map(d => d.name).sort((a, b) => a.localeCompare(b, 'vi')));
+      const nodes = await this.employeeSvc.getDeptTree();
+      this.densityDeptNodes.set(nodes);
     } catch {}
 
     // ── Deep-link: ?tab=map&positionId=xxx (từ trang Positions) ──
