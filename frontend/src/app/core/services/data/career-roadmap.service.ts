@@ -221,32 +221,30 @@ export class CareerRoadmapService {
    * it is never included in the browser bundle or visible in DevTools.
    */
   async callOpenAI(talent: Talent, track: 'expert' | 'manager'): Promise<CareerRoadmap> {
-    // Get the current session JWT to authenticate against the Edge Function
-    const { data: sessionData } = await this.sb.client.auth.getSession();
-    const token = sessionData.session?.access_token ?? environment.supabase.anonKey;
+    const apiKey = environment.openaiKey;
+    if (!apiKey) throw new Error('OpenAI key chưa được cấu hình');
 
-    const edgeFnUrl = `${environment.supabase.url}/functions/v1/generate-roadmap`;
-
-    const resp = await fetch(edgeFnUrl, {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'apikey': environment.supabase.anonKey,
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
+        model:           'gpt-4o',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user',   content: buildUserPrompt(talent, track) },
         ],
+        response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens:  4000,
       }),
     });
 
     if (!resp.ok) {
       const body = await resp.text();
-      throw new Error(`AI service ${resp.status}: ${body}`);
+      throw new Error(`OpenAI ${resp.status}: ${body}`);
     }
 
     const json = await resp.json();

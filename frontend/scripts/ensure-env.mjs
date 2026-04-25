@@ -25,8 +25,9 @@ const pairs = [
 ];
 
 const replacements = {
-  SUPABASE_URL:      { key: 'url',     value: process.env['SUPABASE_URL'] },
-  SUPABASE_ANON_KEY: { key: 'anonKey', value: process.env['SUPABASE_ANON_KEY'] },
+  SUPABASE_URL:      { key: 'url',       value: process.env['SUPABASE_URL'] },
+  SUPABASE_ANON_KEY: { key: 'anonKey',   value: process.env['SUPABASE_ANON_KEY'] },
+  OPENAI_KEY:        { key: 'openaiKey', value: process.env['OPENAI_KEY'] },
 };
 
 for (const [template, target] of pairs) {
