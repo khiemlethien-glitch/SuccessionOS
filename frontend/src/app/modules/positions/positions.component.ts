@@ -108,10 +108,8 @@ export class PositionsComponent implements OnInit {
     this.isEditMode() ? 'Lưu thay đổi' : 'Tạo vị trí'
   );
 
-  /** Admin hoặc Line Manager được phép chỉnh sửa */
-  readonly canEdit = computed(() =>
-    this.auth.isAdmin() || this.auth.hasRole('Line Manager')
-  );
+  /** Prototype: mọi user đã xác thực đều được chỉnh sửa. Backend sẽ enforce real RBAC. */
+  readonly canEdit = computed(() => this.auth.isAuthenticated());
 
   draft = signal<NewPositionDraft>({
     title: '',
@@ -397,6 +395,14 @@ export class PositionsComponent implements OnInit {
       }
     }
 
+    // Deep-link từ Succession drawer: ?drawer=<positionId>
+    // → mở đúng drawer vị trí đó ở view mode
+    const drawerParam = this.route.snapshot.queryParamMap.get('drawer');
+    if (drawerParam && !gapPosId && !deepPosId) {
+      const targetPos = (positions as any[]).find(p => p.id === drawerParam);
+      if (targetPos) this.openPositionView(targetPos as any);
+    }
+
     this.loading.set(false);
   }
 
@@ -453,10 +459,6 @@ export class PositionsComponent implements OnInit {
   enterEditMode(): void {
     const p = this.viewingPosition();
     if (!p) return;
-    if (!this.canEdit()) {
-      this.msg.warning('Chỉ Admin và Line Manager được phép chỉnh sửa');
-      return;
-    }
     this.editingId.set(p.id);
     const deptId = this.allDepts().find(d => d.name === p.department)?.id ?? null;
     const holderEmp = this.allEmployees().find(e => e.full_name === p.current_holder) ?? null;

@@ -156,6 +156,7 @@ export class SuccessionComponent implements OnInit {
   closePositionDrawer(): void {
     this.positionDrawerOpen.set(false);
     this.addSuccessorOpen.set(false);
+    this.gapPanelSuccessor.set(null);
   }
 
   // ── Add successor inline form ───────────────────────────────────────────────
@@ -185,12 +186,73 @@ export class SuccessionComponent implements OnInit {
     this.addSuccessorOpen.set(true);
   }
 
-  /** Điều hướng sang /positions với modal "Tìm người kế thừa" tự mở cho vị trí đã chọn */
-  navigateToFindSuccessor(positionId: string, ev: Event): void {
+  /** Mở Pipeline Builder modal — thay thế navigate sang /positions */
+  openPipelineBuilder(node: TreeNode, ev: Event): void {
     ev.stopPropagation();
-    this.router.navigate(['/positions'], {
-      queryParams: { posId: positionId, openFinder: 'true' }
-    });
+    this.pbPositionId.set(node.positionId);
+    this.pbPositionTitle.set(node.title);
+    this.pbSearch.set(''); this.pbDeptFilter.set(null);
+    this.pbTierFilter.set(null); this.pbAdded.set(new Map());
+    this.pbOpen.set(true);
+  }
+
+  closePipelineBuilder(): void { this.pbOpen.set(false); this.pbSaving.set(false); }
+
+  pbToggleAdd(talentId: string, name: string, readiness: ReadinessLevel): void {
+    const next = new Map(this.pbAdded());
+    const existing = next.get(talentId);
+    if (existing?.readiness === readiness) { next.delete(talentId); }
+    else { next.set(talentId, { name, readiness }); }
+    this.pbAdded.set(next);
+  }
+
+  pbRemove(talentId: string): void {
+    const next = new Map(this.pbAdded()); next.delete(talentId); this.pbAdded.set(next);
+  }
+
+  pbClearAll(): void { this.pbAdded.set(new Map()); }
+
+  get pbAddedCount(): number { return this.pbAdded().size; }
+
+  pbColCount(readiness: ReadinessLevel): number {
+    let c = 0;
+    for (const v of this.pbAdded().values()) if (v.readiness === readiness) c++;
+    return c;
+  }
+
+  pbColEntries(readiness: ReadinessLevel): { talentId: string; name: string }[] {
+    const out: { talentId: string; name: string }[] = [];
+    for (const [id, v] of this.pbAdded()) if (v.readiness === readiness) out.push({ talentId: id, name: v.name });
+    return out;
+  }
+
+  pbIsAdded(talentId: string, readiness: ReadinessLevel): boolean {
+    return this.pbAdded().get(talentId)?.readiness === readiness;
+  }
+
+  async pbConfirm(): Promise<void> {
+    const node = this.drawerNode();
+    if (!node) return;
+    this.pbSaving.set(true);
+    const added = this.pbAdded();
+    let priority = node.successors.length + 1;
+    const newSuccessors: Successor[] = [];
+    for (const [talentId, { name, readiness }] of added) {
+      try {
+        await this.successionSvc.upsertPlan({
+          position_id: node.positionId, talent_id: talentId,
+          readiness, priority, gap_score: 0,
+        });
+        newSuccessors.push({ talent_id: talentId, talent_name: name, readiness, priority, gap_score: 0 });
+        priority++;
+      } catch {}
+    }
+    if (newSuccessors.length) {
+      this.drawerNode.set({ ...node, successors: [...node.successors, ...newSuccessors] });
+      this.msg.success(`Đã thêm ${newSuccessors.length} người vào pipeline`);
+    }
+    this.pbSaving.set(false);
+    this.closePipelineBuilder();
   }
 
   cancelAddSuccessor(): void { this.addSuccessorOpen.set(false); }
@@ -690,4 +752,166 @@ export class SuccessionComponent implements OnInit {
   lastName(fullName: string): string {
     return fullName.trim().split(/\s+/).pop() ?? fullName;
   }
+
+  // ── Gap Panel (inline trong drawer) ────────────────────────────────────
+  gapPanelSuccessor = signal<(Successor & { talent: Talent | null }) | null>(null);
+
+  openGapPanel(s: Successor & { talent: Talent | null }, ev: Event): void {
+    ev.stopPropagation();
+    this.gapPanelSuccessor.set(s);
+  }
+
+  closeGapPanel(): void { this.gapPanelSuccessor.set(null); }
+
+  gapFitScore(gapScore: number | undefined | null): number {
+    if (gapScore == null) return 50;
+    return Math.max(0, Math.min(100, 100 - gapScore));
+  }
+
+  // ── Pipeline Health stats (from drawerNode successors) ─────────────────
+  private readonly BENCH_TARGET = 2;
+
+  drawerReadyNow = computed(() =>
+    this.drawerSuccessorTalents().filter(s => s.readiness === 'Ready Now').length);
+  drawerReady1Y = computed(() =>
+    this.drawerSuccessorTalents().filter(s => s.readiness === 'Ready in 1 Year').length);
+  drawerReady2Y = computed(() =>
+    this.drawerSuccessorTalents().filter(s => s.readiness === 'Ready in 2 Years').length);
+
+  drawerReadyNowPct = computed(() =>
+    Math.min(100, this.drawerReadyNow() / Math.max(this.BENCH_TARGET, 1) * 100));
+  drawerReady1YPct  = computed(() =>
+    Math.min(100, this.drawerReady1Y()  / Math.max(this.BENCH_TARGET, 1) * 100));
+  drawerReady2YPct  = computed(() =>
+    Math.min(100, this.drawerReady2Y()  / Math.max(this.BENCH_TARGET, 1) * 100));
+
+  drawerAvgGap = computed<string>(() => {
+    const succs = this.drawerSuccessorTalents();
+    if (!succs.length) return '—';
+    const with$ = succs.filter(s => s.gap_score != null);
+    if (!with$.length) return '—';
+    return (with$.reduce((s, c) => s + (c.gap_score ?? 0), 0) / with$.length).toFixed(0);
+  });
+
+  drawerCoverageLabel = computed<string>(() => {
+    const rn    = this.drawerReadyNow();
+    const total = this.drawerSuccessorTalents().length;
+    if (total === 0) return 'Trống';
+    if (rn >= 2)     return 'Tốt';
+    if (rn === 1)    return 'Trung bình';
+    return 'Yếu';
+  });
+
+  drawerCoverageTone = computed<string>(() => {
+    const l = this.drawerCoverageLabel();
+    if (l === 'Tốt')        return 'cov-ok';
+    if (l === 'Trung bình') return 'cov-warn';
+    if (l === 'Trống')      return 'cov-empty';
+    return 'cov-low';
+  });
+
+  // ── Pipeline Builder signals ────────────────────────────────────────────
+  pbOpen          = signal(false);
+  pbPositionId    = signal<string | null>(null);
+  pbPositionTitle = signal('');
+  pbSearch        = signal('');
+  pbDeptFilter    = signal<string | null>(null);
+  pbTierFilter    = signal<string | null>(null);
+  pbAdded         = signal<Map<string, { name: string; readiness: ReadinessLevel }>>(new Map());
+  pbSaving        = signal(false);
+
+  readonly pbColumns = [
+    { key: 'rn', readiness: 'Ready Now'        as ReadinessLevel, label: 'Sẵn sàng ngay', tone: 'green'  },
+    { key: 'r1', readiness: 'Ready in 1 Year'  as ReadinessLevel, label: '1–2 năm',        tone: 'amber'  },
+    { key: 'r2', readiness: 'Ready in 2 Years' as ReadinessLevel, label: '3–5 năm',        tone: 'orange' },
+  ];
+
+  pbAvailableTalents = computed<Talent[]>(() => {
+    const node   = this.drawerNode();
+    const taken  = new Set(node?.successors.map(s => s.talent_id) ?? []);
+    const added  = this.pbAdded();
+    const search = this.pbSearch().toLowerCase().trim();
+    const dept   = this.pbDeptFilter();
+    const tier   = this.pbTierFilter();
+    return this.talents().filter(t => {
+      if (taken.has(t.id) || added.has(t.id)) return false;
+      if (search && !t.full_name.toLowerCase().includes(search)) return false;
+      if (dept && t.department !== dept) return false;
+      if (tier && (t as any).talent_tier !== tier) return false;
+      return true;
+    });
+  });
+
+  pbDeptOptions = computed<string[]>(() => {
+    const depts = new Set(this.talents().map(t => t.department).filter(Boolean) as string[]);
+    return [...depts].sort((a, b) => a.localeCompare(b, 'vi'));
+  });
+
+  tierLabel(t: Talent): string { return (t as any).talent_tier ?? '—'; }
+  tierTone(t: Talent): string {
+    const tier = (t as any).talent_tier;
+    if (tier === 'Core')      return 'core';
+    if (tier === 'Potential') return 'potential';
+    if (tier === 'Successor') return 'successor';
+    return 'none';
+  }
+
+  // ── Bench Strength ─────────────────────────────────────────────────────────
+  benchScore = computed(() => {
+    const t = this.BENCH_TARGET;
+    return Math.round(
+      Math.min(this.drawerReadyNow() / t, 1) * 40 +
+      Math.min(this.drawerReady1Y()  / t, 1) * 35 +
+      Math.min(this.drawerReady2Y()  / t, 1) * 25
+    );
+  });
+
+  benchDonutGradient = computed(() => {
+    const total = this.drawerSuccessorTalents().length;
+    if (total === 0) return 'conic-gradient(#e5e7eb 0% 100%)';
+    const pRN = this.drawerReadyNow() / total * 100;
+    const pR1 = pRN + this.drawerReady1Y() / total * 100;
+    const pR2 = pR1 + this.drawerReady2Y() / total * 100;
+    return `conic-gradient(#10b981 0% ${pRN}%, #f59e0b ${pRN}% ${pR1}%, #f97316 ${pR1}% ${pR2}%, #e5e7eb ${pR2}% 100%)`;
+  });
+
+  // Candidate aggregate stats
+  drawerCandidateDepts = computed(() => {
+    const depts = new Set(
+      this.drawerSuccessorTalents()
+        .map(s => s.talent?.department)
+        .filter((d): d is string => !!d)
+    );
+    return depts.size;
+  });
+
+  drawerHPCount = computed(() =>
+    this.drawerSuccessorTalents().filter(s => (s.talent?.performance_score ?? 0) >= 7).length
+  );
+  drawerHNCount = computed(() =>
+    this.drawerSuccessorTalents().filter(s => (s.talent?.potential_score ?? 0) >= 7).length
+  );
+
+  // ── Risk Dashboard ──────────────────────────────────────────────────────────
+  drawerHolderRisk = computed<'high' | 'medium' | 'low'>(() => {
+    const t  = this.drawerHolderTalent();
+    const rn = this.drawerReadyNow();
+    if (!t) return rn === 0 ? 'medium' : 'low';
+    const rs = t.risk_score ?? 0;
+    if (rs >= 70 || (rn === 0 && rs >= 40)) return 'high';
+    if (rs >= 40 || rn === 0)               return 'medium';
+    return 'low';
+  });
+
+  drawerHolderRiskLabel = computed(() => {
+    const r = this.drawerHolderRisk();
+    return r === 'high' ? 'CAO' : r === 'medium' ? 'TRUNG BÌNH' : 'THẤP';
+  });
+
+  drawerTransferReadiness = computed<{ label: string; tone: string }>(() => {
+    const rn = this.drawerReadyNow();
+    if (rn >= 2) return { label: 'Có thể chuyển giao ngay', tone: 'ok' };
+    if (rn === 1) return { label: 'Có thể chuyển giao, có rủi ro', tone: 'warn' };
+    return { label: 'Chưa thể chuyển giao', tone: 'danger' };
+  });
 }

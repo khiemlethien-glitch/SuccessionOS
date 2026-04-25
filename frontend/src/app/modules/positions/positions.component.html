@@ -318,13 +318,12 @@
           <div class="m-hero-sub">{{ p.department }}</div>
         </div>
         <div class="m-hero-actions">
-          @if (canEdit()) {
-            <button type="button" class="view-edit-btn"
-              (click)="enterEditMode()"
-              nz-tooltip nzTooltipTitle="Chỉnh sửa vị trí">
-              <span nz-icon nzType="edit"></span>
-            </button>
-          }
+          <button type="button" class="view-edit-btn"
+            (click)="enterEditMode()"
+            nz-tooltip nzTooltipTitle="Chỉnh sửa vị trí">
+            <span nz-icon nzType="edit"></span>
+            <span class="view-edit-label">Sửa</span>
+          </button>
           <button type="button" class="m-hero-close" (click)="closeAddModal()" title="Đóng">
             <span nz-icon nzType="close"></span>
           </button>
@@ -426,7 +425,40 @@
               </button>
             </div>
           }
+        </div>
 
+        <!-- Lộ trình phát triển — Coming soon -->
+        <div class="view-section vs-coming-soon">
+          <div class="view-section-title">
+            <span nz-icon nzType="rocket"></span> Lộ Trình Phát Triển
+            <span class="vs-cs-badge">Coming soon</span>
+          </div>
+          <div class="vs-cs-body">
+            <div class="vs-cs-item">
+              <span nz-icon nzType="file-done" class="vs-cs-ico"></span>
+              <span>Kế hoạch phát triển cá nhân (IDP) của từng kế thừa</span>
+            </div>
+            <div class="vs-cs-item">
+              <span nz-icon nzType="rise" class="vs-cs-ico"></span>
+              <span>Tiến độ đạt mục tiêu năng lực theo thời gian</span>
+            </div>
+            <div class="vs-cs-item">
+              <span nz-icon nzType="calendar" class="vs-cs-ico"></span>
+              <span>Timeline phát triển: 6 tháng / 1 năm / 2 năm</span>
+            </div>
+            <div class="vs-cs-item">
+              <span nz-icon nzType="heart" class="vs-cs-ico"></span>
+              <span>Mentoring &amp; coaching plan</span>
+            </div>
+            <div class="vs-cs-item">
+              <span nz-icon nzType="read" class="vs-cs-ico"></span>
+              <span>Gợi ý chương trình đào tạo phù hợp</span>
+            </div>
+            <div class="vs-cs-cta">
+              <span nz-icon nzType="lock"></span>
+              Coming soon
+            </div>
+          </div>
         </div>
 
       </div>

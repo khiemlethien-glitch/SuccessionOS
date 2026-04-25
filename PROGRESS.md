@@ -1,7 +1,120 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: Department filter toolbar
+> Cập nhật lần cuối: 2026-04-25 — Succession drawer v2 (Bench Strength donut + Risk Dashboard + /positions deep-link + Market Intelligence)
+---
+
+## ⚡ Succession Drawer v2 — Strategic view (2026-04-25) — ✅ DONE
+
+### Layout
+```
+[HERO sticky]
+[① Pipeline Health bars]
+[② Bench Strength — CSS donut + aggregate stats]
+[③ Risk Dashboard — holder risk + chuyển giao readiness]
+[④ Người đương nhiệm]
+[⑤ → Link to /positions?drawer=positionId]
+[⑥ Market Intelligence — Coming Soon Phase 2]
+```
+
+### Tính năng mới
+- **Bench Strength Score (0-100)**: tính từ readiness counts vs BENCH_TARGET (40% RN + 35% 1Y + 25% 2Y). Hiện màu xanh/vàng/đỏ theo ngưỡng 70/40.
+- **CSS conic-gradient donut**: chia 3 màu tier (green/amber/orange), không cần chart library.
+- **Aggregate stats**: Ứng viên · Phòng ban · HP/HN cao · Avg gap — 1 dòng dưới donut.
+- **Risk Dashboard**: tính từ `holder.risk_score` + `drawerReadyNow()`. Transfer readiness: Có thể chuyển giao ngay / có rủi ro / Chưa thể.
+- **Deep-link /positions**: click → `/positions?drawer=positionId` → positions page tự mở đúng drawer.
+- **Market Intelligence** (Coming Soon): 4 items greyed-out + hatch pattern, Phase 2 badge.
+- **Xóa section Ứng viên kế thừa** (cards list) — thay bằng aggregate stats trong Bench Strength.
+
+### Files thay đổi
+- `succession.component.ts`: thêm `benchScore`, `benchDonutGradient`, `drawerCandidateDepts`, `drawerHPCount/HNCount`, `drawerHolderRisk`, `drawerHolderRiskLabel`, `drawerTransferReadiness`
+- `succession.component.html`: replace drawer main view
+- `succession.component.scss`: thêm `.pd-bench-*`, `.pd-risk-*`, `.pd-positions-link`, `.pd-mi-*`
+- `positions.component.ts`: handle `?drawer=positionId` query param trong ngOnInit
+
+---
+
+## ⚡ Succession Drawer — Full redesign (2026-04-25) — ✅ DONE
+
+### Vấn đề
+3 bugs trên trang `/succession`:
+1. **Design khác positions** — drawer succession dùng layout cũ, không follow positions design (sticky hero, info-grid)
+2. **Click "Phân tích năng lực (Gap)"** → navigate sang `/positions` thay vì ở lại succession
+3. **Click "+" (thêm người kế thừa)** → navigate sang `/positions` thay vì modal inline
+
+### Giải pháp (sau discussion về differentiation)
+- **Positions drawer** là master design → succession follow sticky hero, info-grid
+- **Unique content** cho succession (không copy y chang):
+  - **Pipeline Health bars** — 3 readiness bars (Sẵn sàng ngay / 1-2 năm / 3-5 năm) + coverage badge + avg gap
+  - **IDP tag** "Phase 2 — Coming soon" trên mỗi ứng viên kế thừa (greyed-out)
+  - **Inline Gap Panel** — click nút Gap → sub-view trong cùng drawer (fit score 0-100, stats grid), không navigate
+  - **Pipeline Builder** — 3-column kanban modal (Sẵn sàng ngay / 1-2 năm / 3-5 năm), filter search + dept + tier, chip-select, save to succession_plans; khác hẳn positions' competency-match table
+
+### Files thay đổi
+- `frontend/src/app/modules/succession/succession.component.ts`
+  - Thêm `gapPanelSuccessor` signal, `openGapPanel/closeGapPanel/gapFitScore` methods
+  - Thêm Pipeline Health computed: `drawerReadyNow/1Y/2Y`, `drawerReadyNowPct/1YPct/2YPct`, `drawerAvgGap`, `drawerCoverageLabel/Tone`
+  - Thêm toàn bộ Pipeline Builder: `pbOpen`, `pbSearch/DeptFilter/TierFilter/Added/Saving` signals, `pbColumns`, `pbAvailableTalents/DeptOptions` computed, `openPipelineBuilder/closePipelineBuilder/pbToggleAdd/pbRemove/pbClearAll/pbConfirm` methods
+  - Thay `navigateToFindSuccessor()` → `openPipelineBuilder()`, bỏ `navigateToGapAnalysis()`
+  - `closePositionDrawer()` cũng clear `gapPanelSuccessor`
+- `frontend/src/app/modules/succession/succession.component.html`
+  - Rebuild toàn bộ `<!-- ══ Drawer: Chi tiết vị trí -->` section
+  - Thêm `@if (gapPanelSuccessor(); as gs)` → inline gap panel
+  - `@else` → main drawer với Pipeline Health bars + ứng viên cards (IDP badge + openGapPanel)
+  - Thêm Pipeline Builder full-screen modal `@if (pbOpen())`
+- `frontend/src/app/modules/succession/succession.component.scss`
+  - Xóa `display:flex` khỏi `.ant-drawer-body` → dùng ng-zorro native `overflow:auto`
+  - `.pd-hero` → `position:sticky; top:0; z-index:10` (same fix as positions)
+  - Thêm: `.pd-rb-*` (readiness bars), `.pd-cov-badge`, `.pd-avg-gap`, `.pd-idp-tag`, `.pd-coming-soon`, `.pd-gap-*` (inline gap panel), `.pb-*` (Pipeline Builder modal)
+
+### Kết quả
+- Build thành công (no errors, 2 nullable warnings acceptable)
+- Trang succession giữ người dùng ở `/succession` khi click Gap hoặc "+"
+- Pipeline Health bars hiển thị coverage trực quan (3 tiers)
+- IDP Phase 2 badge nhắc nhở roadmap feature
+
+## ⚡ Positions Drawer — Edit mode always accessible (2026-04-25) — ✅ DONE
+
+### Vấn đề
+Edit button trong view mode bị ẩn sau `@if (canEdit())` — computed này check role 'Admin'/'Line Manager' từ Supabase `user_profiles`. Nếu SSO login không map đúng role → canEdit() = false → edit button biến mất.
+
+### Fix
+- `canEdit()` → đổi sang `this.auth.isAuthenticated()` (mọi user đã login đều edit được, prototype)
+- Bỏ `@if (canEdit())` wrapper khỏi HTML edit button
+- Edit button có thêm text label "Sửa" + border/style nổi bật hơn
+- Xóa guard `if (!this.canEdit()) { warning... return }` trong `enterEditMode()`
+
+### Files thay đổi
+- `positions.component.ts` — `canEdit()`, `enterEditMode()`
+- `positions.component.html` — bỏ `@if (canEdit())`, thêm `.view-edit-label`
+- `positions.component.scss` — `.view-edit-btn` style (padding, border, gap, label)
+
+### Build
+`ng build` — ✅ 0 errors, 0 warnings
+
+
+---
+
+## ⚡ Positions Drawer — Sticky hero + info-grid restored (2026-04-25) — ✅ DONE
+
+### Vấn đề
+Drawer "Vị trí then chốt" (view mode) bị mất content: thiếu `.view-info-grid` (Đương nhiệm, Phòng ban, Mức độ quan trọng, Người kế thừa) và hero layout sai (items xếp dọc).
+
+### Root cause
+Dùng `display:flex; flex-direction:column` trên `.ant-drawer-body` → `align-items:stretch` kéo `.m-hero` chiếm toàn bộ chiều cao drawer, `.m-body` bị đẩy ra ngoài viewport.
+
+### Fix (Sticky approach)
+- Bỏ `display:flex` khỏi `.ant-drawer-body` → ng-zorro dùng `overflow:auto` mặc định
+- `.m-hero { position:sticky; top:0; z-index:10; }` → hero stick đầu scroll area
+- `.m-footer { position:sticky; bottom:0; }` → footer stick cuối (edit mode)
+- Xóa rule thứ 2 của `.m-body` (`flex:1; overflow-y:auto; min-height:0`) — không cần
+
+### Files thay đổi
+- `frontend/src/app/modules/positions/positions.component.scss`
+
+### Build
+`ng build` — ✅ 0 errors, 0 warnings
+
 
 ---
 

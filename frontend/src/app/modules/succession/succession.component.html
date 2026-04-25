@@ -471,7 +471,7 @@
   </div>
 </div>
 
-<!-- ══ Drawer: Chi tiết vị trí ═════════════════════════ -->
+<!-- ══ Drawer: Chi tiết vị trí (Pipeline Health View) ══════════ -->
 <nz-drawer
   [nzVisible]="positionDrawerOpen()"
   (nzOnClose)="closePositionDrawer()"
@@ -485,125 +485,427 @@
 >
   <ng-container *nzDrawerContent>
     @if (drawerNode(); as node) {
-      <!-- Header -->
-      <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.critical_level)">
-        <div class="pd-hero-ico"><span nz-icon nzType="apartment"></span></div>
-        <div class="pd-hero-text">
-          <div class="pd-hero-title">{{ node.title }}</div>
-          <div class="pd-hero-sub">
-            <span nz-icon nzType="bank"></span>
-            {{ node.department }}
-            <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.critical_level)">
-              {{ node.critical_level }}
-            </span>
+
+      <!-- ── GAP ANALYSIS inline panel ─────────────────────────── -->
+      @if (gapPanelSuccessor(); as gs) {
+        <div class="pd-hero pd-hero-gap" style="position:sticky;top:0;z-index:10">
+          <button class="pd-gap-back" (click)="closeGapPanel()">
+            <span nz-icon nzType="arrow-left"></span>
+          </button>
+          <div class="pd-hero-text">
+            <div class="pd-hero-title">Phân tích Gap</div>
+            <div class="pd-hero-sub">{{ node.title }}</div>
           </div>
-        </div>
-        <button type="button" class="m-hero-close" (click)="closePositionDrawer()" title="Đóng">
-          <span nz-icon nzType="close"></span>
-        </button>
-      </div>
-
-      <!-- Section 1: Người đương nhiệm -->
-      <div class="pd-section">
-        <div class="pd-section-head">
-          <span nz-icon nzType="user" class="pd-ico pd-ico-blue"></span>
-          <h4>Người đương nhiệm</h4>
+          <button type="button" class="m-hero-close" (click)="closePositionDrawer()">
+            <span nz-icon nzType="close"></span>
+          </button>
         </div>
 
-        @if (node.current_holder) {
-          <div class="pd-holder"
-               [class.pd-holder-linked]="!!drawerHolderTalent()"
-               (click)="drawerHolderTalent() ? openTalentPreview(drawerHolderTalent()!.id, $event) : null">
-            <app-avatar [name]="node.current_holder" [size]="52"></app-avatar>
-            <div class="pd-holder-main">
-              <div class="pd-holder-name">{{ node.current_holder }}</div>
-              @if (drawerHolderTalent(); as t) {
-                <div class="pd-holder-sub">{{ t.position }}</div>
-                <div class="pd-holder-stats">
-                  <span class="pd-stat">Hiệu suất <strong>{{ t.performance_score }}</strong></span>
-                  <span class="pd-stat">Tiềm năng <strong>{{ t.potential_score }}</strong></span>
-                  <span class="pd-stat">Risk <strong>{{ t.risk_score }}</strong></span>
-                </div>
-              } @else {
-                <div class="pd-holder-sub pd-holder-note">Chưa liên kết với hồ sơ nhân tài</div>
-              }
+        <div class="pd-gap-body">
+          <!-- Talent header card -->
+          <div class="pd-gap-person">
+            <app-avatar [name]="gs.talent_name" [size]="52"></app-avatar>
+            <div class="pd-gap-info">
+              <div class="pd-gap-name">{{ gs.talent_name }}</div>
+              <div class="pd-gap-pos">{{ gs.talent?.position ?? '—' }} · {{ gs.talent?.department ?? '—' }}</div>
+              <span class="succ-pill" [ngClass]="'rd-' + readinessTone(gs.readiness)">
+                {{ readinessLabel(gs.readiness) }}
+              </span>
             </div>
-            @if (drawerHolderTalent(); as t) {
-              <span class="pd-holder-arrow" nz-icon nzType="arrow-right"></span>
-            }
+            <div class="pd-gap-score-box">
+              <div class="pd-gap-score-val">{{ gs.gap_score ?? '—' }}</div>
+              <div class="pd-gap-score-lbl">Gap score</div>
+            </div>
           </div>
-        } @else {
-          <div class="pd-empty">
-            <span nz-icon nzType="warning"></span>
-            Vị trí này hiện chưa có người đảm nhiệm
-          </div>
-        }
-      </div>
 
-      <!-- Section 2: Ứng viên kế thừa -->
-      <div class="pd-section">
-        <div class="pd-section-head">
-          <span nz-icon nzType="team" class="pd-ico pd-ico-purple"></span>
-          <h4>Ứng viên kế thừa</h4>
-          <span class="pd-count-badge">{{ node.successors.length }}</span>
-          @if (isAdmin()) {
-            <button class="pd-add-btn"
-                    (click)="navigateToFindSuccessor(node.positionId, $event)"
-                    title="Tìm người kế thừa thông minh">
-              <span nz-icon nzType="plus"></span>
+          <!-- Fit bar -->
+          <div class="pd-gap-fit-section">
+            <div class="pd-gap-fit-label">
+              Mức độ phù hợp ước tính
+              <span class="pd-gap-fit-pct">{{ gapFitScore(gs.gap_score) }}%</span>
+            </div>
+            <div class="pd-gap-fit-track">
+              <div class="pd-gap-fit-bar"
+                   [style.width.%]="gapFitScore(gs.gap_score)"
+                   [style.background]="gapFitScore(gs.gap_score) >= 70 ? '#10b981' : gapFitScore(gs.gap_score) >= 50 ? '#f59e0b' : '#ef4444'">
+              </div>
+            </div>
+            <div class="pd-gap-fit-note">
+              Gap score càng thấp → mức độ phù hợp càng cao. Xem chi tiết năng lực trong hồ sơ.
+            </div>
+          </div>
+
+          <!-- Talent stats -->
+          @if (gs.talent; as t) {
+            <div class="pd-gap-stats-grid">
+              <div class="pd-gap-stat">
+                <div class="pd-gap-stat-val">{{ t.performance_score ?? '—' }}</div>
+                <div class="pd-gap-stat-lbl">Hiệu suất</div>
+              </div>
+              <div class="pd-gap-stat">
+                <div class="pd-gap-stat-val">{{ t.potential_score ?? '—' }}</div>
+                <div class="pd-gap-stat-lbl">Tiềm năng</div>
+              </div>
+              <div class="pd-gap-stat">
+                <div class="pd-gap-stat-val">{{ t.risk_score ?? '—' }}</div>
+                <div class="pd-gap-stat-lbl">Risk</div>
+              </div>
+            </div>
+          }
+
+          <!-- View full profile -->
+          @if (gs.talent) {
+            <button class="pd-gap-profile-btn" (click)="openTalentPreview(gs.talent.id, $event)">
+              <span nz-icon nzType="user"></span>
+              Xem hồ sơ đầy đủ của {{ gs.talent_name }}
+              <span nz-icon nzType="arrow-right" style="margin-left:auto"></span>
             </button>
           }
         </div>
 
-        @if (node.successors.length) {
-          <ul class="pd-succ-list">
-            @for (s of drawerSuccessorTalents(); track s.talent_id) {
-              <li class="pd-succ-item" [ngClass]="'rd-' + readinessTone(s.readiness)">
-                <span class="pd-priority">#{{ s.priority }}</span>
-                <app-avatar [name]="s.talent_name" [size]="44"></app-avatar>
-                <div class="pd-succ-main">
-                  <div class="pd-succ-name">{{ s.talent_name }}</div>
-                  <div class="pd-succ-sub">
-                    @if (s.talent) { {{ s.talent.position }} · {{ s.talent.department }} }
-                    @else { Talent · {{ s.talent_id }} }
-                  </div>
-                  <div class="pd-succ-meta">
-                    <span class="pd-ready">
-                      <span class="pd-ready-dot"></span>
-                      {{ readinessLabel(s.readiness) }}
-                    </span>
-                    <span class="pd-gap">
-                      <span nz-icon nzType="line-chart"></span>
-                      Gap {{ s.gap_score }}
-                    </span>
-                  </div>
-                </div>
-                <div class="pd-succ-actions">
-                  @if (s.talent) {
-                    <button class="pd-succ-link" (click)="openTalentPreview(s.talent.id, $event)" title="Xem hồ sơ">
-                      <span nz-icon nzType="user"></span>
-                    </button>
-                  }
-                  <a class="pd-succ-link pd-succ-gap"
-                     [routerLink]="['/positions']"
-                     [queryParams]="{ gapPos: node.positionId, gapEmp: s.talent_id, gapName: s.talent_name, gapReadiness: s.readiness, gapScore: s.gap_score }"
-                     title="Phân tích năng lực (Gap)">
-                    <span nz-icon nzType="rise"></span>
-                  </a>
-                </div>
-              </li>
-            }
-          </ul>
-        } @else {
-          <div class="pd-empty">
-            <span nz-icon nzType="warning"></span>
-            Chưa có kế hoạch kế thừa — cần tuyển hoặc phát triển nội bộ
+      } @else {
+
+        <!-- ── MAIN VIEW ─────────────────────────────────────────── -->
+
+        <!-- Hero (sticky) -->
+        <div class="pd-hero" [ngClass]="'crit-' + criticalTone(node.critical_level)"
+             style="position:sticky;top:0;z-index:10">
+          <div class="pd-hero-ico"><span nz-icon nzType="apartment"></span></div>
+          <div class="pd-hero-text">
+            <div class="pd-hero-title">{{ node.title }}</div>
+            <div class="pd-hero-sub">
+              <span nz-icon nzType="bank"></span>
+              {{ node.department }}
+              <span class="pd-crit-pill" [ngClass]="'crit-' + criticalTone(node.critical_level)">
+                {{ node.critical_level }}
+              </span>
+            </div>
           </div>
-        }
-      </div>
+          <button type="button" class="m-hero-close" (click)="closePositionDrawer()">
+            <span nz-icon nzType="close"></span>
+          </button>
+        </div>
+
+        <!-- ① Pipeline Health -->
+        <div class="pd-section pd-pipeline-section">
+          <div class="pd-section-head">
+            <span nz-icon nzType="bar-chart" class="pd-ico pd-ico-indigo"></span>
+            <h4>Sức khỏe pipeline</h4>
+            <span class="pd-cov-badge" [ngClass]="drawerCoverageTone()">{{ drawerCoverageLabel() }}</span>
+          </div>
+          <div class="pd-rb-list">
+            <div class="pd-rb-row">
+              <div class="pd-rb-label"><span class="pd-rb-dot pd-dot-green"></span>Sẵn sàng ngay</div>
+              <div class="pd-rb-track"><div class="pd-rb-bar pd-bar-green" [style.width.%]="drawerReadyNowPct()"></div></div>
+              <div class="pd-rb-num pd-num-green">{{ drawerReadyNow() }}</div>
+            </div>
+            <div class="pd-rb-row">
+              <div class="pd-rb-label"><span class="pd-rb-dot pd-dot-amber"></span>1–2 năm</div>
+              <div class="pd-rb-track"><div class="pd-rb-bar pd-bar-amber" [style.width.%]="drawerReady1YPct()"></div></div>
+              <div class="pd-rb-num pd-num-amber">{{ drawerReady1Y() }}</div>
+            </div>
+            <div class="pd-rb-row">
+              <div class="pd-rb-label"><span class="pd-rb-dot pd-dot-orange"></span>3–5 năm</div>
+              <div class="pd-rb-track"><div class="pd-rb-bar pd-bar-orange" [style.width.%]="drawerReady2YPct()"></div></div>
+              <div class="pd-rb-num pd-num-orange">{{ drawerReady2Y() }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② Bench Strength -->
+        <div class="pd-section">
+          <div class="pd-section-head">
+            <span nz-icon nzType="trophy" class="pd-ico pd-ico-gold"></span>
+            <h4>Bench Strength</h4>
+            <span class="pd-bench-score-badge"
+                  [class.bs-ok]="benchScore() >= 70"
+                  [class.bs-warn]="benchScore() >= 40 && benchScore() < 70"
+                  [class.bs-low]="benchScore() < 40">
+              {{ benchScore() }}<span class="bs-of">/100</span>
+            </span>
+          </div>
+
+          <div class="pd-bench-body">
+            <div class="pd-bench-donut-wrap">
+              <div class="pd-bench-donut" [style.background]="benchDonutGradient()">
+                <div class="pd-bench-hole">
+                  <div class="pd-bench-hole-score">{{ benchScore() }}</div>
+                  <div class="pd-bench-hole-lbl">/ 100</div>
+                </div>
+              </div>
+              <div class="pd-bench-legend">
+                <div class="pd-bl-item"><span class="pd-bl-dot pd-bl-green"></span>Sẵn sàng ngay</div>
+                <div class="pd-bl-item"><span class="pd-bl-dot pd-bl-amber"></span>1–2 năm</div>
+                <div class="pd-bl-item"><span class="pd-bl-dot pd-bl-orange"></span>3–5 năm</div>
+              </div>
+            </div>
+
+            <div class="pd-bench-stats">
+              <div class="pd-bs-stat">
+                <div class="pd-bs-val">{{ drawerSuccessorTalents().length }}</div>
+                <div class="pd-bs-lbl">Ứng viên</div>
+              </div>
+              <div class="pd-bs-divider"></div>
+              <div class="pd-bs-stat">
+                <div class="pd-bs-val">{{ drawerCandidateDepts() }}</div>
+                <div class="pd-bs-lbl">Phòng ban</div>
+              </div>
+              <div class="pd-bs-divider"></div>
+              <div class="pd-bs-stat">
+                <div class="pd-bs-val">{{ drawerHPCount() }}<span class="pd-bs-sub">/{{ drawerHNCount() }}</span></div>
+                <div class="pd-bs-lbl">HP / HN cao</div>
+              </div>
+              <div class="pd-bs-divider"></div>
+              <div class="pd-bs-stat">
+                <div class="pd-bs-val">{{ drawerAvgGap() }}<span class="pd-bs-sub">%</span></div>
+                <div class="pd-bs-lbl">Avg gap</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ Risk Dashboard -->
+        <div class="pd-section">
+          <div class="pd-section-head">
+            <span nz-icon nzType="safety" class="pd-ico pd-ico-red"></span>
+            <h4>Risk Dashboard</h4>
+          </div>
+          @if (node.current_holder) {
+            <div class="pd-risk-panel" [ngClass]="'risk-' + drawerHolderRisk()">
+              <div class="pd-risk-row">
+                <div class="pd-risk-icon-wrap">
+                  <span nz-icon nzType="warning" class="pd-risk-ico"></span>
+                </div>
+                <div class="pd-risk-main">
+                  <div class="pd-risk-title">
+                    Risk người đương nhiệm:
+                    <strong class="pd-risk-level" [ngClass]="'rl-' + drawerHolderRisk()">{{ drawerHolderRiskLabel() }}</strong>
+                  </div>
+                  @if (drawerHolderTalent(); as t) {
+                    <div class="pd-risk-detail">
+                      Risk score: <strong>{{ t.risk_score ?? '—' }}</strong>
+                    </div>
+                  }
+                </div>
+              </div>
+              <div class="pd-risk-transfer" [ngClass]="'tr-' + drawerTransferReadiness().tone">
+                <span nz-icon [nzType]="drawerTransferReadiness().tone === 'ok' ? 'check-circle' : drawerTransferReadiness().tone === 'warn' ? 'warning' : 'close-circle'"></span>
+                {{ drawerTransferReadiness().label }}
+              </div>
+            </div>
+          } @else {
+            <div class="pd-empty"><span nz-icon nzType="question-circle"></span> Chưa có người đương nhiệm để phân tích risk</div>
+          }
+        </div>
+
+        <!-- ④ Người đương nhiệm -->
+        <div class="pd-section">
+          <div class="pd-section-head">
+            <span nz-icon nzType="user" class="pd-ico pd-ico-blue"></span>
+            <h4>Người đương nhiệm</h4>
+          </div>
+          @if (node.current_holder) {
+            <div class="pd-holder"
+                 [class.pd-holder-linked]="!!drawerHolderTalent()"
+                 (click)="drawerHolderTalent() ? openTalentPreview(drawerHolderTalent()!.id, $event) : null">
+              <app-avatar [name]="node.current_holder" [size]="48"></app-avatar>
+              <div class="pd-holder-main">
+                <div class="pd-holder-name">{{ node.current_holder }}</div>
+                @if (drawerHolderTalent(); as t) {
+                  <div class="pd-holder-sub">{{ t.position }}</div>
+                  <div class="pd-holder-stats">
+                    <span class="pd-stat">HP <strong>{{ t.performance_score ?? '—' }}</strong></span>
+                    <span class="pd-stat">TN <strong>{{ t.potential_score ?? '—' }}</strong></span>
+                    <span class="pd-stat pd-risk-stat">Risk <strong>{{ t.risk_score ?? '—' }}</strong></span>
+                  </div>
+                } @else {
+                  <div class="pd-holder-sub pd-holder-note">Chưa liên kết với hồ sơ nhân tài</div>
+                }
+              </div>
+              @if (drawerHolderTalent()) {
+                <span class="pd-holder-arrow" nz-icon nzType="arrow-right"></span>
+              }
+            </div>
+          } @else {
+            <div class="pd-empty"><span nz-icon nzType="warning"></span> Chưa có người đảm nhiệm</div>
+          }
+        </div>
+
+        <!-- ⑤ Link to /positions -->
+        <div class="pd-section">
+          <a class="pd-positions-link"
+             [routerLink]="['/positions']"
+             [queryParams]="{ drawer: node.positionId }"
+             (click)="closePositionDrawer()">
+            <div class="pd-pl-left">
+              <span nz-icon nzType="search" class="pd-pl-ico"></span>
+              <div>
+                <div class="pd-pl-title">Xem phân tích chi tiết tại trang Vị trí</div>
+                <div class="pd-pl-sub">Năng lực, tuyển dụng &amp; quản lý ứng viên từng người</div>
+              </div>
+            </div>
+            <span nz-icon nzType="arrow-right" class="pd-pl-arrow"></span>
+          </a>
+        </div>
+
+        <!-- ⑥ Market Intelligence — Coming Soon -->
+        <div class="pd-section pd-section-last pd-mi-section">
+          <div class="pd-section-head">
+            <span nz-icon nzType="global" class="pd-ico pd-ico-teal"></span>
+            <h4>Market Intelligence</h4>
+            <span class="pd-mi-phase">Coming soon</span>
+          </div>
+          <div class="pd-mi-body">
+            <div class="pd-mi-item"><span nz-icon nzType="team" class="pd-mi-ico"></span><span>Quy mô talent pool thị trường</span></div>
+            <div class="pd-mi-item"><span nz-icon nzType="dollar" class="pd-mi-ico"></span><span>Mức lương benchmark ngành</span></div>
+            <div class="pd-mi-item"><span nz-icon nzType="rise" class="pd-mi-ico"></span><span>Tốc độ tuyển dụng ngoài</span></div>
+            <div class="pd-mi-item"><span nz-icon nzType="apartment" class="pd-mi-ico"></span><span>Đối thủ đang tuyển vị trí tương tự</span></div>
+            <div class="pd-mi-cta">
+              <span nz-icon nzType="lock"></span>
+              Coming soon
+            </div>
+          </div>
+        </div>
+
+      }
     }
   </ng-container>
 </nz-drawer>
+
+<!-- ══ Pipeline Builder Modal ══════════════════════════════════════════ -->
+@if (pbOpen()) {
+  <div class="pb-overlay">
+    <div class="pb-modal">
+
+      <!-- Header -->
+      <div class="pb-header">
+        <div class="pb-header-info">
+          <div class="pb-title">
+            <span nz-icon nzType="team" class="pb-title-ico"></span>
+            Xây dựng pipeline kế thừa
+          </div>
+          <div class="pb-subtitle">{{ pbPositionTitle() }}</div>
+        </div>
+        <button class="pb-close-btn" (click)="closePipelineBuilder()">
+          <span nz-icon nzType="close"></span>
+        </button>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="pb-filters">
+        <div class="pb-search-wrap">
+          <span nz-icon nzType="search" class="pb-search-ico"></span>
+          <input class="pb-search-input"
+                 placeholder="Tìm nhân tài theo tên..."
+                 [ngModel]="pbSearch()"
+                 (ngModelChange)="pbSearch.set($event)">
+        </div>
+        <nz-select class="pb-filter-sel" nzAllowClear nzPlaceHolder="Phòng ban"
+                   [ngModel]="pbDeptFilter()"
+                   (ngModelChange)="pbDeptFilter.set($event)">
+          @for (d of pbDeptOptions(); track d) {
+            <nz-option [nzValue]="d" [nzLabel]="d"></nz-option>
+          }
+        </nz-select>
+        <nz-select class="pb-filter-sel" nzAllowClear nzPlaceHolder="Tier"
+                   [ngModel]="pbTierFilter()"
+                   (ngModelChange)="pbTierFilter.set($event)">
+          <nz-option nzValue="Core"      nzLabel="Core"></nz-option>
+          <nz-option nzValue="Potential" nzLabel="Potential"></nz-option>
+          <nz-option nzValue="Successor" nzLabel="Successor"></nz-option>
+        </nz-select>
+      </div>
+
+      <!-- 3 pipeline buckets -->
+      <div class="pb-buckets">
+        @for (col of pbColumns; track col.key) {
+          <div class="pb-bucket" [ngClass]="'pb-bucket-' + col.tone">
+            <div class="pb-bucket-header">
+              <span class="pb-bucket-dot" [ngClass]="'pb-dot-' + col.tone"></span>
+              <span class="pb-bucket-label">{{ col.label }}</span>
+              <span class="pb-bucket-count">{{ pbColCount(col.readiness) }}</span>
+            </div>
+            <div class="pb-bucket-chips">
+              @for (entry of pbColEntries(col.readiness); track entry.talentId) {
+                <div class="pb-added-chip">
+                  <app-avatar [name]="entry.name" [size]="20"></app-avatar>
+                  <span class="pb-chip-name">{{ entry.name }}</span>
+                  <button class="pb-chip-remove" (click)="pbRemove(entry.talentId)">
+                    <span nz-icon nzType="close"></span>
+                  </button>
+                </div>
+              }
+              @if (pbColCount(col.readiness) === 0) {
+                <div class="pb-bucket-empty">Chưa có ai</div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Talent list -->
+      <div class="pb-talent-section">
+        <div class="pb-talent-header">
+          Nhân tài khả dụng
+          <span class="pb-talent-count">{{ pbAvailableTalents().length }}</span>
+          <span class="pb-talent-hint">Bấm SN / 1Y / 2Y để thêm vào pipeline</span>
+        </div>
+        <div class="pb-talent-list">
+          @for (t of pbAvailableTalents(); track t.id) {
+            <div class="pb-talent-card">
+              <app-avatar [name]="t.full_name" [size]="36"></app-avatar>
+              <div class="pb-talent-info">
+                <div class="pb-talent-name">{{ t.full_name }}</div>
+                <div class="pb-talent-meta">{{ t.position }} · {{ t.department }}</div>
+                <div class="pb-talent-scores">
+                  <span class="pb-score-item">HP <strong>{{ t.performance_score ?? '—' }}</strong></span>
+                  <span class="pb-score-item">TN <strong>{{ t.potential_score ?? '—' }}</strong></span>
+                  <span class="pb-tier-badge" [ngClass]="'tier-' + tierTone(t)">{{ tierLabel(t) }}</span>
+                </div>
+              </div>
+              <div class="pb-talent-btns">
+                <button class="pb-add-btn pb-btn-green"
+                        [class.pb-btn-active]="pbIsAdded(t.id, 'Ready Now')"
+                        (click)="pbToggleAdd(t.id, t.full_name, 'Ready Now')"
+                        nz-tooltip nzTooltipTitle="Sẵn sàng ngay">SN</button>
+                <button class="pb-add-btn pb-btn-amber"
+                        [class.pb-btn-active]="pbIsAdded(t.id, 'Ready in 1 Year')"
+                        (click)="pbToggleAdd(t.id, t.full_name, 'Ready in 1 Year')"
+                        nz-tooltip nzTooltipTitle="1–2 năm">1Y</button>
+                <button class="pb-add-btn pb-btn-orange"
+                        [class.pb-btn-active]="pbIsAdded(t.id, 'Ready in 2 Years')"
+                        (click)="pbToggleAdd(t.id, t.full_name, 'Ready in 2 Years')"
+                        nz-tooltip nzTooltipTitle="3–5 năm">2Y</button>
+              </div>
+            </div>
+          }
+          @if (pbAvailableTalents().length === 0) {
+            <div class="pb-talent-empty">
+              <span nz-icon nzType="inbox"></span>
+              Không tìm thấy nhân tài khả dụng
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      @if (pbAddedCount > 0) {
+        <div class="pb-action-bar">
+          <div class="pb-action-info">
+            <span nz-icon nzType="check-circle"></span>
+            Đã lên kế hoạch <strong>{{ pbAddedCount }}</strong> người
+          </div>
+          <button class="pb-clear-btn" (click)="pbClearAll()">Xóa tất cả</button>
+          <button class="pb-confirm-btn" [disabled]="pbSaving()" (click)="pbConfirm()">
+            <span nz-icon [nzType]="pbSaving() ? 'loading' : 'user-add'"></span>
+            Thêm {{ pbAddedCount }} người vào pipeline
+          </button>
+        </div>
+      }
+
+    </div>
+  </div>
+}
 
 <!-- ══ Density drill-down drawer ══════════════════════ -->
 <nz-drawer
