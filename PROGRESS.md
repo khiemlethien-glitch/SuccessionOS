@@ -1,7 +1,48 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-24 — Refactor: xóa 9-Box Grid khỏi succession page ✅
+> Cập nhật lần cuối: 2026-04-25 — Fix assessment scores + cycle dropdown + position competency targets ✅
+
+---
+
+## ⚡ Fix assessment scores, cycle dropdown & position competency targets (2026-04-25) — ✅ DONE
+
+### Vấn đề đã fix
+
+#### 1. Điểm đánh giá sai (ví dụ 2.64/100 thay vì ~52/100)
+- **Root cause**: seed script lưu điểm theo thang 0-5 (`performance_score / 20`), nhưng UI hiển thị raw value đó dưới dạng `/100`.
+- **Fix** — `assessment.service.ts`:
+  - Thêm helper `norm(v)`: nếu `v ≤ 5` thì nhân `× 20`, else pass-through.
+  - Áp dụng cho: KPI overall (`ext.assessment_score` / `summary.overall_score`), 360° overall (`ext.score_360`), từng item score trong `kpiItems`, từng item score trong `criteria360`.
+  - Sửa `item_max` của 360° items từ `5` → `100` (sau normalize).
+  - **Radar profile**: normalize `assessment_scores.score` trước khi so sánh với `comp_target_*` (đang ở thang 0-100).
+
+#### 2. Dropdown chu kỳ đánh giá quá nhiều kì cũ
+- **Root cause**: `getCycles()` trả tất cả cycle global; line 747 set tất cả vào dropdown.
+- **Fix** — `talent-profile.component.ts`:
+  - Filter `cycles` chỉ giữ các `c.id` có trong `summaries` Set (assessment_summary cho nhân viên đó).
+  - Fallback về tất cả cycles nếu không match (nhân viên mới chưa có đánh giá).
+
+#### 3. Vị trí then chốt thiếu điểm mục tiêu → "Chưa đặt điểm"
+- **Root cause**: seed script seed `required_competencies` nhưng không điền `competency_scores`.
+- **Fix — DB**: Chạy `supabase/migrations/20260424_patch_position_competency_scores.sql` trong Supabase SQL Editor (đã chạy ✅).
+  - 15 vị trí được UPDATE với `competency_scores` JSONB (thang 0-100).
+  - Critical: 85-95 | High: 75-87 | Medium: 65-78.
+- **Fix — Code** — `positions.component.ts`:
+  - Mở rộng `empKeyMap` từ 5 key chuẩn lên 30+ key.
+  - Map các năng lực đặc thù vị trí (`sales`, `strategy`, `technology`, `accounting`...) sang competency gần nhất của nhân viên để cột Gap hiển thị giá trị thay vì "—".
+
+### Commit `931b864`
+
+### Files thay đổi
+- `frontend/src/app/core/services/data/assessment.service.ts` — norm() helper + normalize all score blocks + radar actuals
+- `frontend/src/app/modules/talent/talent-profile.component.ts` — cycle dropdown filter
+- `frontend/src/app/modules/positions/positions.component.ts` — empKeyMap mở rộng 30+ keys
+- `scripts/seed_200_employees.py` — thêm `competency_scores` dict vào kp_defs (future re-seeds)
+- `scripts/patch_position_scores.py` *(NEW)* — script Python standalone để patch existing DB
+- `supabase/migrations/20260424_patch_position_competency_scores.sql` *(NEW)* — SQL idempotent
+
+Build: ✅ 0 errors (3 pre-existing SCSS budget warnings non-blocking)
 
 ---
 
