@@ -82,7 +82,7 @@ const DEFAULT_NB_CONFIG: NineBoxConfig = {
   yAxisTitle:    'Hiệu suất',
   xField:        'potential_score',
   yField:        'performance_score',
-  placementRule: 'auto',
+  placementRule: 'db_box',
   xThresholds:   [34, 67],
   yThresholds:   [34, 67],
   cells: {
@@ -105,11 +105,17 @@ function loadConfig(): NineBoxConfig {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Partial<NineBoxConfig>;
-      return {
+      const merged: NineBoxConfig = {
         ...DEFAULT_NB_CONFIG,
         ...p,
         cells: { ...DEFAULT_NB_CONFIG.cells, ...(p.cells ?? {}) },
       };
+      // Migration: if saved with old 'auto' default (v1), upgrade to 'db_box'
+      // so the DB box column is respected (scores in v_nine_box don't span 0–100).
+      if (!p.placementRule || p.placementRule === 'auto') {
+        merged.placementRule = 'db_box';
+      }
+      return merged;
     }
   } catch { /* ignore parse errors */ }
   return structuredClone(DEFAULT_NB_CONFIG);
