@@ -42,7 +42,7 @@ export interface Talent {
 export interface RiskFactor {
   title: string;
   detail: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'ok';  // 'ok' = positive signal
   source: string;
   date: string;
 }

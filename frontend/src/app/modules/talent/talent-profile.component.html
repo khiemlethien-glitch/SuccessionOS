@@ -808,7 +808,7 @@
 
                 <ul class="risk-list">
                   @for (r of riskFactorsList(); track r.title) {
-                    <li class="risk-item">
+                    <li class="risk-item" [class.risk-item-ok]="r.severity === 'ok'">
                       <span class="rf-dot" [class]="'rf-dot-' + r.severity"></span>
                       <div class="rf-text">
                         <div class="rf-title">{{ r.title }}</div>
@@ -820,6 +820,20 @@
                       </div>
                     </li>
                   }
+
+                  <!-- Market Research — Coming Soon -->
+                  <li class="risk-item risk-item-market-cs">
+                    <span class="rf-dot rf-dot-cs"></span>
+                    <div class="rf-text">
+                      <div class="rf-title rf-title-cs">
+                        Market Intelligence Research
+                        <span class="rf-cs-badge">Coming soon</span>
+                      </div>
+                      <div class="rf-detail rf-detail-cs">
+                        Phân tích thị trường lao động: mức lương benchmark, tỷ lệ turnover ngành, tín hiệu tuyển dụng đối thủ
+                      </div>
+                    </div>
+                  </li>
                 </ul>
               }
             </div>

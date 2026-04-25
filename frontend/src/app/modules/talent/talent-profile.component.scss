@@ -589,12 +589,44 @@
 .rf-dot-high     { background:#dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.12); }
 .rf-dot-medium   { background:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.12); }
 .rf-dot-low      { background:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
-.rf-text         { min-width:0; }
+.rf-dot-ok       { background:#0d9488; box-shadow:0 0 0 3px rgba(13,148,136,.12); }
+.rf-dot-cs       { width:8px; height:8px; border-radius:50%; border:1.5px dashed #94a3b8; background:transparent; }
+.rf-text         { min-width:0; flex:1; }
 .rf-title        { font-size:14px; font-weight:600; color:#111827; line-height:1.3; }
 .rf-detail       { font-size:12px; color:#9ca3af; margin-top:2px; }
 .rf-tags         { display:flex; gap:10px; align-items:center; flex-shrink:0; }
 .rf-tag          { font-size:12px; color:#6b7280; font-weight:500; }
 .rf-tag-muted    { color:#9ca3af; }
+
+// Positive signal item
+.risk-item-ok {
+  background: linear-gradient(90deg, #f0fdfa 0%, #fff 100%);
+  border-left: 3px solid #0d9488;
+  .rf-title { color:#0f766e; }
+  .rf-detail { color:#6b7280; }
+}
+
+// Market Research — Coming soon
+.risk-item-market-cs {
+  background: repeating-linear-gradient(
+    -45deg, transparent, transparent 6px,
+    rgba(0,0,0,.012) 6px, rgba(0,0,0,.012) 12px
+  );
+  border: 1.5px dashed #e2e8f0;
+  border-radius: 8px;
+  margin: 6px 8px 8px;
+  opacity: .75;
+}
+.rf-title-cs  { display:flex; align-items:center; gap:8px; color:#64748b; }
+.rf-detail-cs { color:#94a3b8; font-style:italic; }
+.rf-cs-badge  {
+  padding: 1px 7px; border-radius: 99px;
+  background: #f1f5f9; color: #64748b;
+  font-size: 10px; font-weight: 700;
+  border: 1px solid #e2e8f0;
+  text-transform: uppercase; letter-spacing: .04em;
+  font-style: normal;
+}
 
 /* ══ Kết quả đánh giá 360° card ══ */
 .a360-card        {

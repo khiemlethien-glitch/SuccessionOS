@@ -201,29 +201,72 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return [];
     if (t.risk_factors && t.risk_factors.length) return t.risk_factors;
 
-    const out: RiskFactor[] = [];
+    const negative: RiskFactor[] = [];
+    const positive: RiskFactor[] = [];
     const risk = t.risk_score ?? 0;
-    if (risk >= 60) {
-      out.push({ title: `Risk score cao (${risk})`, detail: 'Tổng hợp từ nhiều yếu tố, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
-    }
-    if (!t.mentor) {
-      out.push({ title: 'Chưa có mentor', detail: 'Chưa gán mentor trong hệ thống PTNT', severity: 'medium', source: 'HR', date: 'Q1/2025' });
-    }
-    const ktp = t.ktp_progress ?? 0;
-    if (ktp > 0 && ktp < 50) {
-      out.push({ title: `KTP tiến độ thấp ${ktp}%`, detail: 'Theo KTP holder progress / kế hoạch chuyển giao', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
-    }
+    const ktp  = t.ktp_progress ?? 0;
     const idpP = this.idpProgress();
+    const perf = t.performance_score ?? 0;
+    const pot  = t.potential_score  ?? 0;
+    const avg  = perf > 0 || pot > 0 ? (perf + pot) / 2 : -1;
+
+    // ── Cảnh báo rủi ro ──────────────────────────────────────────────
+    if (risk >= 60) {
+      negative.push({ title: `Risk score cao (${risk}) — cần can thiệp ngay`, detail: 'Tổng hợp từ nhiều chỉ số bất lợi, cần can thiệp sớm', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    } else if (risk >= 30) {
+      negative.push({ title: `Risk score trung bình (${risk}) — cần theo dõi`, detail: 'Một số chỉ số cần chú ý, theo dõi định kỳ', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
+    }
+
+    if (!t.mentor) {
+      negative.push({ title: 'Chưa có mentor', detail: 'Chưa gán mentor trong hệ thống PTNT', severity: 'medium', source: 'HR', date: 'Q1/2025' });
+    }
+
+    if (ktp > 0 && ktp < 50) {
+      negative.push({ title: `KTP chậm tiến độ — ${ktp}% hoàn thành`, detail: 'Chuyển giao kiến thức chưa đạt ngưỡng 50%, cần đẩy nhanh', severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    } else if (ktp >= 50 && ktp < 70) {
+      negative.push({ title: `KTP cần đẩy nhanh — ${ktp}%`, detail: 'Tiến độ chuyển giao kiến thức trung bình, chưa đạt mục tiêu', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
+    }
+
     if (idpP > 0 && idpP < 30) {
-      out.push({ title: `IDP tiến độ thấp ${idpP}%`, detail: 'Kế hoạch phát triển cá nhân chưa tiến triển', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
+      negative.push({ title: `IDP tiến độ thấp — ${idpP}%`, detail: 'Kế hoạch phát triển cá nhân chưa tiến triển, cần review', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
     }
+
+    // Gap năng lực — dùng avg HP/TN (thang 0-10)
+    if (avg >= 0 && avg < 5) {
+      const gapPct = Math.round((10 - avg) / 10 * 100);
+      negative.push({ title: `Gap năng lực lớn — còn ${gapPct}% khoảng cách`, detail: `HP ${perf} · TN ${pot} — cần tăng tốc lộ trình phát triển`, severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    } else if (avg >= 5 && avg < 7) {
+      const gapPct = Math.round((10 - avg) / 10 * 100);
+      negative.push({ title: `Gap năng lực — còn ${gapPct}% cần bổ sung`, detail: `HP ${perf} · TN ${pot} — tiếp tục phát triển theo IDP`, severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
+    }
+
+    // Key person dependency
+    const onlyPos = this.positionsWhereOnlySuccessor();
+    if (onlyPos.length > 0) {
+      const posText = onlyPos.slice(0, 2).join(', ') + (onlyPos.length > 2 ? ` +${onlyPos.length - 2} vị trí` : '');
+      negative.push({ title: `Key Person — người kế thừa duy nhất`, detail: `Là ứng viên duy nhất cho: ${posText}. Tổ chức phụ thuộc cao vào cá nhân này.`, severity: 'high', source: 'Tự động', date: 'Q1/2025' });
+    }
+
     if (t.readiness_level === 'Ready in 2 Years' && t.talent_tier === 'Nòng cốt') {
-      out.push({ title: 'Thời gian sẵn sàng dài', detail: 'Ready in 2 Years — cần tăng tốc IDP', severity: 'low', source: 'Tự động', date: 'Q1/2025' });
+      negative.push({ title: 'Thời gian sẵn sàng dài — Ready in 2 Years', detail: 'Tier Nòng cốt nhưng cần 2+ năm mới sẵn sàng kế thừa', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
     }
-    if (out.length === 0) {
-      out.push({ title: 'Không phát hiện yếu tố rủi ro', detail: 'Các chỉ số trong ngưỡng an toàn', severity: 'low', source: 'Tự động', date: 'Q1/2025' });
+
+    // ── Tín hiệu tích cực (severity: 'ok') ───────────────────────────
+    if (risk < 30 && risk > 0) {
+      positive.push({ title: `Risk score thấp (${risk}) — trong ngưỡng an toàn`, detail: `Score dưới ngưỡng cảnh báo (30) — chỉ số ổn định`, severity: 'ok', source: 'Tự động', date: 'Q1/2025' });
     }
-    return out;
+    if (t.mentor) {
+      positive.push({ title: `Có mentor đang hỗ trợ`, detail: `Mentor: ${t.mentor}`, severity: 'ok', source: 'HR', date: 'Q1/2025' });
+    }
+    if (ktp >= 80) {
+      positive.push({ title: `Chuyển giao kiến thức tốt — ${ktp}%`, detail: 'KTP hoàn thành trên 80%, tiến độ đúng kế hoạch', severity: 'ok', source: 'Tự động', date: 'Q1/2025' });
+    }
+    if (avg >= 8) {
+      positive.push({ title: `Hiệu suất & tiềm năng xuất sắc`, detail: `HP ${perf} · TN ${pot} — top performer của tổ chức`, severity: 'ok', source: 'Tự động', date: 'Q1/2025' });
+    }
+
+    // Negative trước, positive sau
+    return [...negative, ...positive];
   });
 
   riskTone = computed<'high' | 'medium' | 'low'>(() => {
@@ -474,6 +517,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // Successors (people who will inherit current person's position)
   successorNodes = signal<{ talent_id: string; talent_name: string; readiness: string; priority: number; idp_progress: number }[]>([]);
+  /** Vị trí mà nhân viên này là người kế thừa DUY NHẤT (key-person dependency) */
+  positionsWhereOnlySuccessor = signal<string[]>([]);
   showAllSuccessors = signal(false);
 
   readonly visibleSuccessors = computed(() =>
@@ -867,7 +912,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!talent) { this.cyclesLoading.set(false); return; }
 
     // ② Secondary data in parallel (sections show skeletons until ready)
-    const [all, cycles, successors, succTarget, summaries] = await Promise.all([
+    const [all, cycles, successors, succTarget, summaries, allPlans] = await Promise.all([
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
       this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
@@ -878,6 +923,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
         .select('cycle_id')
         .eq('employee_id', id)
         .then(r => new Set((r.data ?? []).map((s: any) => s.cycle_id))),
+      // Key-person dependency: vị trí mà nhân viên này là kế thừa DUY NHẤT
+      this.successionSvc.getPlans().catch(() => []),
     ]);
     this.allTalents.set(all.data);
     // Show only cycles that have actual assessment data for this employee;
@@ -886,6 +933,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.cycles.set(relevantCycles.length > 0 ? relevantCycles : cycles);
     this.successorNodes.set(successors);
     this.successionTargetPosition.set(succTarget);
+
+    // Key-person dependency: tìm vị trí mà talent này là ứng viên DUY NHẤT
+    const keyPersonPositions = (allPlans as any[])
+      .filter(plan => plan.successors?.length === 1 && plan.successors[0].talent_id === id)
+      .map(plan => plan.position_title as string);
+    this.positionsWhereOnlySuccessor.set(keyPersonPositions);
 
     // Pick cycle: ưu tiên cycle có data thật (assessment_summary), sau đó mới fallback.
     // cycles đã sort_order DESC (mới nhất trước) — lấy cycle mới nhất có data.
