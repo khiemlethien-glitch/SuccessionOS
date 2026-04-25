@@ -1,7 +1,30 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: restore old drawer design (nz-drawer + podium/highlight/list)
+> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: Preset system cho config drawer
+
+---
+
+## ⚡ 9-Box Grid — Preset system cho config drawer (2026-04-25) — ✅ DONE
+
+### Thay đổi
+- Config drawer thay bằng 2-view: **Preset picker** → **Tùy chỉnh full form**
+- 4 presets sẵn (click → áp dụng ngay + đóng drawer):
+  - **Mặc định** — thuật ngữ tiếng Việt chuẩn
+  - **McKinsey Classic** — Stars / High Performers / Rising Stars...
+  - **PTSC Model** — Kết quả công tác / Năng lực
+  - **Phân tích Rủi ro** — tên ô theo mức độ ưu tiên giữ chân
+- **Tùy chỉnh** — mở full form cũ, có back button "Quay lại"
+- Badge trên nút "Cấu hình 9-Grid" hiển thị preset đang active
+- Tất cả persist localStorage, badge cập nhật ngay
+
+### Files thay đổi
+- `frontend/src/app/modules/succession/nine-box/nine-box.component.ts` — PRESETS, ALL_PRESETS, PRESET_CONFIGS, configView signal, activePresetName computed, selectPreset/openCustom/backToPresets methods
+- `frontend/src/app/modules/succession/nine-box/nine-box.component.html` — badge button, conditional preset/custom view
+- `frontend/src/app/modules/succession/nine-box/nine-box.component.scss` — badge styles, preset card styles
+
+### Commit
+`76721b0` — feat(nine-box): add preset system to config drawer
 
 ---
 
