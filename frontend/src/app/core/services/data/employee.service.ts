@@ -3,6 +3,14 @@ import { SupabaseService } from '../supabase.service';
 import { CacheService } from '../cache.service';
 import { Talent } from '../../models/models';
 
+/** Compatible with NzTreeNodeOptions from ng-zorro-antd */
+export interface DeptTreeNode {
+  title:     string;
+  key:       string;
+  children?: DeptTreeNode[];
+  isLeaf?:   boolean;
+}
+
 function mapVEmployee(row: any): Talent {
   return {
     id: row.id,
@@ -65,17 +73,17 @@ export class EmployeeService {
 
   // ─── Server-side paginated list (dùng cho talent-list page) ─────────────────
   async getPaginated(params: {
-    page:        number;
-    pageSize:    number;
-    search?:     string;
-    departmentId?: string;
-    talentTier?: string;
-    readiness?:  string;   // 'Ready Now' | 'Ready in 1 Year' | 'Ready in 2 Years'
-    riskBand?:   'High' | 'Med' | 'Low';
-    sortCol?:    'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
-    sortDir?:    'asc' | 'desc';
+    page:           number;
+    pageSize:       number;
+    search?:        string;
+    departmentIds?: string[];   // multi-dept filter (replaces single departmentId)
+    talentTier?:    string;
+    readiness?:     string;     // 'Ready Now' | 'Ready in 1 Year' | 'Ready in 2 Years'
+    riskBand?:      'High' | 'Med' | 'Low';
+    sortCol?:       'overall_score' | 'performance_score' | 'potential_score' | 'risk_score' | 'full_name';
+    sortDir?:       'asc' | 'desc';
   }): Promise<{ data: Talent[]; total: number }> {
-    const { page, pageSize, search, departmentId, talentTier, readiness, riskBand, sortCol = 'overall_score', sortDir = 'desc' } = params;
+    const { page, pageSize, search, departmentIds, talentTier, readiness, riskBand, sortCol = 'overall_score', sortDir = 'desc' } = params;
     const from = (page - 1) * pageSize;
     const to   = from + pageSize - 1;
 
@@ -87,8 +95,8 @@ export class EmployeeService {
       const s = search.trim();
       q = q.or(`full_name.ilike.%${s}%,position.ilike.%${s}%,department_name.ilike.%${s}%`);
     }
-    if (departmentId) q = q.eq('department_id', departmentId);
-    if (talentTier)   q = q.eq('talent_tier', talentTier);
+    if (departmentIds?.length) q = q.in('department_id', departmentIds);
+    if (talentTier)            q = q.eq('talent_tier', talentTier);
     if (readiness)    q = q.eq('readiness_level', readiness);
     if (riskBand === 'High') q = q.gte('risk_score', 60);
     if (riskBand === 'Med')  q = q.gte('risk_score', 30).lt('risk_score', 60);
@@ -99,6 +107,56 @@ export class EmployeeService {
     const { data, count, error } = await q;
     if (error) { console.error('[EmployeeService.getPaginated]', error); return { data: [], total: 0 }; }
     return { data: (data ?? []).map(mapVEmployee), total: count ?? 0 };
+  }
+
+  /** Department tree (id, name, parent_id) → NzTreeNodeOptions-compatible nodes.
+   *  Primary: query `departments` table for a real hierarchy.
+   *  Fallback: if table has RLS / missing columns / empty → use distinct departments
+   *            from `v_employees` as a flat (but always-accessible) node list.
+   */
+  async getDeptTree(): Promise<DeptTreeNode[]> {
+    return this.cache.get('emp:dept-tree', async () => {
+      const { data, error } = await this.sb
+        .from('departments')
+        .select('id, name, parent_id')
+        .order('name', { ascending: true });
+
+      // ── Fallback ─────────────────────────────────────────────────────────────
+      // `departments` table may be blocked by RLS (anon user, dev env) or empty.
+      // Fall back to distinct dept list from v_employees — always readable.
+      if (error || !data?.length) {
+        if (error) {
+          console.warn('[DeptTree] departments table unavailable (RLS?), using flat fallback. '
+            + 'Run supabase/migrations/20260424_disable_rls_dev.sql to fix.', error.message);
+        }
+        const opts = await this.getDeptOptions();
+        return opts.map(d => ({ title: d.name, key: d.id, isLeaf: true }));
+      }
+
+      // ── Build hierarchy ───────────────────────────────────────────────────────
+      const rows = data as { id: string; name: string; parent_id: string | null }[];
+      const nodeMap = new Map<string, DeptTreeNode>();
+      for (const r of rows) {
+        nodeMap.set(r.id, { title: r.name, key: r.id, children: [] });
+      }
+      const roots: DeptTreeNode[] = [];
+      for (const r of rows) {
+        const node = nodeMap.get(r.id)!;
+        if (r.parent_id && nodeMap.has(r.parent_id)) {
+          nodeMap.get(r.parent_id)!.children!.push(node);
+        } else {
+          roots.push(node);
+        }
+      }
+      const finalize = (nodes: DeptTreeNode[]) => {
+        for (const n of nodes) {
+          if (!n.children?.length) { n.isLeaf = true; delete n.children; }
+          else finalize(n.children!);
+        }
+      };
+      finalize(roots);
+      return roots;
+    });
   }
 
   /** Distinct department list — dùng 1 lần cho filter dropdown */

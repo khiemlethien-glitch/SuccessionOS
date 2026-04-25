@@ -90,7 +90,7 @@
   position:absolute;
   top:calc(100% + 10px);
   left:300px;
-  width:320px;
+  width:360px;
   background:#fff;
   border-radius:16px;
   border:1px solid #eef2f7;
@@ -99,10 +99,21 @@
   z-index:10;
 }
 .fp-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 6px; }
-.fp-label { font-size:12px; font-weight:700; color:#374151; width:88px; }
+.fp-row-tree { align-items:flex-start; padding:6px 6px; }
+.fp-label { font-size:12px; font-weight:700; color:#374151; width:88px; flex-shrink:0; padding-top:6px; }
 .fp-sel {
   flex:1;
   ::ng-deep .ant-select-selector { border-radius:10px !important; }
+}
+.fp-tree-sel {
+  flex:1;
+  ::ng-deep .ant-select-selector {
+    border-radius:10px !important;
+    min-height:34px;
+    max-height:90px;
+    overflow-y:auto;
+  }
+  ::ng-deep .ant-select-selection-placeholder { line-height:34px; }
 }
 .fp-actions { display:flex; justify-content:flex-end; gap:10px; padding:10px 6px 4px; border-top:1px solid #f1f5f9; margin-top:6px; }
 .fp-btn { border-radius:10px !important; }
@@ -275,7 +286,7 @@
 
 @media (max-width: 1100px) {
   .search { width:220px; }
-  .filter-pop { left:10px; width:min(340px, calc(100vw - 48px)); }
+  .filter-pop { left:10px; width:min(360px, calc(100vw - 48px)); }
   .mini-stat { padding:6px 10px 6px 8px; gap:8px;
     .ms-ico { width:24px; height:24px; font-size:13px; }
     .val { font-size:14px; }

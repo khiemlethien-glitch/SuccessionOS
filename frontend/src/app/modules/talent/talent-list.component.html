@@ -182,14 +182,20 @@
                 </nz-select>
               </div>
 
-              <div class="fp-row">
+              <div class="fp-row fp-row-tree">
                 <div class="fp-label">Phòng ban</div>
-                <nz-select class="fp-sel" nzAllowClear nzPlaceHolder="Tất cả" nzShowSearch
-                           [ngModel]="dept()" (ngModelChange)="dept.set($event); onFilterChange()">
-                  @for (d of deptOptions(); track d.id) {
-                    <nz-option [nzValue]="d.id" [nzLabel]="d.name"></nz-option>
-                  }
-                </nz-select>
+                <nz-tree-select
+                  class="fp-tree-sel"
+                  [nzNodes]="deptTreeNodes()"
+                  [ngModel]="depts()"
+                  (ngModelChange)="depts.set($event); onFilterChange()"
+                  nzCheckable
+                  nzShowSearch
+                  nzAllowClear
+                  nzDefaultExpandAll
+                  nzPlaceHolder="Tất cả phòng ban"
+                  nzShowCheckedStrategy="SHOW_ALL"
+                ></nz-tree-select>
               </div>
 
               <div class="fp-row">

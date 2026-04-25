@@ -33,6 +33,24 @@ import {
   Assessment360,
 } from '../../core/models/models';
 
+// ─── Personal aspiration types ────────────────────────────────────────────────
+interface CompGapRow {
+  key:      string;
+  label:    string;
+  current:  number;   // employee's actual score (0–100)
+  required: number;   // position requires (0–100)
+  gap:      number;   // required − current (positive = needs improvement)
+}
+interface PersonalAspiration {
+  target_position:    string;
+  target_department?: string;
+  notes?:             string;
+  source:             'self' | 'hr';
+  updated_by?:        string;
+  updated_at?:        string;
+  gap_rows:           CompGapRow[];
+}
+
 @Component({
   selector: 'app-talent-profile',
   standalone: true,
@@ -77,6 +95,14 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   currentProjectLoaded   = signal<boolean | null>(null);
   knowledgeTransferLoaded = signal<boolean | null>(null);
   idpLoaded              = signal<boolean | null>(null);
+
+  // ─── Personal aspiration (mock — future: sync from HRM field) ───────────────
+  aspiration = signal<PersonalAspiration | null>(null);
+
+  /** Top 2 gaps with highest shortfall — used for the suggestion footer. */
+  aspirationTopGaps = computed<CompGapRow[]>(() =>
+    (this.aspiration()?.gap_rows ?? []).filter(r => r.gap > 0).slice(0, 2)
+  );
 
   // ─── Mentor picker ────────────────────────────────────────────────────────
   allTalents      = signal<Talent[]>([]);
@@ -710,6 +736,81 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.ktDraft.update(d => ({ ...d, overall_progress: v }));
   }
 
+  // ─── Mock aspiration generator (deterministic by employee ID) ───────────────
+  private buildMockAspiration(t: Talent): PersonalAspiration | null {
+    const idNum = parseInt(t.id.replace(/\D/g, ''), 10) || 0;
+    // ~25% of employees have no aspiration data yet
+    if (idNum % 4 === 0) return null;
+
+    const positions: { pos: string; dept: string; reqs: Record<string,number> }[] = [
+      { pos: 'Project Manager',            dept: 'Quản lý dự án',
+        reqs: { technical:75, leadership:82, communication:85, problem_solving:90, adaptability:85 } },
+      { pos: 'Trưởng phòng Nhân sự',      dept: 'Nhân sự',
+        reqs: { technical:68, leadership:85, communication:90, problem_solving:80, adaptability:78 } },
+      { pos: 'Giám đốc Tài chính (CFO)',  dept: 'Tài chính',
+        reqs: { technical:90, leadership:82, communication:78, problem_solving:88, adaptability:72 } },
+      { pos: 'Trưởng nhóm Kỹ thuật',     dept: 'Kỹ thuật',
+        reqs: { technical:92, leadership:75, communication:72, problem_solving:87, adaptability:75 } },
+      { pos: 'Giám đốc Vận hành',         dept: 'Vận hành',
+        reqs: { technical:74, leadership:88, communication:82, problem_solving:86, adaptability:90 } },
+      { pos: 'Head of Marketing',          dept: 'Marketing',
+        reqs: { technical:65, leadership:80, communication:92, problem_solving:85, adaptability:90 } },
+      { pos: 'Business Development Manager', dept: 'Kinh doanh',
+        reqs: { technical:66, leadership:78, communication:91, problem_solving:82, adaptability:87 } },
+      { pos: 'Trưởng ban Kiểm soát nội bộ', dept: 'Kiểm soát',
+        reqs: { technical:86, leadership:76, communication:78, problem_solving:91, adaptability:70 } },
+    ];
+    const notes = [
+      'Muốn phát triển theo hướng quản lý và lãnh đạo đội nhóm',
+      'Có nguyện vọng chuyển sang lĩnh vực này trong 2 năm tới',
+      'Đang tự học thêm kỹ năng cần thiết để đạt mục tiêu nghề nghiệp',
+      'HR ghi nhận qua buổi career conversation tháng 3/2025',
+      'Nhân viên chia sẻ trong buổi đánh giá cuối năm 2024',
+      'Được khuyến nghị bởi quản lý trực tiếp sau kết quả xuất sắc Q4/2024',
+    ];
+    const hrNames = ['Nguyễn Thị Lan (HRBP)', 'Trần Minh Tuấn (HR)', 'Phạm Thị Hoa (HRBP)'];
+
+    const choice = positions[idNum % positions.length];
+    const source: 'self' | 'hr' = idNum % 3 === 2 ? 'self' : 'hr';
+
+    const c = t.competencies;
+    const current: Record<string, number> = {
+      technical:       Math.round(c?.technical       ?? t.performance_score ?? 70),
+      leadership:      Math.round(c?.leadership      ?? ((t.performance_score ?? 70) * 0.95)),
+      communication:   Math.round(c?.communication   ?? ((t.potential_score ?? 70) * 0.9)),
+      problem_solving: Math.round(c?.problem_solving ?? ((t.performance_score ?? 70) * 0.92)),
+      adaptability:    Math.round(c?.adaptability    ?? ((t.potential_score ?? 70) * 0.88)),
+    };
+
+    const labels: Record<string, string> = {
+      technical:       'Kỹ thuật chuyên môn',
+      leadership:      'Lãnh đạo & Quản lý',
+      communication:   'Giao tiếp',
+      problem_solving: 'Giải quyết vấn đề',
+      adaptability:    'Thích nghi & Đổi mới',
+    };
+
+    const gap_rows: CompGapRow[] = Object.entries(choice.reqs)
+      .map(([key, required]) => ({
+        key,
+        label:    labels[key] ?? key,
+        current:  current[key] ?? 70,
+        required,
+        gap:      required - (current[key] ?? 70),
+      }))
+      .sort((a, b) => b.gap - a.gap);  // biggest shortfall first
+
+    return {
+      target_position:    choice.pos,
+      target_department:  choice.dept,
+      notes:              notes[idNum % notes.length],
+      source,
+      updated_by:         source === 'hr' ? hrNames[idNum % hrNames.length] : undefined,
+      updated_at:         '2025-03-15',
+      gap_rows,
+    };
+  }
+
   constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
@@ -751,6 +852,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.successionTargetPosition.set(null);
     this.talent.set(null);
     this.idp.set(null);
+    this.aspiration.set(null);
     this.cycles.set([]);
     this.assessmentView.set(null);
     this.assessmentBlocks.set(null);
@@ -759,6 +861,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // ① Load talent profile first — hero renders immediately after
     const talent = await this.employeeSvc.getById(id);
     this.talent.set(talent);
+    if (talent) this.aspiration.set(this.buildMockAspiration(talent));
     this.loading.set(false);   // hero skeleton → real hero
 
     if (!talent) { this.cyclesLoading.set(false); return; }

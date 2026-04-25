@@ -642,6 +642,139 @@
               </div>
 
             </div><!-- end dev-layout -->
+
+            <!-- ══ Nguyện vọng cá nhân ══════════════════════════════════ -->
+            @if (aspiration(); as asp) {
+              <div class="aspiration-card">
+
+                <!-- Card header -->
+                <div class="asp-head">
+                  <div class="asp-head-left">
+                    <div class="asp-ico-wrap">
+                      <span nz-icon nzType="aim" class="asp-ico"></span>
+                    </div>
+                    <div>
+                      <div class="asp-title">Nguyện vọng cá nhân</div>
+                      <div class="asp-subtitle">Từ hồ sơ HRM — không ảnh hưởng quy trình kế thừa</div>
+                    </div>
+                  </div>
+                  <span class="asp-source-badge" [class.asp-src-hr]="asp.source === 'hr'" [class.asp-src-self]="asp.source === 'self'">
+                    <span nz-icon [nzType]="asp.source === 'hr' ? 'team' : 'user'"></span>
+                    {{ asp.source === 'hr' ? 'HR đã ghi nhận' : 'Tự khai báo' }}
+                  </span>
+                </div>
+
+                <!-- Main body: 2 columns -->
+                <div class="asp-body">
+
+                  <!-- LEFT: aspiration info -->
+                  <div class="asp-info">
+                    <div class="asp-target">
+                      <div class="asp-target-label">Vị trí mong muốn</div>
+                      <div class="asp-target-name">{{ asp.target_position }}</div>
+                      @if (asp.target_department) {
+                        <div class="asp-target-dept">
+                          <span nz-icon nzType="apartment"></span>
+                          {{ asp.target_department }}
+                        </div>
+                      }
+                    </div>
+
+                    @if (asp.notes) {
+                      <div class="asp-notes">
+                        <span nz-icon nzType="message" class="asp-notes-ico"></span>
+                        <span class="asp-notes-text">"{{ asp.notes }}"</span>
+                      </div>
+                    }
+
+                    <div class="asp-meta">
+                      @if (asp.updated_at) {
+                        <div class="asp-meta-row">
+                          <span nz-icon nzType="calendar"></span>
+                          Cập nhật: {{ asp.updated_at }}
+                        </div>
+                      }
+                      @if (asp.updated_by) {
+                        <div class="asp-meta-row">
+                          <span nz-icon nzType="user"></span>
+                          Bởi: {{ asp.updated_by }}
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Suggestion footer -->
+                    @if (aspirationTopGaps().length) {
+                      <div class="asp-tip">
+                        <span nz-icon nzType="bulb" class="asp-tip-ico"></span>
+                        <div>
+                          <div class="asp-tip-head">Ưu tiên cải thiện</div>
+                          <div class="asp-tip-body">
+                            @for (g of aspirationTopGaps(); track g.key) {
+                              <span class="asp-tip-chip">{{ g.label }} (thiếu {{ g.gap }})</span>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- RIGHT: competency gap table -->
+                  <div class="asp-gap-table">
+                    <div class="agt-head-row">
+                      <span class="agt-h-label">Năng lực</span>
+                      <span class="agt-h-bars">Hiện tại → Yêu cầu</span>
+                      <span class="agt-h-gap">Khoảng cách</span>
+                    </div>
+
+                    @for (row of asp.gap_rows; track row.key) {
+                      <div class="agt-row">
+                        <div class="agt-label">{{ row.label }}</div>
+
+                        <div class="agt-bars">
+                          <div class="agt-track">
+                            <div class="agt-fill"
+                                 [style.width.%]="row.current"
+                                 [class.agt-fill-ok]="row.gap <= 0"
+                                 [class.agt-fill-warn]="row.gap > 0 && row.gap <= 10"
+                                 [class.agt-fill-bad]="row.gap > 10">
+                            </div>
+                            <div class="agt-marker" [style.left.%]="row.required"
+                                 [title]="'Yêu cầu: ' + row.required"></div>
+                          </div>
+                          <div class="agt-scores">
+                            <span class="agt-current">{{ row.current }}</span>
+                            <span class="agt-arrow">›</span>
+                            <span class="agt-required">{{ row.required }}</span>
+                          </div>
+                        </div>
+
+                        <div class="agt-gap-pill"
+                             [class.agt-gp-ok]="row.gap <= 0"
+                             [class.agt-gp-warn]="row.gap > 0 && row.gap <= 10"
+                             [class.agt-gp-bad]="row.gap > 10">
+                          @if (row.gap > 0) {
+                            <span nz-icon nzType="arrow-up"></span> {{ row.gap }}
+                          } @else if (row.gap === 0) {
+                            <span nz-icon nzType="check"></span> Đạt
+                          } @else {
+                            <span nz-icon nzType="rise"></span> +{{ -row.gap }}
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div><!-- end asp-gap-table -->
+
+                </div><!-- end asp-body -->
+              </div><!-- end aspiration-card -->
+            } @else {
+              <!-- No aspiration data placeholder -->
+              <div class="asp-empty">
+                <span nz-icon nzType="aim" class="asp-empty-ico"></span>
+                <div class="asp-empty-text">Chưa có dữ liệu nguyện vọng</div>
+                <div class="asp-empty-hint">Nhân viên hoặc HR chưa khai báo vị trí mục tiêu cá nhân</div>
+              </div>
+            }
+
           </div><!-- end tab-section -->
         </nz-tab>
 

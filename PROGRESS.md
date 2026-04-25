@@ -1,7 +1,77 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Talent Profile tab layout redesign ✅
+> Cập nhật lần cuối: 2026-04-25 — Nguyện vọng cá nhân card (talent profile) ✅
+
+---
+
+## ⚡ Nguyện vọng cá nhân card — Talent Profile (2026-04-25) — ✅ DONE
+
+### Mô tả tính năng
+- Card mới ở cuối trang `/talent/[id]` — dưới tab container, hiển thị với mọi nhân viên (75% có data).
+- **Nguồn dữ liệu**: mock data deterministic (theo ID số cuối) — placeholder cho field HRM thật sau này.
+- **Card layout 2 cột**:
+  - **Cột trái (300px)**: tên vị trí mong muốn + phòng ban, ghi chú trích dẫn, ngày/người cập nhật, gợi ý ưu tiên cải thiện (top 2 gap lớn nhất).
+  - **Cột phải**: bảng khoảng cách năng lực — 5 competency rows, mỗi row có bar fill (màu OK/warn/bad) + marker dọc chỉ điểm yêu cầu + pill gap.
+
+### Interfaces thêm
+```ts
+interface CompGapRow  { key, label, current, required, gap }
+interface PersonalAspiration { target_position, target_department, notes, source, updated_by, updated_at, gap_rows }
+```
+
+### Files thay đổi
+- `frontend/src/app/modules/talent/talent-profile.component.ts`
+  - Thêm interfaces `CompGapRow`, `PersonalAspiration` trước `@Component`
+  - `aspiration = signal<PersonalAspiration|null>(null)` + `aspirationTopGaps = computed(...)
+  - `buildMockAspiration(t: Talent)` — 8 target positions, 6 ghi chú, deterministic by ID
+  - `loadTalentData()` — set aspiration ngay sau khi talent load xong
+- `frontend/src/app/modules/talent/talent-profile.component.html`
+  - Card `aspiration-card` với `@if (aspiration(); as asp)` sau tab container
+- `frontend/src/app/modules/talent/talent-profile.component.scss`
+  - ~130 dòng CSS mới: `.aspiration-card`, `.asp-head`, `.asp-info`, `.asp-gap-table`, `.agt-row`, `.agt-track`, `.agt-marker`, `.agt-gap-pill`
+
+### TODO khi có HRM API
+- Thay `buildMockAspiration()` bằng API call thực: `GET /hrm/employees/{id}/aspiration`
+- Field gốc trong HRM: `personal_aspiration_position` (text), `personal_aspiration_notes` (text)
+- Build: ✅ 0 errors
+
+---
+
+## ⚡ Talent List — Department filter tree-picker (2026-04-25) — ✅ DONE
+
+### Thay đổi
+- **`employee.service.ts`**:
+  - Export `DeptTreeNode` interface (compatible với `NzTreeNodeOptions`).
+  - Thêm `getDeptTree()` — fetch `departments (id, name, parent_id)`, build cây phân cấp đệ quy, đánh dấu lá (`isLeaf`), cache SWR.
+  - `getPaginated()` — đổi param `departmentId?: string` → `departmentIds?: string[]`, dùng `.in('department_id', departmentIds)` thay vì `.eq(...)`.
+- **`talent-list.component.ts`**:
+  - Import `NzTreeSelectModule`, `DeptTreeNode`.
+  - `dept: signal<string|null>` → `depts: signal<string[]>([])` (multi-select).
+  - `deptOptions` → `deptTreeNodes: signal<DeptTreeNode[]>([])`.
+  - `ngOnInit`: gọi `getDeptTree()` thay vì `getDeptOptions()`.
+  - `fetchPage()`: truyền `departmentIds: this.depts().length ? this.depts() : undefined`.
+  - `reset()`: `this.depts.set([])`.
+- **`talent-list.component.html`**:
+  - Thay `<nz-select>` phẳng → `<nz-tree-select nzCheckable nzShowSearch nzAllowClear nzDefaultExpandAll>`.
+  - `nzShowCheckedStrategy="SHOW_ALL"` — trả toàn bộ key đã check (kể cả parent + children).
+- **`talent-list.component.scss`**:
+  - `.fp-row-tree { align-items:flex-start }` — align label top khi tree-select cao hơn.
+  - `.fp-tree-sel` — max-height cho multi-select tag area.
+  - `.filter-pop` width tăng từ 320px → 360px.
+
+### UX kết quả
+- Filter phòng ban hiển thị cây theo phân cấp (Tập đoàn → Khối → Phòng).
+- Ô search bên trong dropdown: gõ tên tương đối (ví dụ "kỹ thuật") thu hẹp cây.
+- Chọn nhiều phòng cùng lúc: checkbox cascade từ parent → children tự động.
+- Chọn parent department auto-check toàn bộ phòng con → filter nhân viên đúng.
+- Build: ✅ 0 errors.
+
+### Files thay đổi
+- `frontend/src/app/core/services/data/employee.service.ts`
+- `frontend/src/app/modules/talent/talent-list.component.ts`
+- `frontend/src/app/modules/talent/talent-list.component.html`
+- `frontend/src/app/modules/talent/talent-list.component.scss`
 
 ---
 

@@ -14,8 +14,9 @@ import { NzPaginationModule } from 'ng-zorro-antd/pagination';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
+import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { EmployeeService } from '../../core/services/data/employee.service';
+import { EmployeeService, DeptTreeNode } from '../../core/services/data/employee.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
 import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
@@ -47,6 +48,7 @@ const DEFAULT_POT:  [number, number] = [70, 85];
     NzTableModule, NzInputModule, NzSelectModule, NzButtonModule,
     NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
     NzPaginationModule, NzTabsModule, NzDrawerModule, NzSliderModule,
+    NzTreeSelectModule,
     AvatarComponent, TierBadgeComponent, TalentPreviewDrawerComponent,
   ],
   templateUrl: './talent-list.component.html',
@@ -75,7 +77,7 @@ export class TalentListComponent implements OnInit {
   // ─── Filters ───────────────────────────────────────────────────────────────
   search    = signal('');
   tier      = signal<TalentTier | null>(null);
-  dept      = signal<string | null>(null);
+  depts     = signal<string[]>([]);    // multi-select dept keys
   readiness = signal<ReadinessUi | null>(null);
   riskBand  = signal<RiskBand | null>(null);
   showFilters = signal(false);
@@ -85,7 +87,7 @@ export class TalentListComponent implements OnInit {
   sortDir = signal<SortDir>('desc');
 
   // ─── Filter options ────────────────────────────────────────────────────────
-  deptOptions: ReturnType<typeof signal<{ id: string; name: string }[]>> = signal([]);
+  deptTreeNodes = signal<DeptTreeNode[]>([]);
   tierOptions: TalentTier[]       = ['Nòng cốt', 'Tiềm năng', 'Kế thừa'];
   readinessOptions: ReadinessUi[] = ['Sẵn sàng ngay', '1-2 năm', '3-5 năm'];
   riskOptions: RiskBand[]         = ['High', 'Med', 'Low'];
@@ -209,12 +211,12 @@ export class TalentListComponent implements OnInit {
       this.activeTabIdx.set(1);   // jump to List tab so the filter is visible
     }
 
-    const [depts, nineBox] = await Promise.all([
-      this.employeeSvc.getDeptOptions(),
+    const [deptTree, nineBox] = await Promise.all([
+      this.employeeSvc.getDeptTree(),
       this.successionSvc.getNineBox().catch(() => []),
       this.fetchPage(),
     ]);
-    this.deptOptions.set(depts);
+    this.deptTreeNodes.set(deptTree);
     this.nineboxTalents.set(nineBox as any);
     this.nineboxLoading.set(false);
     this.loading.set(false);
@@ -224,15 +226,15 @@ export class TalentListComponent implements OnInit {
   private async fetchPage(): Promise<void> {
     this.fetching.set(true);
     const res = await this.employeeSvc.getPaginated({
-      page:         this.page(),
-      pageSize:     this.PAGE_SIZE,
-      search:       this.search()    || undefined,
-      departmentId: this.dept()      || undefined,
-      talentTier:   this.tier()      || undefined,
-      readiness:    this.readinessToDb(this.readiness()),
-      riskBand:     this.riskBand()  || undefined,
-      sortCol:      this.sortCol(),
-      sortDir:      this.sortDir(),
+      page:           this.page(),
+      pageSize:       this.PAGE_SIZE,
+      search:         this.search()         || undefined,
+      departmentIds:  this.depts().length   ? this.depts() : undefined,
+      talentTier:     this.tier()           || undefined,
+      readiness:      this.readinessToDb(this.readiness()),
+      riskBand:       this.riskBand()       || undefined,
+      sortCol:        this.sortCol(),
+      sortDir:        this.sortDir(),
     });
     this.rows.set(res.data);
     this.total.set(res.total);
@@ -253,7 +255,7 @@ export class TalentListComponent implements OnInit {
     this.onSortChange();
   }
   reset(): void {
-    this.search.set(''); this.tier.set(null); this.dept.set(null);
+    this.search.set(''); this.tier.set(null); this.depts.set([]);
     this.readiness.set(null); this.riskBand.set(null);
     this.sortCol.set('overall_score'); this.sortDir.set('desc');
     this.page.set(1); this.fetchPage();
