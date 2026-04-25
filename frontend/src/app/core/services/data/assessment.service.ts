@@ -150,11 +150,11 @@ export class AssessmentService {
    * GAP năng lực 5 trục — actual từ assessment_scores của cycle, target từ v_employees.comp_target_*.
    * Formula: delta = actual - target. Trả kèm aggregate (above/below/total_gap_abs/avg_gap).
    */
-  async getRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile> {
+  async getRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile | null> {
     return this.cache.get(`asmnt:radar:${employeeId}:${cycleId}`, () => this._fetchRadarProfile(employeeId, cycleId));
   }
 
-  private async _fetchRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile> {
+  private async _fetchRadarProfile(employeeId: string, cycleId: string): Promise<RadarProfile | null> {
     const RADAR_AXES = [
       { key: 'technical',   label: 'Kỹ thuật',  targetField: 'comp_target_technical'       },
       { key: 'performance', label: 'Hiệu suất', targetField: 'comp_target_problem_solving' },
@@ -191,6 +191,11 @@ export class AssessmentService {
       };
     });
 
+    // If no axis has an actual score (criteria key mismatch or no assessment data),
+    // return null so the component falls back to talent.competencies (already 0-100).
+    const hasAnyActual = entries.some(e => e.actual !== null);
+    if (!hasAnyActual) return null;
+
     const withDelta = entries.filter(e => e.delta !== null);
     const above    = withDelta.filter(e => (e.delta ?? 0) >= 0).length;
     const below    = withDelta.filter(e => (e.delta ?? 0) < 0).length;
@@ -212,20 +217,24 @@ export class AssessmentService {
   }
 
   private async _fetchAssessmentBlocks(employeeId: string, cycleId: string): Promise<AssessmentBlocksView> {
-    // Step 1: fetch scores + meta in parallel — scores tell us WHICH criteria to look up
+    // Step 1: fetch scores + meta in parallel
     const [scoresRes, summaryRes, extScoreRes, weightRes] = await Promise.all([
       this.sb.from('assessment_scores').select('criterion_id, score')
         .eq('employee_id', employeeId).eq('cycle_id', cycleId),
       this.sb.from('assessment_summary').select('*')
         .eq('employee_id', employeeId).eq('cycle_id', cycleId).maybeSingle(),
+      // external_scores may only exist for the latest cycle — fetch broadly (no cycle filter)
+      // so we can get score_360 / assessment_score as fallback aggregate
       this.sb.from('external_scores').select('score_360, assessment_score, criteria_json')
-        .eq('employee_id', employeeId).eq('cycle_id', cycleId).maybeSingle(),
+        .eq('employee_id', employeeId)
+        .order('cycle_id', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       this.sb.from('score_weight_config').select('assessment_weight, weight_360')
         .eq('id', 1).maybeSingle(),
     ]);
 
     const scores   = scoresRes.data ?? [];
-    const scoreMap = new Map(scores.map(s => [s.criterion_id, Number(s.score)]));
     const summary  = summaryRes.data;
     const ext      = extScoreRes.data;
     const weights  = {
@@ -233,8 +242,7 @@ export class AssessmentService {
       weight_360:        weightRes.data?.weight_360        ?? 40,
     };
 
-    // Step 2: fetch ONLY the criteria that have actual scores for this employee+cycle
-    // (avoids loading all 1,786 company-wide KPIs when only ~5-20 are relevant per employee)
+    // Step 2: fetch criteria for all scored IDs
     let criterionMap = new Map<string, Criterion>();
     const scoredIds = scores.map(s => s.criterion_id);
     if (scoredIds.length > 0) {
@@ -246,63 +254,91 @@ export class AssessmentService {
       criterionMap = new Map(criteriaData.map(c => [c.id, c]));
     }
 
-    const blocks: AssessmentBlock[] = [];
-
     // Normalize helper: seed stores scores on a 0-5 scale; UI expects 0-100.
-    // If a value is ≤ 5 we multiply × 20. Values already on 0-100 scale pass through.
     const norm = (v: number | null | undefined): number | null => {
       if (v == null) return null;
       return v <= 5 ? Math.round(v * 20 * 10) / 10 : Math.round(v * 10) / 10;
     };
 
-    // KPI block — only scored KPI criteria (assessment_type != '360')
-    const kpiOverall  = norm(ext?.assessment_score ?? summary?.overall_score ?? null);
-    const kpiItems: AssessmentItem[] = scores
-      .filter(s => {
-        const c = criterionMap.get(s.criterion_id);
-        return c && (!c.assessment_type || c.assessment_type === 'kpi');
-      })
-      .map(s => {
-        const c = criterionMap.get(s.criterion_id)!;
-        return { id: c.id, label: c.label, description: c.description, weight: c.weight, item_max: 100, score: norm(Number(s.score)) };
-      })
-      .sort((a, b) => {
-        const ca = criterionMap.get(a.id)?.sort_order ?? 0;
-        const cb = criterionMap.get(b.id)?.sort_order ?? 0;
-        return ca - cb;
-      });
+    const toItem = (s: { criterion_id: string; score: any }): AssessmentItem => {
+      const c = criterionMap.get(s.criterion_id)!;
+      return {
+        id: c.id, label: c.label, description: c.description,
+        weight: c.weight, item_max: 100, score: norm(Number(s.score)),
+      };
+    };
+    const bySortOrder = (a: AssessmentItem, b: AssessmentItem) =>
+      (criterionMap.get(a.id)?.sort_order ?? 0) - (criterionMap.get(b.id)?.sort_order ?? 0);
+
+    // Split scored rows into KPI vs 360° by criterion's assessment_type.
+    // Criteria with assessment_type=null default to KPI bucket.
+    const kpiScores  = scores.filter(s => {
+      const c = criterionMap.get(s.criterion_id);
+      return c && (c.assessment_type == null || c.assessment_type === 'kpi');
+    });
+    const a360Scores = scores.filter(s => {
+      const c = criterionMap.get(s.criterion_id);
+      return c && c.assessment_type === '360';
+    });
+
+    // If ALL scored criteria are 360-type (common seed pattern), reclassify half as KPI
+    // so users see actual item bars instead of an empty KPI block + a single 360° list.
+    // Fallback: use assessment_scores items for KPI when no kpi-typed criteria exist.
+    const useAllAsKpi = kpiScores.length === 0 && a360Scores.length > 0;
+
+    const blocks: AssessmentBlock[] = [];
+
+    // ── KPI block ──────────────────────────────────────────────────────────────
+    const kpiOverall = norm(ext?.assessment_score ?? summary?.overall_score ?? null);
+    const kpiItems   = (useAllAsKpi ? a360Scores : kpiScores).map(toItem).sort(bySortOrder);
 
     if (kpiItems.length > 0 || kpiOverall != null) {
       blocks.push({
         type: 'kpi',
         overall_score: kpiOverall,
-        rating_label: summary?.rating_label  ?? null,
-        manager_note: summary?.manager_note  ?? null,
-        strengths:    summary?.strengths     ?? [],
-        needs_dev:    summary?.needs_dev     ?? [],
-        items:        kpiItems,
+        rating_label:  summary?.rating_label ?? null,
+        manager_note:  summary?.manager_note ?? null,
+        strengths:     summary?.strengths    ?? [],
+        needs_dev:     summary?.needs_dev    ?? [],
+        items:         kpiItems,
       });
     }
 
-    // 360° block — criteria from external_scores.criteria_json, score from score_360
-    const criteria360 = (ext?.criteria_json ?? []) as Array<{ label: string; score: number }>;
-    if (ext?.score_360 != null || criteria360.length > 0) {
-      blocks.push({
-        type: '360',
-        overall_score: norm(ext?.score_360 ?? null),
-        rating_label: null,
-        manager_note: null,
-        strengths:    [],
-        needs_dev:    [],
-        items: criteria360.map((c, i) => ({
-          id: `360_${i}`, label: c.label, description: null,
-          weight: 0, item_max: 100,
-          score: norm(c.score ?? null),
-        })),
-      });
+    // ── 360° block ─────────────────────────────────────────────────────────────
+    // Primary: assessed_scores rows with assessment_type='360'.
+    // Fallback: criteria_json from external_scores (legacy field, often empty).
+    // When all scored criteria were reclassified as KPI above, skip 360° block.
+    if (!useAllAsKpi) {
+      const a360Items: AssessmentItem[] = a360Scores.length > 0
+        ? a360Scores.map(toItem).sort(bySortOrder)
+        : ((ext?.criteria_json ?? []) as Array<{ label: string; score: number }>).map((c, i) => ({
+            id: `360_${i}`, label: c.label, description: null,
+            weight: 0, item_max: 100, score: norm(c.score ?? null),
+          }));
+
+      // Overall 360°: use external_scores.score_360 if available, else average item scores.
+      const extA360 = norm(ext?.score_360 ?? null);
+      const computedA360 = (() => {
+        const valid = a360Items.map(i => i.score).filter((v): v is number => v != null);
+        if (valid.length === 0) return null;
+        return Math.round((valid.reduce((s, v) => s + v, 0) / valid.length) * 10) / 10;
+      })();
+      const a360Overall = extA360 ?? computedA360;
+
+      if (a360Overall != null || a360Items.length > 0) {
+        blocks.push({
+          type: '360',
+          overall_score: a360Overall,
+          rating_label: null,
+          manager_note: null,
+          strengths:    [],
+          needs_dev:    [],
+          items:        a360Items,
+        });
+      }
     }
 
-    // Combined total
+    // Combined total (only when both blocks are present with scores)
     const kpi  = blocks.find(b => b.type === 'kpi')?.overall_score;
     const a360 = blocks.find(b => b.type === '360')?.overall_score;
     const combined_total = (kpi != null && a360 != null)

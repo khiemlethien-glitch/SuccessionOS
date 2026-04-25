@@ -1,7 +1,38 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Fix assessment scores + cycle dropdown + position competency targets ✅
+> Cập nhật lần cuối: 2026-04-25 — Talent Profile tab layout redesign ✅
+
+---
+
+## ⚡ Talent Profile — Tab layout redesign + Radar source indicator (2026-04-25) — ✅ DONE
+
+### Thay đổi
+- **`talent-profile.component.html`** — Tái cấu trúc hoàn toàn: thay vì 1 trang cuộn dài (6 sections), giờ là Hero card + `<nz-tabs>` với 4 tab:
+  - **Tab 0 "Năng lực"** (mặc định): Radar chart + Mạng lưới phát triển (Network graph) — 2 cột.
+  - **Tab 1 "Đánh giá"**: Assessment card (KPI + 360°) với dropdown cycle.
+  - **Tab 2 "Phát triển"**: IDP compact (cột trái 360px) + Career Roadmap AI (cột phải) — layout grid 2 cột.
+  - **Tab 3 "Rủi ro"**: Risk factors card + Activity timeline — stack dọc.
+- **`talent-profile.component.ts`** — Thêm:
+  - `activeProfileTab = signal(0)` — state active tab.
+  - `radarSourceLabel` computed — tên chu kỳ nếu có dữ liệu thật, "Năng lực mặc định" nếu fallback.
+  - `radarSourceIsReal` computed — `true` khi `radarProfile()` có dữ liệu từ assessment_scores.
+- **`talent-profile.component.scss`** — Thêm:
+  - `.profile-tab-container` — card wrapper cho nz-tabs với gradient header + ::ng-deep styles.
+  - `.tab-section` — flex-column gap:16px cho nội dung từng tab.
+  - `.dev-layout` — grid 2 cột (360px + 1fr) cho Tab 2 Phát triển, responsive 1 cột <1100px.
+  - `.badge-src-real` / `.badge-src-fallback` — badge xanh/xám chỉ nguồn dữ liệu radar.
+
+### Kết quả UX
+- Trang profile gọn gàng hơn: người dùng không phải cuộn qua 6 section liên tiếp.
+- Radar chart hiển thị badge nguồn dữ liệu (chu kỳ thật vs fallback competencies).
+- Career Roadmap AI có không gian đủ rộng (>50% chiều rộng) trong Tab 2.
+- Build: ✅ 0 errors (3 SCSS budget warnings pre-existing, non-blocking).
+
+### Files thay đổi
+- `frontend/src/app/modules/talent/talent-profile.component.ts`
+- `frontend/src/app/modules/talent/talent-profile.component.html`
+- `frontend/src/app/modules/talent/talent-profile.component.scss`
 
 ---
 

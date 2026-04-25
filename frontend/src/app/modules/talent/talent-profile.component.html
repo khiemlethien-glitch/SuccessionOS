@@ -44,20 +44,11 @@
         <div class="sk-metric sk-pulse"></div>
       </div>
     </div>
-    <!-- Charts row skeleton -->
-    <div class="charts-row">
-      <div class="chart-card sk-card" style="height:320px"><div class="sk-block sk-pulse" style="height:100%"></div></div>
-      <div class="chart-card sk-card" style="height:320px"><div class="sk-block sk-pulse" style="height:100%"></div></div>
-    </div>
-    <!-- Assessment skeleton -->
-    <div class="eval-card eval-standalone sk-card" style="padding:24px">
-      <div class="sk-line sk-pulse" style="width:200px;height:18px;margin-bottom:20px"></div>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="sk-line sk-pulse" style="width:100%;height:12px"></div>
-        <div class="sk-line sk-pulse" style="width:90%;height:12px"></div>
-        <div class="sk-line sk-pulse" style="width:95%;height:12px"></div>
-        <div class="sk-line sk-pulse" style="width:85%;height:12px"></div>
-        <div class="sk-line sk-pulse" style="width:80%;height:12px"></div>
+    <!-- Tab skeleton -->
+    <div class="profile-tab-container">
+      <div class="sk-tab-nav sk-pulse" style="height:44px;border-radius:0"></div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+        <div class="sk-line sk-pulse" style="width:100%;height:200px;border-radius:12px"></div>
       </div>
     </div>
   }
@@ -181,527 +172,579 @@
       </div>
     </div>
 
-    <!-- ══ Charts row: Radar + Network ══ -->
-    <div class="charts-row">
+    <!-- ══ Main Profile Tabs ══ -->
+    <div class="profile-tab-container">
+      <nz-tabs
+        [nzSelectedIndex]="activeProfileTab()"
+        (nzSelectedIndexChange)="activeProfileTab.set($event)"
+        [nzAnimated]="false"
+        [nzTabBarGutter]="0"
+      >
 
-      <!-- Radar: Hồ sơ năng lực -->
-      <div class="chart-card radar-card">
-        <!-- Gradient header band -->
-        <div class="rc-head">
-          <div class="rc-head-left">
-            <span nz-icon nzType="radar-chart" class="rc-ico"></span>
-            <div>
-              <h3 class="chart-title rc-title">Hồ sơ năng lực</h3>
-              <p class="chart-sub rc-sub">
-                GAP tổng <strong>{{ radarTotalGap() }}</strong>
-                &nbsp;·&nbsp; TB
-                <strong [class.rs-up]="radarAvgGap() >= 0" [class.rs-down]="radarAvgGap() < 0">
-                  {{ radarAvgGap() >= 0 ? '+' : '' }}{{ radarAvgGap() }}
-                </strong>
-              </p>
-            </div>
-          </div>
-          <div class="rc-badges">
-            <span class="badge badge-good"><span nz-icon nzType="check-circle"></span> {{ radarAbove() }} vượt chuẩn</span>
-            <span class="badge badge-bad"><span nz-icon nzType="warning"></span> {{ radarBelow() }} cần cải thiện</span>
-          </div>
-        </div>
+        <!-- ── Tab 0: Năng lực (Radar + Network) ──────────────────── -->
+        <nz-tab [nzTitle]="tabTitle0">
+          <div class="tab-section">
 
-        <div class="radar-wrap">
-          <svg viewBox="-40 -18 280 238" class="radar-svg" preserveAspectRatio="xMidYMid meet">
-            <defs>
-              <radialGradient id="radar-fill-grad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.35"/>
-                <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.08"/>
-              </radialGradient>
-              <filter id="radar-glow">
-                <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            </defs>
-            <!-- Grid pentagons -->
-            @for (g of radarGrid; track $index) {
-              <polygon [attr.points]="g" class="radar-grid" />
-            }
-            <!-- Axes -->
-            @for (a of radarAxes(); track a.label) {
-              <line [attr.x1]="100" [attr.y1]="100" [attr.x2]="a.x2" [attr.y2]="a.y2" class="radar-axis" />
-            }
-            <!-- Target (dashed) -->
-            <path [attr.d]="radarTargetPath()" class="radar-target" />
-            <!-- Actual (filled + glow) -->
-            <path [attr.d]="radarActualPath()" class="radar-actual" filter="url(#radar-glow)" />
-            <!-- Labels -->
-            @for (a of radarAxes(); track a.label) {
-              <text [attr.x]="a.lx" [attr.y]="a.ly" [attr.text-anchor]="a.anchor" class="radar-label">{{ a.label }}</text>
-            }
-          </svg>
+            <div class="charts-row">
 
-          <div class="radar-legend">
-            <span class="lg"><i class="lg-dot lg-actual"></i>Thực tế</span>
-            <span class="lg"><i class="lg-dash"></i>Mục tiêu</span>
-          </div>
-        </div>
+              <!-- Radar: Hồ sơ năng lực -->
+              <div class="chart-card radar-card">
+                <div class="rc-head">
+                  <div class="rc-head-left">
+                    <span nz-icon nzType="radar-chart" class="rc-ico"></span>
+                    <div>
+                      <h3 class="chart-title rc-title">Hồ sơ năng lực</h3>
+                      <p class="chart-sub rc-sub">
+                        GAP tổng <strong>{{ radarTotalGap() }}</strong>
+                        &nbsp;·&nbsp; TB
+                        <strong [class.rs-up]="radarAvgGap() >= 0" [class.rs-down]="radarAvgGap() < 0">
+                          {{ radarAvgGap() >= 0 ? '+' : '' }}{{ radarAvgGap() }}
+                        </strong>
+                      </p>
+                    </div>
+                  </div>
+                  <div class="rc-badges">
+                    <span class="badge badge-good"><span nz-icon nzType="check-circle"></span> {{ radarAbove() }} vượt chuẩn</span>
+                    <span class="badge badge-bad"><span nz-icon nzType="warning"></span> {{ radarBelow() }} cần cải thiện</span>
+                    <span class="badge" [class.badge-src-real]="radarSourceIsReal()" [class.badge-src-fallback]="!radarSourceIsReal()">
+                      <span nz-icon [nzType]="radarSourceIsReal() ? 'check-circle' : 'database'"></span>
+                      {{ radarSourceLabel() }}
+                    </span>
+                  </div>
+                </div>
 
-        <!-- Stats row with mini bars -->
-        <div class="radar-stats">
-          @for (e of radarEntries(); track e.label) {
-            <div class="rs-col">
-              <div class="rs-label">{{ e.label }}</div>
-              <div class="rs-value">{{ e.actual ?? '—' }}</div>
-              <div class="rs-bar-track">
-                <div class="rs-bar-fill"
-                     [style.width.%]="e.actual ?? 0"
-                     [class.rs-bar-good]="(e.delta ?? -1) >= 0"
-                     [class.rs-bar-bad]="(e.delta ?? 0) < 0"></div>
+                <div class="radar-wrap">
+                  <svg viewBox="-40 -18 280 238" class="radar-svg" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <radialGradient id="radar-fill-grad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%"   stop-color="#7c3aed" stop-opacity="0.35"/>
+                        <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.08"/>
+                      </radialGradient>
+                      <filter id="radar-glow">
+                        <feGaussianBlur stdDeviation="1.5" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                    </defs>
+                    <!-- Grid pentagons -->
+                    @for (g of radarGrid; track $index) {
+                      <polygon [attr.points]="g" class="radar-grid" />
+                    }
+                    <!-- Axes -->
+                    @for (a of radarAxes(); track a.label) {
+                      <line [attr.x1]="100" [attr.y1]="100" [attr.x2]="a.x2" [attr.y2]="a.y2" class="radar-axis" />
+                    }
+                    <!-- Target (dashed) -->
+                    <path [attr.d]="radarTargetPath()" class="radar-target" />
+                    <!-- Actual (filled + glow) -->
+                    <path [attr.d]="radarActualPath()" class="radar-actual" filter="url(#radar-glow)" />
+                    <!-- Labels -->
+                    @for (a of radarAxes(); track a.label) {
+                      <text [attr.x]="a.lx" [attr.y]="a.ly" [attr.text-anchor]="a.anchor" class="radar-label">{{ a.label }}</text>
+                    }
+                  </svg>
+
+                  <div class="radar-legend">
+                    <span class="lg"><i class="lg-dot lg-actual"></i>Thực tế</span>
+                    <span class="lg"><i class="lg-dash"></i>Mục tiêu</span>
+                  </div>
+                </div>
+
+                <!-- Stats row with mini bars -->
+                <div class="radar-stats">
+                  @for (e of radarEntries(); track e.label) {
+                    <div class="rs-col">
+                      <div class="rs-label">{{ e.label }}</div>
+                      <div class="rs-value">{{ e.actual ?? '—' }}</div>
+                      <div class="rs-bar-track">
+                        <div class="rs-bar-fill"
+                             [style.width.%]="e.actual ?? 0"
+                             [class.rs-bar-good]="(e.delta ?? -1) >= 0"
+                             [class.rs-bar-bad]="(e.delta ?? 0) < 0"></div>
+                      </div>
+                      @if (e.delta != null) {
+                        <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-gap]="e.delta < 0">
+                          {{ e.delta >= 0 ? '+' : '' }}{{ e.delta >= 0 ? e.delta : -e.delta }}%
+                        </div>
+                      } @else {
+                        <div class="rs-delta rs-na">—</div>
+                      }
+                    </div>
+                  }
+                </div>
               </div>
-              @if (e.delta != null) {
-                <div class="rs-delta" [class.rs-up]="e.delta >= 0" [class.rs-down]="e.delta < 0">
-                  {{ e.delta >= 0 ? '+' : '' }}{{ e.delta }}
+
+              <!-- Network: Mạng lưới phát triển -->
+              <div class="chart-card net-card">
+                <div class="net-head">
+                  <div class="net-head-left">
+                    <span nz-icon nzType="cluster" class="net-head-ico"></span>
+                    <div>
+                      <h3 class="chart-title rc-title">Mạng lưới phát triển</h3>
+                      <p class="chart-sub rc-sub">Click vào node để xem hồ sơ</p>
+                    </div>
+                  </div>
+                  <div class="net-legend">
+                    <span class="net-pill pill-target"><i class="dot dot-target"></i>Mục tiêu</span>
+                    <span class="net-pill pill-mentor"><i class="dot dot-mentor"></i>Mentor</span>
+                    <span class="net-pill pill-succ"><i class="dot dot-succ"></i>Kế thừa</span>
+                  </div>
+                </div>
+
+                <div class="net-wrap net-canvas">
+                  <!-- SVG edge layer -->
+                  <svg class="net-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                      <marker id="arr-up" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                        <path d="M0,0 L10,5 L0,10 Z" fill="#4f46e5"/>
+                      </marker>
+                    </defs>
+                    <!-- center → target (up) -->
+                    <line x1="50" y1="46" x2="50" y2="17" class="edge edge-target"/>
+                    <!-- center → mentor (right) -->
+                    <line x1="54" y1="50" x2="79" y2="50" class="edge edge-mentor"/>
+                    <!-- center → KTP disabled (left) -->
+                    <line x1="46" y1="50" x2="21" y2="50" class="edge edge-disabled"/>
+                    <!-- center → each successor -->
+                    @for (pos of netLayout().positions; track pos.talent_id) {
+                      <line [attr.x1]="50" [attr.y1]="54"
+                            [attr.x2]="pos.xPct" [attr.y2]="pos.yPct"
+                            class="edge edge-succ"/>
+                    }
+                  </svg>
+
+                  <!-- ── Center node ────────────────────────────────────── -->
+                  <div class="node node-center" style="left:50%;top:50%">
+                    <div class="node-circle center-circle">{{ centerInitials() }}</div>
+                  </div>
+
+                  <!-- ── Target position (top) ─────────────────────────── -->
+                  <div class="node node-target-pos" style="left:50%;top:10%">
+                    <div class="node-label net-above-label">Vị trí mục tiêu</div>
+                    <div class="chip-target-pos">
+                      <span nz-icon nzType="aim"></span>
+                      <span class="ctp-text">{{ idpTargetPosition() !== '—' ? idpTargetPosition() : 'Chưa xác định' }}</span>
+                    </div>
+                  </div>
+
+                  <!-- ── Mentor (right) ─────────────────────────────────── -->
+                  <div class="node node-mentor" style="left:84%;top:50%"
+                       [class.clickable]="!!mentorTalent()"
+                       (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
+                    @if (mentorTalent(); as m) {
+                      <div class="node-circle mentor-circle">{{ nameInitials(m.full_name) }}</div>
+                      <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
+                      <div class="node-tip">
+                        <div class="nt-name">{{ m.full_name }}</div>
+                        @if (m.position) { <div class="nt-pos">{{ m.position }}</div> }
+                      </div>
+                    } @else {
+                      <div class="node-circle mentor-empty">—</div>
+                      <div class="node-label node-label-right">Mentor</div>
+                    }
+                  </div>
+
+                  <!-- ── KTP left — disabled / coming soon ─────────────── -->
+                  <div class="node node-ktp-area" style="left:16%;top:50%">
+                    <div class="node-circle ktp-circle-dis">
+                      <span nz-icon nzType="lock" style="font-size:14px"></span>
+                    </div>
+                    <div class="node-label node-label-dis">
+                      <span>Tri thức</span>
+                      <span class="net-soon">Sắp ra mắt</span>
+                    </div>
+                  </div>
+
+                  <!-- ── Successors (bottom fan) ────────────────────────── -->
+                  @for (pos of netLayout().positions; track pos.talent_id) {
+                    <!-- Successor node -->
+                    <div class="node node-succ clickable"
+                         [style.left.%]="pos.xPct"
+                         [style.top.%]="pos.yPct"
+                         (click)="switchCenter(pos.talent_id)">
+                      <div class="node-circle succ-circle">{{ nameInitials(pos.talent_name) }}</div>
+                      <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
+                      <div class="node-tip node-tip--below">
+                        <div class="nt-name">{{ pos.talent_name }}</div>
+                        @if (succNodePosition(pos); as p) { <div class="nt-pos">{{ p }}</div> }
+                      </div>
+                    </div>
+                    <!-- IDP % midpoint badge -->
+                    <div class="idp-mid-badge"
+                         [style.left.%]="pos.midX"
+                         [style.top.%]="pos.midY">
+                      IDP {{ pos.idp_progress }}%
+                    </div>
+                  }
+
+                  <!-- ── View-more button ───────────────────────────────── -->
+                  @if (netLayout().showMore) {
+                    <div class="node node-more-pos"
+                         [style.left.%]="netLayout().moreXPct"
+                         style="top:82%">
+                      <button class="net-more-btn" (click)="showAllSuccessors.set(true)">
+                        +{{ hiddenSuccessorCount() }}
+                      </button>
+                      <div class="node-label net-below-label">Xem thêm</div>
+                    </div>
+                  }
+
+                  <!-- ── Empty successors state ─────────────────────────── -->
+                  @if (!successorNodes().length) {
+                    <div class="succ-empty-hint" style="left:50%;top:76%">
+                      <span nz-icon nzType="team"></span>
+                      Chưa có người kế thừa
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </div><!-- end charts-row -->
+          </div><!-- end tab-section -->
+        </nz-tab>
+
+        <!-- ── Tab 1: Đánh giá (Assessment) ───────────────────────── -->
+        <nz-tab [nzTitle]="tabTitle1">
+          <div class="tab-section">
+
+            <!-- Unified Assessment Card (KPI + 360° — flexible 1 or 2 cols) -->
+            <div class="eval-card eval-standalone">
+              @if (cyclesLoading()) {
+                <div class="eval-head">
+                  <h3 class="eval-title">Đánh giá năng lực</h3>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0">
+                  <div class="sk-line sk-pulse" style="width:100%;height:12px"></div>
+                  <div class="sk-line sk-pulse" style="width:88%;height:12px"></div>
+                  <div class="sk-line sk-pulse" style="width:94%;height:12px"></div>
+                  <div class="sk-line sk-pulse" style="width:76%;height:12px"></div>
+                  <div class="sk-line sk-pulse" style="width:90%;height:12px"></div>
                 </div>
               } @else {
-                <div class="rs-delta rs-na">—</div>
+              <div class="eval-head">
+                <h3 class="eval-title">Đánh giá năng lực</h3>
+                <nz-select
+                  class="eval-cycle-sel"
+                  [ngModel]="selectedCycleId()"
+                  (ngModelChange)="onCycleChange($event)"
+                  nzSize="small"
+                >
+                  @for (cy of cycles(); track cy.id) {
+                    <nz-option [nzValue]="cy.id" [nzLabel]="cy.name"></nz-option>
+                  }
+                </nz-select>
+              </div>
+
+              @if (assessmentBlocks(); as ab) {
+                @if (ab.blocks.length === 0) {
+                  <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
+                } @else {
+                  <div class="eval-blocks" [class.eval-blocks-dual]="ab.blocks.length >= 2">
+                    @for (block of ab.blocks; track block.type) {
+                      <div class="eval-block">
+                        <!-- Block header -->
+                        <div class="eval-block-head">
+                          <span class="eval-block-badge" [class]="'ebt-' + block.type">
+                            {{ block.type === 'kpi' ? 'KPI' : '360°' }}
+                          </span>
+                          @if (block.overall_score != null) {
+                            <span class="eval-block-score">{{ block.overall_score }}/100</span>
+                          }
+                          @if (block.type === '360') {
+                            <span class="eval-360-sync"><span nz-icon nzType="api"></span> Tự động đồng bộ</span>
+                          }
+                          <span class="eval-block-weight">
+                            {{ ab.blocks.length >= 2 ? blockWeightLabel(block.type) + ' trọng số' : '100% trọng số' }}
+                          </span>
+                        </div>
+
+                        <!-- Criteria bars -->
+                        @if (block.items.length > 0) {
+                          <div class="eval-bars">
+                            @for (c of blockVisibleItems(block); track c.id) {
+                              <div class="eval-bar-row">
+                                <span class="eb-label" [title]="c.description ?? ''">{{ c.label }}</span>
+                                <div class="eb-track">
+                                  <div class="eb-fill" [class]="reviewBarClass((c.score ?? 0) / c.item_max * 100)"
+                                       [style.width.%]="(c.score ?? 0) / c.item_max * 100"></div>
+                                </div>
+                                <span class="eb-score">
+                                  {{ c.score ?? '—' }}@if (c.item_max !== 100) { <span class="eb-max">/{{ c.item_max }}</span> }
+                                </span>
+                              </div>
+                            }
+                          </div>
+                          @if (block.items.length > 5) {
+                            <button type="button" class="eval-expand-btn" (click)="toggleBlockExpanded(block.type)">
+                              @if (isBlockExpanded(block.type)) {
+                                <span nz-icon nzType="up"></span> Thu gọn
+                              } @else {
+                                <span nz-icon nzType="down"></span> Xem thêm ({{ block.items.length - 5 }})
+                              }
+                            </button>
+                          }
+                        } @else {
+                          <div class="empty-msg em-sm">
+                            @if (block.type === '360') {
+                              <span nz-icon nzType="api"></span> Chưa đồng bộ từ hệ thống 360°
+                            } @else {
+                              Chưa có tiêu chí.
+                            }
+                          </div>
+                        }
+
+                        <!-- Strengths / needs_dev / manager note -->
+                        @if (block.strengths.length || block.needs_dev.length || block.manager_note) {
+                          <div class="eval-notes eval-notes-compact">
+                            @if (block.strengths.length) {
+                              <div class="en-col">
+                                <div class="en-head en-head-good"><span nz-icon nzType="check-circle"></span> Điểm mạnh</div>
+                                @for (s of block.strengths; track s) {
+                                  <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
+                                }
+                              </div>
+                            }
+                            @if (block.needs_dev.length) {
+                              <div class="en-col">
+                                <div class="en-head en-head-warn"><span nz-icon nzType="exclamation-circle"></span> Cần phát triển</div>
+                                @for (s of block.needs_dev; track s) {
+                                  <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
+                                }
+                              </div>
+                            }
+                          </div>
+                          @if (block.manager_note) {
+                            <p class="eval-quote">"{{ block.manager_note }}"</p>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Combined total (chỉ hiện khi có cả 2 block) -->
+                  @if (ab.blocks.length >= 2 && ab.combined_total != null) {
+                    <div class="eval-combined">
+                      <div class="ec-label">Điểm tổng hợp</div>
+                      <div class="ec-val">{{ ab.combined_total | number:'1.1-1' }}<span class="ec-max">/100</span></div>
+                      <div class="ec-formula">
+                        KPI × {{ ab.weights.assessment_weight }}% + 360° × {{ ab.weights.weight_360 }}%
+                      </div>
+                    </div>
+                  }
+                }
+              } @else {
+                <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
+              }
+              } <!-- end @else cyclesLoading -->
+            </div>
+
+          </div><!-- end tab-section -->
+        </nz-tab>
+
+        <!-- ── Tab 2: Phát triển (IDP + Career Roadmap) ───────────── -->
+        <nz-tab [nzTitle]="tabTitle2">
+          <div class="tab-section">
+            <div class="dev-layout">
+
+              <!-- LEFT: IDP compact card -->
+              <div class="bottom-card idp-compact-card">
+                <div class="bc-head">
+                  <span nz-icon nzType="rocket" class="bc-ico"></span>
+                  <div class="bc-head-text">
+                    <div class="bc-title">Kế hoạch Phát triển Cá nhân</div>
+                    <div class="bc-sub">IDP {{ idp()?.year ?? '' }}</div>
+                  </div>
+                  @if (idp()) {
+                    <span class="bc-badge" [class.bc-badge-active]="idp()!.status === 'Active'"
+                                           [class.bc-badge-done]="idp()!.status === 'Completed'">
+                      {{ idp()!.status }}
+                    </span>
+                  }
+                </div>
+
+                @if (idp(); as plan) {
+                  <!-- Ring + meta -->
+                  <div class="icp-overview">
+                    <div class="icp-ring-wrap">
+                      <svg class="icp-ring" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e7ff" stroke-width="3.2"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4f46e5" stroke-width="3.2"
+                          [attr.stroke-dasharray]="idpProgress() + ' ' + (100 - idpProgress())"
+                          stroke-dashoffset="25"
+                          stroke-linecap="round"/>
+                      </svg>
+                      <div class="icp-ring-pct">{{ idpProgress() }}%</div>
+                    </div>
+                    <div class="icp-meta">
+                      <div class="icp-meta-row">
+                        <span class="icp-meta-label">Vị trí mục tiêu</span>
+                        <span class="icp-meta-val">{{ idpTargetPosition() }}</span>
+                      </div>
+                      <div class="icp-meta-row">
+                        <span class="icp-meta-label">Duyệt bởi</span>
+                        <span class="icp-meta-val">{{ idpApprovedBy() }}</span>
+                      </div>
+                      <div class="icp-meta-row">
+                        <span class="icp-meta-label">Ngày duyệt</span>
+                        <span class="icp-meta-val">{{ idpApprovedDate() }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Goals -->
+                  <div class="icp-goals">
+                    @if (idpGoals12m().length) {
+                      <div class="icg-section">
+                        <div class="icg-head">
+                          <span nz-icon nzType="calendar" class="icg-ico icg-ico-12m"></span>
+                          Mục tiêu 12 tháng
+                        </div>
+                        @for (g of idpGoals12m(); track g) {
+                          <div class="icg-item">
+                            <span class="icg-dot icg-dot-12m"></span>{{ g }}
+                          </div>
+                        }
+                      </div>
+                    }
+                    @if (idpGoals2to3y().length) {
+                      <div class="icg-section">
+                        <div class="icg-head">
+                          <span nz-icon nzType="aim" class="icg-ico icg-ico-2y"></span>
+                          Mục tiêu 2–3 năm
+                        </div>
+                        @for (g of idpGoals2to3y(); track g) {
+                          <div class="icg-item">
+                            <span class="icg-dot icg-dot-2y"></span>{{ g }}
+                          </div>
+                        }
+                      </div>
+                    }
+                    @if (!idpGoals12m().length && !idpGoals2to3y().length) {
+                      <div class="bc-empty">
+                        <span nz-icon nzType="file-text" class="bc-empty-ico"></span>
+                        <p>Chưa có mục tiêu nào được nhập.</p>
+                      </div>
+                    }
+                  </div>
+
+                } @else {
+                  <!-- No IDP -->
+                  <div class="bc-empty">
+                    <span nz-icon nzType="rocket" class="bc-empty-ico"></span>
+                    <p>Chưa có kế hoạch IDP nào.</p>
+                    <span class="bc-empty-hint">Dữ liệu sẽ được đồng bộ từ module IDP.</span>
+                  </div>
+                }
+              </div>
+
+              <!-- RIGHT: Career Roadmap -->
+              <div class="roadmap-card">
+                <app-career-roadmap [talent]="talent()"></app-career-roadmap>
+              </div>
+
+            </div><!-- end dev-layout -->
+          </div><!-- end tab-section -->
+        </nz-tab>
+
+        <!-- ── Tab 3: Rủi ro & Lịch sử ─────────────────────────────── -->
+        <nz-tab [nzTitle]="tabTitle3">
+          <div class="tab-section">
+
+            <!-- Risk card -->
+            <div class="risk-card" [class]="'risk-card-' + riskTone()">
+              <button type="button" class="risk-card-head" (click)="riskExpanded.set(!riskExpanded())">
+                <span nz-icon nzType="warning" nzTheme="outline" class="rc-ico"></span>
+                <span class="rc-title">Yếu tố rủi ro</span>
+                <span class="rc-badge">Risk {{ talent()!.risk_score }} · {{ riskFactorsList().length }} yếu tố</span>
+                <span nz-icon [nzType]="riskExpanded() ? 'arrow-up' : 'arrow-down'" class="rc-toggle"></span>
+              </button>
+
+              @if (riskExpanded()) {
+                <div class="risk-summary">
+                  Risk score <strong>{{ talent()!.risk_score }}</strong>
+                  @if (riskVsDeptAvg() > 0) {
+                    — Cao hơn <strong>{{ riskVsDeptAvg() }}%</strong> trung bình phòng
+                  } @else if (riskVsDeptAvg() < 0) {
+                    — Thấp hơn <strong>{{ -riskVsDeptAvg() }}%</strong> trung bình phòng
+                  } @else {
+                    — Ngang trung bình phòng
+                  }
+                  @if (riskTone() === 'high') { — cần can thiệp }
+                  @else if (riskTone() === 'medium') { — cần theo dõi }
+                  @else { — trong ngưỡng an toàn }
+                </div>
+
+                <ul class="risk-list">
+                  @for (r of riskFactorsList(); track r.title) {
+                    <li class="risk-item">
+                      <span class="rf-dot" [class]="'rf-dot-' + r.severity"></span>
+                      <div class="rf-text">
+                        <div class="rf-title">{{ r.title }}</div>
+                        @if (r.detail) { <div class="rf-detail">{{ r.detail }}</div> }
+                      </div>
+                      <div class="rf-tags">
+                        <span class="rf-tag">{{ r.source }}</span>
+                        @if (r.date) { <span class="rf-tag rf-tag-muted">{{ r.date }}</span> }
+                      </div>
+                    </li>
+                  }
+                </ul>
               }
             </div>
-          }
-        </div>
-      </div>
 
-      <!-- Network: Mạng lưới phát triển -->
-      <div class="chart-card net-card">
-        <div class="net-head">
-          <div class="net-head-left">
-            <span nz-icon nzType="cluster" class="net-head-ico"></span>
-            <div>
-              <h3 class="chart-title rc-title">Mạng lưới phát triển</h3>
-              <p class="chart-sub rc-sub">Click vào node để xem hồ sơ</p>
-            </div>
-          </div>
-          <div class="net-legend">
-            <span class="net-pill pill-target"><i class="dot dot-target"></i>Mục tiêu</span>
-            <span class="net-pill pill-mentor"><i class="dot dot-mentor"></i>Mentor</span>
-            <span class="net-pill pill-succ"><i class="dot dot-succ"></i>Kế thừa</span>
-          </div>
-        </div>
-
-        <div class="net-wrap net-canvas">
-          <!-- SVG edge layer -->
-          <svg class="net-edges" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <marker id="arr-up" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M0,0 L10,5 L0,10 Z" fill="#4f46e5"/>
-              </marker>
-            </defs>
-            <!-- center → target (up) -->
-            <line x1="50" y1="46" x2="50" y2="17" class="edge edge-target"/>
-            <!-- center → mentor (right) -->
-            <line x1="54" y1="50" x2="79" y2="50" class="edge edge-mentor"/>
-            <!-- center → KTP disabled (left) -->
-            <line x1="46" y1="50" x2="21" y2="50" class="edge edge-disabled"/>
-            <!-- center → each successor -->
-            @for (pos of netLayout().positions; track pos.talent_id) {
-              <line [attr.x1]="50" [attr.y1]="54"
-                    [attr.x2]="pos.xPct" [attr.y2]="pos.yPct"
-                    class="edge edge-succ"/>
-            }
-          </svg>
-
-          <!-- ── Center node ────────────────────────────────────── -->
-          <div class="node node-center" style="left:50%;top:50%">
-            <div class="node-circle center-circle">{{ centerInitials() }}</div>
-          </div>
-
-          <!-- ── Target position (top) ─────────────────────────── -->
-          <div class="node node-target-pos" style="left:50%;top:10%">
-            <div class="node-label net-above-label">Vị trí mục tiêu</div>
-            <div class="chip-target-pos">
-              <span nz-icon nzType="aim"></span>
-              <span class="ctp-text">{{ idpTargetPosition() !== '—' ? idpTargetPosition() : 'Chưa xác định' }}</span>
-            </div>
-          </div>
-
-          <!-- ── Mentor (right) ─────────────────────────────────── -->
-          <div class="node node-mentor" style="left:84%;top:50%"
-               [class.clickable]="!!mentorTalent()"
-               (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
-            @if (mentorTalent(); as m) {
-              <div class="node-circle mentor-circle">{{ nameInitials(m.full_name) }}</div>
-              <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
-              <div class="node-tip">
-                <div class="nt-name">{{ m.full_name }}</div>
-                @if (m.position) { <div class="nt-pos">{{ m.position }}</div> }
-              </div>
-            } @else {
-              <div class="node-circle mentor-empty">—</div>
-              <div class="node-label node-label-right">Mentor</div>
-            }
-          </div>
-
-          <!-- ── KTP left — disabled / coming soon ─────────────── -->
-          <div class="node node-ktp-area" style="left:16%;top:50%">
-            <div class="node-circle ktp-circle-dis">
-              <span nz-icon nzType="lock" style="font-size:14px"></span>
-            </div>
-            <div class="node-label node-label-dis">
-              <span>Tri thức</span>
-              <span class="net-soon">Sắp ra mắt</span>
-            </div>
-          </div>
-
-          <!-- ── Successors (bottom fan) ────────────────────────── -->
-          @for (pos of netLayout().positions; track pos.talent_id) {
-            <!-- Successor node -->
-            <div class="node node-succ clickable"
-                 [style.left.%]="pos.xPct"
-                 [style.top.%]="pos.yPct"
-                 (click)="switchCenter(pos.talent_id)">
-              <div class="node-circle succ-circle">{{ nameInitials(pos.talent_name) }}</div>
-              <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
-              <div class="node-tip node-tip--below">
-                <div class="nt-name">{{ pos.talent_name }}</div>
-                @if (succNodePosition(pos); as p) { <div class="nt-pos">{{ p }}</div> }
-              </div>
-            </div>
-            <!-- IDP % midpoint badge -->
-            <div class="idp-mid-badge"
-                 [style.left.%]="pos.midX"
-                 [style.top.%]="pos.midY">
-              IDP {{ pos.idp_progress }}%
-            </div>
-          }
-
-          <!-- ── View-more button ───────────────────────────────── -->
-          @if (netLayout().showMore) {
-            <div class="node node-more-pos"
-                 [style.left.%]="netLayout().moreXPct"
-                 style="top:82%">
-              <button class="net-more-btn" (click)="showAllSuccessors.set(true)">
-                +{{ hiddenSuccessorCount() }}
-              </button>
-              <div class="node-label net-below-label">Xem thêm</div>
-            </div>
-          }
-
-          <!-- ── Empty successors state ─────────────────────────── -->
-          @if (!successorNodes().length) {
-            <div class="succ-empty-hint" style="left:50%;top:76%">
-              <span nz-icon nzType="team"></span>
-              Chưa có người kế thừa
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ Yếu tố rủi ro ══ -->
-    <div class="risk-card" [class]="'risk-card-' + riskTone()">
-      <button type="button" class="risk-card-head" (click)="riskExpanded.set(!riskExpanded())">
-        <span nz-icon nzType="warning" nzTheme="outline" class="rc-ico"></span>
-        <span class="rc-title">Yếu tố rủi ro</span>
-        <span class="rc-badge">Risk {{ talent()!.risk_score }} · {{ riskFactorsList().length }} yếu tố</span>
-        <span nz-icon [nzType]="riskExpanded() ? 'arrow-up' : 'arrow-down'" class="rc-toggle"></span>
-      </button>
-
-      @if (riskExpanded()) {
-        <div class="risk-summary">
-          Risk score <strong>{{ talent()!.risk_score }}</strong>
-          @if (riskVsDeptAvg() > 0) {
-            — Cao hơn <strong>{{ riskVsDeptAvg() }}%</strong> trung bình phòng
-          } @else if (riskVsDeptAvg() < 0) {
-            — Thấp hơn <strong>{{ -riskVsDeptAvg() }}%</strong> trung bình phòng
-          } @else {
-            — Ngang trung bình phòng
-          }
-          @if (riskTone() === 'high') { — cần can thiệp }
-          @else if (riskTone() === 'medium') { — cần theo dõi }
-          @else { — trong ngưỡng an toàn }
-        </div>
-
-        <ul class="risk-list">
-          @for (r of riskFactorsList(); track r.title) {
-            <li class="risk-item">
-              <span class="rf-dot" [class]="'rf-dot-' + r.severity"></span>
-              <div class="rf-text">
-                <div class="rf-title">{{ r.title }}</div>
-                @if (r.detail) { <div class="rf-detail">{{ r.detail }}</div> }
-              </div>
-              <div class="rf-tags">
-                <span class="rf-tag">{{ r.source }}</span>
-                @if (r.date) { <span class="rf-tag rf-tag-muted">{{ r.date }}</span> }
-              </div>
-            </li>
-          }
-        </ul>
-      }
-    </div>
-
-    <!-- ══ Unified Assessment Card (KPI + 360° — flexible 1 or 2 cols) ══ -->
-    <div class="eval-card eval-standalone">
-      @if (cyclesLoading()) {
-        <!-- Assessment skeleton while cycles are fetched -->
-        <div class="eval-head">
-          <h3 class="eval-title">Đánh giá năng lực</h3>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px;padding:8px 0">
-          <div class="sk-line sk-pulse" style="width:100%;height:12px"></div>
-          <div class="sk-line sk-pulse" style="width:88%;height:12px"></div>
-          <div class="sk-line sk-pulse" style="width:94%;height:12px"></div>
-          <div class="sk-line sk-pulse" style="width:76%;height:12px"></div>
-          <div class="sk-line sk-pulse" style="width:90%;height:12px"></div>
-        </div>
-      } @else {
-      <div class="eval-head">
-        <h3 class="eval-title">Đánh giá năng lực</h3>
-        <nz-select
-          class="eval-cycle-sel"
-          [ngModel]="selectedCycleId()"
-          (ngModelChange)="onCycleChange($event)"
-          nzSize="small"
-        >
-          @for (cy of cycles(); track cy.id) {
-            <nz-option [nzValue]="cy.id" [nzLabel]="cy.name"></nz-option>
-          }
-        </nz-select>
-      </div>
-
-      @if (assessmentBlocks(); as ab) {
-        @if (ab.blocks.length === 0) {
-          <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
-        } @else {
-          <div class="eval-blocks" [class.eval-blocks-dual]="ab.blocks.length >= 2">
-            @for (block of ab.blocks; track block.type) {
-              <div class="eval-block">
-                <!-- Block header -->
-                <div class="eval-block-head">
-                  <span class="eval-block-badge" [class]="'ebt-' + block.type">
-                    {{ block.type === 'kpi' ? 'KPI' : '360°' }}
-                  </span>
-                  @if (block.overall_score != null) {
-                    <span class="eval-block-score">{{ block.overall_score }}/100</span>
-                  }
-                  @if (block.type === '360') {
-                    <span class="eval-360-sync"><span nz-icon nzType="api"></span> Tự động đồng bộ</span>
-                  }
-                  <span class="eval-block-weight">
-                    {{ ab.blocks.length >= 2 ? blockWeightLabel(block.type) + ' trọng số' : '100% trọng số' }}
-                  </span>
+            <!-- Activity timeline -->
+            <div class="bottom-card activity-card">
+              <div class="bc-head">
+                <span nz-icon nzType="history" class="bc-ico bc-ico-history"></span>
+                <div class="bc-head-text">
+                  <div class="bc-title">Hoạt động gần đây</div>
+                  <div class="bc-sub">Lịch sử thay đổi &amp; đánh giá</div>
                 </div>
+              </div>
 
-                <!-- Criteria bars -->
-                @if (block.items.length > 0) {
-                  <div class="eval-bars">
-                    @for (c of blockVisibleItems(block); track c.id) {
-                      <div class="eval-bar-row">
-                        <span class="eb-label" [title]="c.description ?? ''">{{ c.label }}</span>
-                        <div class="eb-track">
-                          <div class="eb-fill" [class]="reviewBarClass((c.score ?? 0) / c.item_max * 100)"
-                               [style.width.%]="(c.score ?? 0) / c.item_max * 100"></div>
-                        </div>
-                        <span class="eb-score">
-                          {{ c.score ?? '—' }}@if (c.item_max !== 100) { <span class="eb-max">/{{ c.item_max }}</span> }
-                        </span>
+              @if (historyLoading()) {
+                <div class="bc-loading">
+                  <nz-spin nzSimple></nz-spin>
+                </div>
+              } @else if (historyLogs().length === 0) {
+                <div class="bc-empty">
+                  <span nz-icon nzType="history" class="bc-empty-ico"></span>
+                  <p>Chưa có hoạt động nào được ghi nhận.</p>
+                  <span class="bc-empty-hint">Lịch sử sẽ xuất hiện sau khi có đánh giá hoặc thay đổi hồ sơ.</span>
+                </div>
+              } @else {
+                <div class="act-timeline">
+                  @for (item of historyLogs(); track item.date + item.text) {
+                    <div class="act-item">
+                      <span class="act-dot" [style.background]="item.color"></span>
+                      <div class="act-body">
+                        <div class="act-text">{{ item.text }}</div>
+                        <div class="act-date">{{ item.date }}</div>
                       </div>
-                    }
-                  </div>
-                  @if (block.items.length > 5) {
-                    <button type="button" class="eval-expand-btn" (click)="toggleBlockExpanded(block.type)">
-                      @if (isBlockExpanded(block.type)) {
-                        <span nz-icon nzType="up"></span> Thu gọn
-                      } @else {
-                        <span nz-icon nzType="down"></span> Xem thêm ({{ block.items.length - 5 }})
-                      }
-                    </button>
+                    </div>
                   }
-                } @else {
-                  <div class="empty-msg em-sm">
-                    @if (block.type === '360') {
-                      <span nz-icon nzType="api"></span> Chưa đồng bộ từ hệ thống 360°
-                    } @else {
-                      Chưa có tiêu chí.
-                    }
-                  </div>
-                }
-
-                <!-- Strengths / needs_dev / manager note -->
-                @if (block.strengths.length || block.needs_dev.length || block.manager_note) {
-                  <div class="eval-notes eval-notes-compact">
-                    @if (block.strengths.length) {
-                      <div class="en-col">
-                        <div class="en-head en-head-good"><span nz-icon nzType="check-circle"></span> Điểm mạnh</div>
-                        @for (s of block.strengths; track s) {
-                          <div class="en-item"><span class="en-dot en-dot-good"></span>{{ s }}</div>
-                        }
-                      </div>
-                    }
-                    @if (block.needs_dev.length) {
-                      <div class="en-col">
-                        <div class="en-head en-head-warn"><span nz-icon nzType="exclamation-circle"></span> Cần phát triển</div>
-                        @for (s of block.needs_dev; track s) {
-                          <div class="en-item"><span class="en-dot en-dot-warn"></span>{{ s }}</div>
-                        }
-                      </div>
-                    }
-                  </div>
-                  @if (block.manager_note) {
-                    <p class="eval-quote">"{{ block.manager_note }}"</p>
-                  }
-                }
-              </div>
-            }
-          </div>
-
-          <!-- Combined total (chỉ hiện khi có cả 2 block) -->
-          @if (ab.blocks.length >= 2 && ab.combined_total != null) {
-            <div class="eval-combined">
-              <div class="ec-label">Điểm tổng hợp</div>
-              <div class="ec-val">{{ ab.combined_total | number:'1.1-1' }}<span class="ec-max">/100</span></div>
-              <div class="ec-formula">
-                KPI × {{ ab.weights.assessment_weight }}% + 360° × {{ ab.weights.weight_360 }}%
-              </div>
-            </div>
-          }
-        }
-      } @else {
-        <div class="empty-msg">Chưa có dữ liệu đánh giá cho chu kỳ này.</div>
-      }
-      } <!-- end @else cyclesLoading -->
-    </div>
-
-    <!-- ══ Bottom row: IDP compact + Activity timeline ══ -->
-    <div class="bottom-row">
-
-      <!-- LEFT: IDP compact card -->
-      <div class="bottom-card idp-compact-card">
-        <div class="bc-head">
-          <span nz-icon nzType="rocket" class="bc-ico"></span>
-          <div class="bc-head-text">
-            <div class="bc-title">Kế hoạch Phát triển Cá nhân</div>
-            <div class="bc-sub">IDP {{ idp()?.year ?? '' }}</div>
-          </div>
-          @if (idp()) {
-            <span class="bc-badge" [class.bc-badge-active]="idp()!.status === 'Active'"
-                                   [class.bc-badge-done]="idp()!.status === 'Completed'">
-              {{ idp()!.status }}
-            </span>
-          }
-        </div>
-
-        @if (idp(); as plan) {
-          <!-- Ring + meta -->
-          <div class="icp-overview">
-            <div class="icp-ring-wrap">
-              <svg class="icp-ring" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e7ff" stroke-width="3.2"/>
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4f46e5" stroke-width="3.2"
-                  [attr.stroke-dasharray]="idpProgress() + ' ' + (100 - idpProgress())"
-                  stroke-dashoffset="25"
-                  stroke-linecap="round"/>
-              </svg>
-              <div class="icp-ring-pct">{{ idpProgress() }}%</div>
-            </div>
-            <div class="icp-meta">
-              <div class="icp-meta-row">
-                <span class="icp-meta-label">Vị trí mục tiêu</span>
-                <span class="icp-meta-val">{{ idpTargetPosition() }}</span>
-              </div>
-              <div class="icp-meta-row">
-                <span class="icp-meta-label">Duyệt bởi</span>
-                <span class="icp-meta-val">{{ idpApprovedBy() }}</span>
-              </div>
-              <div class="icp-meta-row">
-                <span class="icp-meta-label">Ngày duyệt</span>
-                <span class="icp-meta-val">{{ idpApprovedDate() }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Goals -->
-          <div class="icp-goals">
-            @if (idpGoals12m().length) {
-              <div class="icg-section">
-                <div class="icg-head">
-                  <span nz-icon nzType="calendar" class="icg-ico icg-ico-12m"></span>
-                  Mục tiêu 12 tháng
                 </div>
-                @for (g of idpGoals12m(); track g) {
-                  <div class="icg-item">
-                    <span class="icg-dot icg-dot-12m"></span>{{ g }}
-                  </div>
-                }
-              </div>
-            }
-            @if (idpGoals2to3y().length) {
-              <div class="icg-section">
-                <div class="icg-head">
-                  <span nz-icon nzType="aim" class="icg-ico icg-ico-2y"></span>
-                  Mục tiêu 2–3 năm
-                </div>
-                @for (g of idpGoals2to3y(); track g) {
-                  <div class="icg-item">
-                    <span class="icg-dot icg-dot-2y"></span>{{ g }}
-                  </div>
-                }
-              </div>
-            }
-            @if (!idpGoals12m().length && !idpGoals2to3y().length) {
-              <div class="bc-empty">
-                <span nz-icon nzType="file-text" class="bc-empty-ico"></span>
-                <p>Chưa có mục tiêu nào được nhập.</p>
-              </div>
-            }
-          </div>
+              }
+            </div>
 
-        } @else {
-          <!-- No IDP -->
-          <div class="bc-empty">
-            <span nz-icon nzType="rocket" class="bc-empty-ico"></span>
-            <p>Chưa có kế hoạch IDP nào.</p>
-            <span class="bc-empty-hint">Dữ liệu sẽ được đồng bộ từ module IDP.</span>
-          </div>
-        }
-      </div>
+          </div><!-- end tab-section -->
+        </nz-tab>
 
-      <!-- RIGHT: Activity timeline -->
-      <div class="bottom-card activity-card">
-        <div class="bc-head">
-          <span nz-icon nzType="history" class="bc-ico bc-ico-history"></span>
-          <div class="bc-head-text">
-            <div class="bc-title">Hoạt động gần đây</div>
-            <div class="bc-sub">Lịch sử thay đổi &amp; đánh giá</div>
-          </div>
-        </div>
+      </nz-tabs>
+    </div><!-- end profile-tab-container -->
 
-        @if (historyLoading()) {
-          <div class="bc-loading">
-            <nz-spin nzSimple></nz-spin>
-          </div>
-        } @else if (historyLogs().length === 0) {
-          <div class="bc-empty">
-            <span nz-icon nzType="history" class="bc-empty-ico"></span>
-            <p>Chưa có hoạt động nào được ghi nhận.</p>
-            <span class="bc-empty-hint">Lịch sử sẽ xuất hiện sau khi có đánh giá hoặc thay đổi hồ sơ.</span>
-          </div>
-        } @else {
-          <div class="act-timeline">
-            @for (item of historyLogs(); track item.date + item.text) {
-              <div class="act-item">
-                <span class="act-dot" [style.background]="item.color"></span>
-                <div class="act-body">
-                  <div class="act-text">{{ item.text }}</div>
-                  <div class="act-date">{{ item.date }}</div>
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-    </div>
-
-    <!-- ══ Lộ Trình Phát Triển (AI Career Roadmap) ══ -->
-    <div class="roadmap-card">
-      <app-career-roadmap [talent]="talent()"></app-career-roadmap>
-    </div>
+    <!-- Tab title templates (defined after nz-tabs; Angular resolves template refs statically) -->
+    <ng-template #tabTitle0>
+      <span nz-icon nzType="radar-chart" style="margin-right:5px"></span>Năng lực
+    </ng-template>
+    <ng-template #tabTitle1>
+      <span nz-icon nzType="bar-chart" style="margin-right:5px"></span>Đánh giá
+    </ng-template>
+    <ng-template #tabTitle2>
+      <span nz-icon nzType="rocket" style="margin-right:5px"></span>Phát triển
+    </ng-template>
+    <ng-template #tabTitle3>
+      <span nz-icon nzType="warning" style="margin-right:5px"></span>Rủi ro
+    </ng-template>
 
   }
 

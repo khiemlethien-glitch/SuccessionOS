@@ -86,6 +86,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   // ─── Collapse states ──────────────────────────────────────────────────────
   riskExpanded       = signal(true);
 
+  /** Active tab index for the profile main tabs (0=Năng lực 1=Đánh giá 2=Phát triển 3=Rủi ro). */
+  activeProfileTab = signal(0);
+
   // ─── Timeline (dynamic — fetch từ nhiều nguồn theo employee_id) ───────────
   historyLogs     = signal<{ date: string; text: string; color: string }[]>([]);
   historyLoading  = signal(false);
@@ -322,15 +325,45 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       { label: 'Tiềm năng', actual: t.potential_score ?? 0,    target: tgt.potential },
       { label: 'Lãnh đạo',  actual: c?.leadership ?? 0,        target: tgt.leadership },
     ];
-    return values.map(v => ({ ...v, delta: (v.actual as number | null) != null ? v.actual - v.target : null }));
+    return values.map(v => ({
+      ...v,
+      delta: v.actual != null ? Math.round((v.actual - v.target) * 10) / 10 : null,
+    }));
   });
 
-  radarAbove = computed(() => this.radarProfile()?.above_count ?? this.radarEntries().filter(e => e.delta != null && e.delta >= 0).length);
-  radarBelow = computed(() => this.radarProfile()?.below_count ?? this.radarEntries().filter(e => e.delta != null && e.delta < 0).length);
+  radarAbove = computed(() =>
+    this.radarProfile()?.above_count ??
+    this.radarEntries().filter(e => e.delta != null && e.delta >= 0).length
+  );
+  radarBelow = computed(() =>
+    this.radarProfile()?.below_count ??
+    this.radarEntries().filter(e => e.delta != null && e.delta < 0).length
+  );
   /** Tổng độ lệch tuyệt đối (Σ|delta|) — chỉ số GAP chung để so giữa các talent. */
-  radarTotalGap = computed(() => this.radarProfile()?.total_gap_abs ?? 0);
+  radarTotalGap = computed(() => {
+    const p = this.radarProfile();
+    if (p) return p.total_gap_abs;
+    const entries = this.radarEntries();
+    return Math.round(entries.reduce((s, e) => s + Math.abs(e.delta ?? 0), 0) * 10) / 10;
+  });
   /** Trung bình gap có dấu (Σdelta / 5). Âm = tổng thể dưới chuẩn, dương = vượt chuẩn. */
-  radarAvgGap   = computed(() => this.radarProfile()?.avg_gap ?? 0);
+  radarAvgGap = computed(() => {
+    const p = this.radarProfile();
+    if (p) return p.avg_gap;
+    const entries = this.radarEntries().filter(e => e.delta != null);
+    if (!entries.length) return 0;
+    return Math.round((entries.reduce((s, e) => s + (e.delta ?? 0), 0) / entries.length) * 10) / 10;
+  });
+  /** Tên nguồn dữ liệu radar — tên chu kỳ nếu có dữ liệu thật, fallback nếu dùng competencies mặc định. */
+  radarSourceLabel = computed(() => {
+    if (this.radarProfile()) {
+      const cycle = this.cycles().find(c => c.id === this.selectedCycleId());
+      return cycle ? cycle.name : 'Chu kỳ hiện tại';
+    }
+    return 'Năng lực mặc định';
+  });
+  /** true nếu radar đang dùng dữ liệu thật từ assessment_scores (không phải fallback). */
+  radarSourceIsReal = computed(() => this.radarProfile() != null);
 
   private radarPoint(index: number, value: number): { x: number; y: number } {
     const n = this.radarLabels.length;
