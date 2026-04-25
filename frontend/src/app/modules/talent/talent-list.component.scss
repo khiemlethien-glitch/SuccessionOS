@@ -7,6 +7,44 @@
 .title-row { display:flex; align-items:center; gap:10px; }
 .page-sub { font-size:12.5px; color:#94a3b8; }
 
+// ─── View toggle (list / ninebox) ──────────────────────────────────────────
+.view-toggle {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:#f1f5f9;
+  border-radius:12px;
+  padding:4px;
+  align-self:center;
+}
+.vt-btn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  border-radius:9px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  color:#64748b;
+  font-size:16px;
+  transition: background .15s, color .15s, box-shadow .15s;
+
+  &:hover {
+    background:#e2e8f0;
+    color:#334155;
+  }
+
+  &.vt-active {
+    background:#fff;
+    color:#4f46e5;
+    box-shadow:0 1px 4px rgba(0,0,0,.10);
+  }
+
+  ::ng-deep .anticon { display:flex; }
+}
+
 .toolbar {
   position:relative;
   display:flex;

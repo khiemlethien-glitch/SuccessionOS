@@ -10,53 +10,33 @@
       <div class="page-sub">Phân tích và theo dõi toàn bộ nguồn nhân tài</div>
     </div>
 
-    <!-- 9-Box summary stats (visible when on 9-Box tab) -->
-    @if (activeTabIdx() === 0) {
-      <div class="nb-hero-stats">
-        <div class="nhs-item nhs-star">
-          <span nz-icon nzType="star" class="nhs-ico"></span>
-          <div>
-            <div class="nhs-val">{{ starCount() }}</div>
-            <div class="nhs-lbl">Ngôi sao</div>
-          </div>
-        </div>
-        <div class="nhs-divider"></div>
-        <div class="nhs-item nhs-total">
-          <span nz-icon nzType="team" class="nhs-ico"></span>
-          <div>
-            <div class="nhs-val">{{ totalInGrid() }}</div>
-            <div class="nhs-lbl">Tổng</div>
-          </div>
-        </div>
-        <div class="nhs-divider"></div>
-        <div class="nhs-item nhs-warn">
-          <span nz-icon nzType="warning" class="nhs-ico"></span>
-          <div>
-            <div class="nhs-val">{{ needsActionCount() }}</div>
-            <div class="nhs-lbl">Cần xử lý</div>
-          </div>
-        </div>
-      </div>
-    }
+    <!-- View toggle: Danh sách | 9-Box -->
+    <div class="view-toggle">
+      <button class="vt-btn" [class.vt-active]="activeView() === 'list'"
+              (click)="activeView.set('list')" nz-tooltip nzTooltipTitle="Danh sách">
+        <span nz-icon nzType="unordered-list"></span>
+      </button>
+      <button class="vt-btn" [class.vt-active]="activeView() === 'ninebox'"
+              (click)="activeView.set('ninebox')" nz-tooltip nzTooltipTitle="9-Box Grid">
+        <span nz-icon nzType="appstore"></span>
+      </button>
+    </div>
   </div>
 
-  <!-- ── Tab container ────────────────────────────────────────────────────── -->
+  <!-- ── View container ───────────────────────────────────────────────────── -->
   <div class="talent-card">
-    <nz-tabs nzType="line" class="talent-tabs"
-             [nzSelectedIndex]="activeTabIdx()"
-             (nzSelectedIndexChange)="activeTabIdx.set($event)">
 
-      <!-- ═══ Tab 1: 9-Box Grid ═══════════════════════════════════════════ -->
-      <nz-tab nzTitle="9-Box Grid">
-        @if (nineboxLoading()) {
-          <div class="nb-loading"><nz-spin nzSimple></nz-spin></div>
-        } @else {
-          <app-nine-box [rawTalents]="nineboxTalents()"></app-nine-box>
-        }
-      </nz-tab>
+    <!-- ═══ View: 9-Box Grid ════════════════════════════════════════════════ -->
+    @if (activeView() === 'ninebox') {
+      @if (nineboxLoading()) {
+        <div class="nb-loading"><nz-spin nzSimple></nz-spin></div>
+      } @else {
+        <app-nine-box [rawTalents]="nineboxTalents()"></app-nine-box>
+      }
+    }
 
-      <!-- ═══ Tab 2: Danh sách nhân tài ══════════════════════════════════ -->
-      <nz-tab nzTitle="Danh sách">
+    <!-- ═══ View: Danh sách nhân tài ═══════════════════════════════════════ -->
+    @if (activeView() === 'list') {
 
         <div class="toolbar" (click)="$event.stopPropagation()">
           <div class="tb-left">
@@ -262,8 +242,8 @@
           </div>
         }
 
-      </nz-tab>
-    </nz-tabs>
+    }
+
   </div>
 
 </div>

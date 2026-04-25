@@ -11,7 +11,6 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
-import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
@@ -48,7 +47,7 @@ const DEFAULT_POT:  [number, number] = [70, 85];
     CommonModule, FormsModule,
     NzTableModule, NzInputModule, NzSelectModule, NzButtonModule,
     NzProgressModule, NzIconModule, NzSpinModule, NzTooltipModule,
-    NzPaginationModule, NzTabsModule, NzDrawerModule, NzSliderModule,
+    NzPaginationModule, NzDrawerModule, NzSliderModule,
     NzTreeSelectModule,
     AvatarComponent, TierBadgeComponent, TalentPreviewDrawerComponent, NineBoxComponent,
   ],
@@ -58,8 +57,8 @@ const DEFAULT_POT:  [number, number] = [70, 85];
 })
 export class TalentListComponent implements OnInit {
 
-  // ─── Active tab (0 = 9-Box, 1 = List) ────────────────────────────────────
-  activeTabIdx = signal(0);
+  // ─── Active view: 'list' | 'ninebox' ─────────────────────────────────────
+  activeView = signal<'list' | 'ninebox'>('list');
 
   // ─── List tab: page data ───────────────────────────────────────────────────
   rows     = signal<Talent[]>([]);
@@ -211,7 +210,7 @@ export class TalentListComponent implements OnInit {
     const filterParam = this.route.snapshot.queryParamMap.get('filter');
     if (filterParam === 'high-risk') {
       this.riskBand.set('High');
-      this.activeTabIdx.set(1);   // jump to List tab so the filter is visible
+      this.activeView.set('list');   // jump to List view so the filter is visible
     }
 
     const [deptTree, nineBox] = await Promise.all([
