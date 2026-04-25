@@ -45,10 +45,10 @@ export interface NbPreset {
 
 // ── Preset definitions ────────────────────────────────────────────────────────
 export const PRESETS: NbPreset[] = [
-  { id: 'default',  name: 'Mặc định',        desc: 'Thuật ngữ tiếng Việt chuẩn, phù hợp đa số doanh nghiệp',    icon: 'appstore',  color: '#6366f1' },
-  { id: 'mckinsey', name: 'McKinsey Classic', desc: 'Phân loại nhân tài chuẩn McKinsey, sử dụng toàn cầu',       icon: 'rise',      color: '#0ea5e9' },
-  { id: 'ptsc',     name: 'PTSC Model',       desc: 'Phù hợp doanh nghiệp nhà nước, thuật ngữ hành chính chuẩn', icon: 'apartment', color: '#10b981' },
-  { id: 'risk',     name: 'Phân tích Rủi ro', desc: 'Nhận diện nguy cơ nhân sự, ưu tiên hành động giữ chân',     icon: 'warning',   color: '#f59e0b' },
+  { id: 'default',  name: 'Mặc định',        desc: 'Theo phân loại sẵn của DB (ngưỡng 40/70) — thuật ngữ tiếng Việt',      icon: 'appstore',  color: '#6366f1' },
+  { id: 'mckinsey', name: 'McKinsey Classic', desc: 'Phân loại lại theo ngưỡng 33/67 — equal thirds, chuẩn toàn cầu',       icon: 'rise',      color: '#0ea5e9' },
+  { id: 'ptsc',     name: 'PTSC Model',       desc: 'Phân loại lại theo ngưỡng 34/67 — thuật ngữ hành chính',               icon: 'apartment', color: '#10b981' },
+  { id: 'risk',     name: 'Phân tích Rủi ro', desc: 'Ngưỡng cao 40/75 — nhấn mạnh nhóm thực sự xuất sắc vs cần chú ý',     icon: 'warning',   color: '#f59e0b' },
 ];
 
 const PRESET_CUSTOM: NbPreset = {
@@ -129,7 +129,7 @@ const PRESET_CONFIGS: Record<string, NineBoxConfig> = {
   mckinsey: {
     xAxisTitle: 'Tiềm năng', yAxisTitle: 'Hiệu suất',
     xField: 'potential_score', yField: 'performance_score',
-    placementRule: 'db_box', xThresholds: [33, 67], yThresholds: [33, 67],
+    placementRule: 'auto', xThresholds: [33, 67], yThresholds: [33, 67],
     _presetId: 'mckinsey',
     cells: {
       9: { name: 'Ngôi sao',             sub: 'Stars',                description: 'Hiệu suất và tiềm năng đều xuất sắc — nhân tài chiến lược quan trọng nhất của tổ chức.',      actions: 'Lộ trình lãnh đạo cấp cao, mentoring 1:1, đưa vào succession pool ưu tiên.' },
@@ -146,7 +146,7 @@ const PRESET_CONFIGS: Record<string, NineBoxConfig> = {
   ptsc: {
     xAxisTitle: 'Năng lực', yAxisTitle: 'Kết quả công tác',
     xField: 'potential_score', yField: 'performance_score',
-    placementRule: 'db_box', xThresholds: [34, 67], yThresholds: [34, 67],
+    placementRule: 'auto', xThresholds: [34, 67], yThresholds: [34, 67],
     _presetId: 'ptsc',
     cells: {
       9: { name: 'Nhân tài chiến lược',  sub: 'Xuất sắc toàn diện',       description: 'Hoàn thành xuất sắc nhiệm vụ, có năng lực phát triển lãnh đạo cấp cao.',            actions: 'Quy hoạch lãnh đạo, đào tạo chuyên sâu, đưa vào diện kế cận chiến lược.' },
@@ -163,7 +163,7 @@ const PRESET_CONFIGS: Record<string, NineBoxConfig> = {
   risk: {
     xAxisTitle: 'Tiềm năng', yAxisTitle: 'Hiệu suất',
     xField: 'potential_score', yField: 'performance_score',
-    placementRule: 'db_box', xThresholds: [34, 67], yThresholds: [34, 67],
+    placementRule: 'auto', xThresholds: [40, 75], yThresholds: [40, 75],
     _presetId: 'risk',
     cells: {
       9: { name: 'Giữ chân ngay lập tức', sub: 'Rủi ro mất = thảm họa',    description: 'Nhân tài xuất sắc nhất — mất đi sẽ ảnh hưởng nghiêm trọng đến chiến lược.',           actions: 'Đàm phán giữ chân ngay, gói phúc lợi đặc biệt, cam kết lộ trình thăng tiến.' },
