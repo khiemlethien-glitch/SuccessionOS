@@ -1,7 +1,38 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Nguyện vọng cá nhân card (talent profile) ✅
+> Cập nhật lần cuối: 2026-04-25 — Org chart hierarchy fix (migration SQL ready, chờ user chạy)
+
+---
+
+## ⚡ Org chart — Fix hierarchy (parent_position_id) (2026-04-25) — ⏳ PENDING USER ACTION
+
+### Vấn đề
+- Succession page hiển thị **nhiều cây riêng lẻ theo phòng ban** (Ban Giám Đốc, Phòng Nhân Sự...) thay vì **1 cây tổng thể** dưới TGĐ.
+- Root cause: `key_positions.parent_position_id = NULL` cho hầu hết vị trí.
+- Migration cũ (`20260423_key_position_hierarchy.sql`) dùng `employees.reports_to_id` để trace ancestor — thất bại vì Phó TGĐ và vị trí cấp cao có `reports_to_id = NULL`.
+- Frontend `buildTree()` đã đúng: detect `linkedCount > 0` → render connected tree; nhưng vì data NULL → fallback sang `buildDeptGroupTree()` → cây rời rạc.
+
+### Fix
+**File mới**: `supabase/migrations/20260425_fix_position_hierarchy.sql`
+
+4 UPDATE tuần tự (không dùng CTE — PostgreSQL CTE không thấy nhau's changes trong cùng statement):
+1. **Phó TGĐ / Phó Tổng GĐ** → ROOT (TGĐ) — ILIKE `%phó tgđ%` OR `%phó tổng%`
+2. **Giám đốc / Director** → ROOT — ILIKE `%giám đốc%` OR `%director%` OR C-suite titles
+3. **Trưởng phòng / Manager** → Giám đốc cùng department (COALESCE với ROOT fallback)
+4. **Catch-all** → ROOT (mọi vị trí còn lại chưa có parent)
+
+Cuối: SELECT kiểm tra kết quả `reports_to / position_title / department / has_parent`.
+
+### Hành động cần làm
+⚠️ **User phải tự chạy** SQL sau trong Supabase SQL Editor:
+```
+supabase/migrations/20260425_fix_position_hierarchy.sql
+```
+Sau khi chạy, reload `/succession` → org chart sẽ tự nối thành 1 cây.
+
+### Files thay đổi
+- `supabase/migrations/20260425_fix_position_hierarchy.sql` (NEW)
 
 ---
 
