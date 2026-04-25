@@ -1,7 +1,25 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: Preset system cho config drawer
+> Cập nhật lần cuối: 2026-04-25 — 9-Box Grid: Department filter toolbar
+
+---
+
+## ⚡ 9-Box Grid — Department filter toolbar (2026-04-25) — ✅ DONE
+
+### Thay đổi
+- Toolbar có dropdown "Tất cả phòng ban" (nz-select, allow-clear, searchable)
+- Options tự build từ `rawTalents` → unique departments, sort A→Z theo tiếng Việt
+- Khi chọn phòng: 9-box rebuild với chỉ nhân viên phòng đó, badge tím hiện số người
+- Khi clear: hiện lại toàn bộ + text "NNN nhân viên" màu xám
+
+### Files thay đổi
+- `nine-box.component.ts` — `deptFilter`, `deptOptions`, `totalVisible` signals; `setDeptFilter()`; filter trong `ngOnChanges()`
+- `nine-box.component.html` — `.nb-dept-wrap` group trái toolbar
+- `nine-box.component.scss` — `.nb-dept-wrap`, `.nb-dept-sel`, `.nb-dept-count`, `.nb-dept-total`; toolbar `justify-content: space-between`
+
+### Commit
+`93a3e4b`
 
 ---
 
