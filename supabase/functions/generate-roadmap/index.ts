@@ -21,6 +21,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
+  'https://succession-os-y6mt.vercel.app',
   'https://successionos.vercel.app',
   'http://localhost:4200',
   'http://localhost:4000',
