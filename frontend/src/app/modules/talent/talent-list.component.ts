@@ -204,7 +204,10 @@ export class TalentListComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const filterParam = this.route.snapshot.queryParamMap.get('filter');
-    if (filterParam === 'high-risk') this.riskBand.set('High');
+    if (filterParam === 'high-risk') {
+      this.riskBand.set('High');
+      this.activeTabIdx.set(1);   // jump to List tab so the filter is visible
+    }
 
     const [depts, nineBox] = await Promise.all([
       this.employeeSvc.getDeptOptions(),
