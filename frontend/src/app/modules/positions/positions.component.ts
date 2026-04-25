@@ -37,7 +37,18 @@ interface NewPositionDraft {
 }
 
 interface DeptOpt { id: string; name: string; }
-interface EmpOpt  { id: string; full_name: string; position: string; department_id: string; }
+interface EmpOpt  {
+  id: string;
+  full_name: string;
+  position: string;
+  department_id: string;
+  /** Target competency scores — từ v_employees.comp_target_* (0-100) */
+  comp_target_technical:       number | null;
+  comp_target_leadership:      number | null;
+  comp_target_communication:   number | null;
+  comp_target_problem_solving: number | null;
+  comp_target_adaptability:    number | null;
+}
 
 @Component({
   selector: 'app-positions',
@@ -309,7 +320,9 @@ export class PositionsComponent implements OnInit {
       this.positionSvc.getAll().catch(() => [] as any[]),
       this.successionSvc.getPlans().catch(() => [] as any[]),
       this.sbSvc.client.from('departments').select('id, name').order('name'),
-      this.sbSvc.client.from('v_employees').select('id, full_name, position, department_id').eq('is_active', true),
+      this.sbSvc.client.from('v_employees')
+        .select('id, full_name, position, department_id, comp_target_technical, comp_target_leadership, comp_target_communication, comp_target_problem_solving, comp_target_adaptability')
+        .eq('is_active', true),
     ]);
 
     this.positions.set(positions as any);
@@ -535,15 +548,70 @@ export class PositionsComponent implements OnInit {
     });
   }
 
-  /** Tìm Competency trong allCompetencies bằng key chính xác, label, hoặc keyword */
+  /**
+   * Bảng alias: DB key → UI component key.
+   * Dùng khi tên key trong DB khác với key trong allCompetencies
+   * (ví dụ: DB "strategy" → UI "strategic", "problem_solving" → "problemSolving").
+   */
+  private readonly _keyAlias: Record<string, string> = {
+    strategic_thinking: 'strategic',
+    strategy:           'strategic',
+    financial_acumen:   'financial',
+    finance:            'financial',
+    problem_solving:    'problemSolving',
+    data_analysis:      'dataAnalysis',
+    project_management: 'projectMgmt',
+    risk_management:    'riskManagement',
+    risk:               'riskManagement',
+    customer_focus:     'customerFocus',
+    customer:           'customerFocus',
+    adapt:              'adaptability',
+    analysis:           'dataAnalysis',
+  };
+
+  /**
+   * Resolve một raw key (từ DB hoặc tên đầy đủ) → Competency trong allCompetencies.
+   * Thứ tự ưu tiên:
+   *   1. Exact key match
+   *   2. Alias lookup (_keyAlias)
+   *   3. Normalized key (bỏ dấu gạch dưới, lowercase)
+   *   4. Vietnamese label exact
+   *   5. Key substring (c.key ⊂ rawKey hoặc ngược lại)
+   *   6. Label keyword
+   */
   private resolveCompMeta(rawKey: string): Competency | undefined {
     const lower = rawKey.toLowerCase();
-    return this.allCompetencies.find(c => c.key === rawKey)
-        ?? this.allCompetencies.find(c => c.label.toLowerCase() === lower)
-        ?? this.allCompetencies.find(c =>
-            lower.includes(c.label.toLowerCase()) ||
-            c.label.toLowerCase().includes(lower)
-          );
+    const normalized = lower.replace(/_/g, '');
+
+    // 1. Exact key
+    const direct = this.allCompetencies.find(c => c.key === rawKey);
+    if (direct) return direct;
+
+    // 2. Alias
+    const aliasKey = this._keyAlias[lower];
+    if (aliasKey) return this.allCompetencies.find(c => c.key === aliasKey);
+
+    // 3. Normalized key (removes underscores + case — "problemSolving" vs "problem_solving")
+    const normMatch = this.allCompetencies.find(c =>
+      c.key.toLowerCase().replace(/_/g, '') === normalized
+    );
+    if (normMatch) return normMatch;
+
+    // 4. Exact Vietnamese label
+    const labelMatch = this.allCompetencies.find(c => c.label.toLowerCase() === lower);
+    if (labelMatch) return labelMatch;
+
+    // 5. Key substring (handles "strategic_thinking" ⊃ "strategic", "financial_acumen" ⊃ "financial")
+    const subMatch = this.allCompetencies.find(c => {
+      const ck = c.key.toLowerCase();
+      return lower.includes(ck) || ck.includes(lower);
+    });
+    if (subMatch) return subMatch;
+
+    // 6. Vietnamese label keyword
+    return this.allCompetencies.find(c =>
+      lower.includes(c.label.toLowerCase()) || c.label.toLowerCase().includes(lower)
+    );
   }
 
   /** Competencies của vị trí đang xem (kết hợp key + score) */
@@ -603,33 +671,100 @@ export class PositionsComponent implements OnInit {
         current_holder_id: emp.id,
       }));
     }
-    // Nếu đã có key_position với title này → auto-load competencies + scores
+    // Nếu đã có key_position với title này → load comps + scores từ DB
     const existingPos = this.positions().find(p => p.title === title);
     if (existingPos) {
       this._loadCompetenciesFromPosition(existingPos);
+    } else if (emp) {
+      // Chưa có key_position → fallback: dùng comp_target_* của nhân viên đương nhiệm
+      this._loadCompetenciesFromEmployee(emp);
     }
   }
 
-  /** Load competencies + target scores từ một KeyPosition đã có vào form state. */
+  /**
+   * Load competencies + target scores từ một KeyPosition đã có vào form state.
+   * Keys trong DB mà không map được sang UI competency sẽ được tạo ad-hoc
+   * (hiện trong "Đã chọn" với label tiếng Việt và icon phù hợp).
+   */
   private _loadCompetenciesFromPosition(pos: KeyPosition): void {
     const rawKeys = pos.required_competencies ?? [];
-    const matched = rawKeys
-      .map(r => this.resolveCompMeta(r))
-      .filter((m): m is Competency => m !== undefined);
-    const seen = new Set<string>();
-    const dedup = matched.filter(c => seen.has(c.key) ? false : (seen.add(c.key), true));
-    this.selectedCompetencies.set(dedup);
-    this.availableCompetencies.set(this.allCompetencies.filter(c => !seen.has(c.key)));
+    const selected: Competency[] = [];
+    const usedUiKeys = new Set<string>();
 
-    // Load + canonicalize scores
-    const raw = pos.competency_scores ?? {};
+    for (const raw of rawKeys) {
+      const meta = this.resolveCompMeta(raw);
+      if (meta) {
+        if (!usedUiKeys.has(meta.key)) {
+          selected.push(meta);
+          usedUiKeys.add(meta.key);
+        }
+      } else {
+        // Key không có trong danh sách chuẩn → tạo competency ad-hoc
+        if (!usedUiKeys.has(raw)) {
+          selected.push({ key: raw, label: this._humanizeKey(raw), icon: this.resolveCompIcon(raw) });
+          usedUiKeys.add(raw);
+        }
+      }
+    }
+
+    this.selectedCompetencies.set(selected);
+    this.availableCompetencies.set(this.allCompetencies.filter(c => !usedUiKeys.has(c.key)));
+
+    // Load + canonicalize scores (DB raw key → UI canonical key)
+    const rawScores = pos.competency_scores ?? {};
     const canon: Record<string, number> = {};
-    for (const [k, v] of Object.entries(raw)) {
+    for (const [k, v] of Object.entries(rawScores)) {
       if (v == null) continue;
       const meta = this.resolveCompMeta(k);
       canon[meta?.key ?? k] = v as number;
     }
     this.competencyScores.set(canon);
+  }
+
+  /**
+   * Khi title mới chưa có key_position trong DB → fallback: auto-select 5 năng lực
+   * chuẩn và điền target scores từ comp_target_* của nhân viên đương nhiệm.
+   */
+  private _loadCompetenciesFromEmployee(emp: EmpOpt): void {
+    const STD = ['technical', 'leadership', 'communication', 'problemSolving', 'adaptability'];
+    this.selectedCompetencies.set(this.allCompetencies.filter(c => STD.includes(c.key)));
+    this.availableCompetencies.set(this.allCompetencies.filter(c => !STD.includes(c.key)));
+
+    const scores: Record<string, number> = {};
+    if (emp.comp_target_technical       != null) scores['technical']       = emp.comp_target_technical;
+    if (emp.comp_target_leadership      != null) scores['leadership']      = emp.comp_target_leadership;
+    if (emp.comp_target_communication   != null) scores['communication']   = emp.comp_target_communication;
+    if (emp.comp_target_problem_solving != null) scores['problemSolving']  = emp.comp_target_problem_solving;
+    if (emp.comp_target_adaptability    != null) scores['adaptability']    = emp.comp_target_adaptability;
+    this.competencyScores.set(scores);
+  }
+
+  /** Chuyển DB raw key sang label tiếng Việt (cho ad-hoc competencies). */
+  private _humanizeKey(key: string): string {
+    const LABELS: Record<string, string> = {
+      hrm:                  'Quản lý nhân sự',
+      talent_management:    'Quản lý nhân tài',
+      sales:                'Kinh doanh',
+      negotiation:          'Đàm phán',
+      operations:           'Vận hành',
+      logistics:            'Logistics',
+      compliance:           'Tuân thủ',
+      crm:                  'Quản lý khách hàng (CRM)',
+      technology:           'Công nghệ',
+      architecture:         'Kiến trúc hệ thống',
+      process_improvement:  'Cải tiến quy trình',
+      international_sales:  'Kinh doanh quốc tế',
+      english:              'Tiếng Anh',
+      accounting:           'Kế toán',
+      tax:                  'Thuế',
+      recruitment:          'Tuyển dụng',
+      employer_branding:    'Thương hiệu tuyển dụng',
+      software_development: 'Phát triển phần mềm',
+      agile:                'Agile / Scrum',
+      warehouse:            'Quản lý kho bãi',
+      wms:                  'Hệ thống kho (WMS)',
+    };
+    return LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
   /** Khi user chọn employee từ dropdown "Đương nhiệm" — lưu cả id + name. */
