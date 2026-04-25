@@ -101,6 +101,21 @@ export class SuccessionComponent implements OnInit {
     return this.collapsedNodes().has(positionId);
   }
 
+  /** Collapse all tree nodes at depth >= 2 on initial load.
+   *  depth 0 = roots, depth 1 = direct reports → always visible.
+   *  depth 2+ = collapsed by default; user clicks (+) to expand. */
+  private initCollapseState(): void {
+    const toCollapse = new Set<string>();
+    const traverse = (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        if (n.depth >= 2) toCollapse.add(n.positionId);
+        if (n.children.length) traverse(n.children);
+      }
+    };
+    traverse(this.treeRoots());
+    if (toCollapse.size > 0) this.collapsedNodes.set(toCollapse);
+  }
+
   // ─── Succession Map: role-based filter + collapse state ──────
   // Tree-level: which org-tree nodes are expanded (click to drill down)
   expandedNodes = signal<Set<string>>(new Set());
@@ -618,6 +633,8 @@ export class SuccessionComponent implements OnInit {
     try {
       const positions = await this.positionSvc.getAll();
       this.positions.set(positions as any);
+      // Default-collapse all nodes at depth >= 2 (user clicks + to drill down)
+      this.initCollapseState();
     } catch {}
     // Dept tree for density filter tree-select
     try {
