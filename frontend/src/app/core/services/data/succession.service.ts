@@ -58,7 +58,7 @@ export class SuccessionService {
   private async _fetchNineBox() {
     const [boxRes, deptRes] = await Promise.all([
       this.sb.from('v_nine_box')
-        .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box, readiness, employee_code'),
+        .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box'),
       this.sb.from('departments').select('id, name'),
     ]);
     if (boxRes.error) { console.error('[SuccessionService.getNineBox]', boxRes.error); return []; }
