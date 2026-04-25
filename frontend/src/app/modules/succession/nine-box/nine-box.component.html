@@ -1,0 +1,251 @@
+<div class="nb-root">
+
+  <!-- ══ Y-axis ══════════════════════════════════════════════════ -->
+  <div class="nb-y-axis">
+    <span class="nb-y-lbl">Cao</span>
+    <span class="nb-y-lbl">TB</span>
+    <span class="nb-y-lbl">Thấp</span>
+    <span class="nb-y-arrow">↑ Hiệu suất</span>
+  </div>
+
+  <!-- ══ Grid + X-axis ═══════════════════════════════════════════ -->
+  <div class="nb-grid-col">
+
+    <div class="nb-grid">
+      @for (cell of cells(); track cell.id) {
+        <div class="nb-cell"
+             [class.nb-cell-active]="activeCell()?.id === cell.id"
+             [attr.data-zone]="cell.perfLevel + '-' + cell.potLevel"
+             (click)="openCell(cell)">
+
+          <!-- Number badge -->
+          <span class="nb-num">{{ cell.id }}</span>
+
+          <!-- Count badge -->
+          <span class="nb-count">{{ cell.employees.length }}</span>
+
+          <!-- Cell name + subtitle -->
+          <div class="nb-cell-name">{{ cell.name }}</div>
+          <div class="nb-cell-sub">{{ cell.sub }}</div>
+
+          <div class="nb-divider"></div>
+
+          <!-- Avatars -->
+          @if (cell.employees.length > 0) {
+            <div class="nb-av-wrap">
+              @for (emp of cell.employees.slice(0, 14); track emp.id) {
+                <div class="nb-av"
+                     [nz-tooltip]="emp.name"
+                     (click)="openEmpFromAvatar(emp, $event)">
+                  {{ emp.initials }}
+                </div>
+              }
+              @if (cell.employees.length > 14) {
+                <div class="nb-av nb-av-more">+{{ cell.employees.length - 14 }}</div>
+              }
+            </div>
+          } @else {
+            <div class="nb-empty">
+              <span nz-icon nzType="user" nzTheme="outline" class="nb-empty-ico"></span>
+              <span class="nb-empty-txt">Chưa có</span>
+            </div>
+          }
+
+        </div>
+      }
+    </div><!-- /nb-grid -->
+
+    <!-- X-axis -->
+    <div class="nb-x-axis">
+      <span class="nb-x-lbl">Thấp</span>
+      <span class="nb-x-lbl">TB</span>
+      <span class="nb-x-lbl">Cao</span>
+      <span class="nb-x-arrow">Tiềm năng →</span>
+    </div>
+
+  </div><!-- /nb-grid-col -->
+</div><!-- /nb-root -->
+
+<!-- ══ Overlay ══════════════════════════════════════════════════ -->
+@if (hasOverlay()) {
+  <div class="nb-overlay" (click)="onOverlayClick()"></div>
+}
+
+<!-- ══ Scatter Panel ════════════════════════════════════════════ -->
+@if (scatterCell(); as sc) {
+  <div class="nb-scatter">
+    <div class="nb-scatter-hd">
+      <div>
+        <div class="nb-scatter-title">{{ sc.name }}</div>
+        <div class="nb-scatter-sub">{{ sc.employees.length }} nhân viên</div>
+      </div>
+      <button class="nb-x-btn" (click)="closeScatter()">×</button>
+    </div>
+
+    <div class="nb-scatter-plot">
+      <!-- Grid lines -->
+      <div class="nb-sg-h"></div>
+      <div class="nb-sg-v"></div>
+      <!-- Axis corner labels -->
+      <span class="nb-sa nb-sa-tl">H.suất</span>
+      <span class="nb-sa nb-sa-br">T.năng</span>
+      <span class="nb-sa nb-sa-tr">Cao</span>
+      <span class="nb-sa nb-sa-bl">Thấp</span>
+      <!-- Dots -->
+      @for (emp of sc.employees; track emp.id) {
+        <div class="nb-dot"
+             [style.left.%]="dotX(emp, sc)"
+             [style.top.%]="dotY(emp, sc)"
+             [nz-tooltip]="emp.name + ' · H' + emp.perf + ' T' + emp.pot"
+             (click)="openEmpFromCell(emp)">
+          {{ emp.initials }}
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- ══ Cell Drawer ═══════════════════════════════════════════════ -->
+@if (activeCell(); as cell) {
+  <div class="nb-drawer">
+    <div class="nb-drawer-hd">
+      <div class="nb-drawer-num">{{ cell.id }}</div>
+      <div class="nb-drawer-hd-info">
+        <div class="nb-drawer-title">{{ cell.name }}</div>
+        <div class="nb-drawer-sub">{{ cell.sub }}</div>
+      </div>
+      <button class="nb-x-btn" (click)="closeCell()">×</button>
+    </div>
+
+    <div class="nb-drawer-body">
+
+      <!-- Top 3 -->
+      <div class="nb-sec-lbl">Top 3</div>
+      @for (emp of top3(); track emp.id; let i = $index) {
+        <div class="nb-row" (click)="openEmpFromCell(emp)">
+          <span class="nb-rank">{{ i + 1 }}</span>
+          <div class="nb-av nb-av-md">{{ emp.initials }}</div>
+          <div class="nb-row-info">
+            <div class="nb-row-name">{{ emp.name }}</div>
+            <div class="nb-row-role">{{ emp.role }}</div>
+          </div>
+          <span class="nb-row-score">{{ totalScore(emp) }}</span>
+        </div>
+      }
+
+      <div class="nb-drawer-sep"></div>
+
+      <!-- All -->
+      <div class="nb-sec-lbl">Tất cả ({{ cell.employees.length }})</div>
+      @for (emp of cell.employees; track emp.id) {
+        <div class="nb-row" (click)="openEmpFromCell(emp)">
+          <div class="nb-av nb-av-md">{{ emp.initials }}</div>
+          <div class="nb-row-info">
+            <div class="nb-row-name">{{ emp.name }}</div>
+            <div class="nb-row-role">{{ emp.role }}</div>
+          </div>
+          <div class="nb-row-scores">
+            <span class="nb-rs-p">H {{ emp.perf }}</span>
+            <span class="nb-rs-q">T {{ emp.pot }}</span>
+          </div>
+        </div>
+      }
+
+    </div><!-- /nb-drawer-body -->
+  </div>
+}
+
+<!-- ══ Employee Drawer ═══════════════════════════════════════════ -->
+@if (activeEmployee(); as emp) {
+  <div class="nb-drawer nb-emp-drawer">
+    <div class="nb-drawer-hd">
+      <span class="nb-back-lbl">Thông tin nhân viên</span>
+      <button class="nb-x-btn" (click)="closeEmployee()">×</button>
+    </div>
+
+    <div class="nb-drawer-body">
+
+      <!-- Hero -->
+      <div class="nb-hero">
+        <div class="nb-av nb-av-xl">{{ emp.initials }}</div>
+        <div>
+          <div class="nb-hero-name">{{ emp.name }}</div>
+          <div class="nb-hero-role">{{ emp.role }}</div>
+          <div class="nb-hero-ref">{{ empCellRef(emp) }}</div>
+        </div>
+      </div>
+
+      <!-- Radar -->
+      <div class="nb-radar-wrap">
+        <svg viewBox="0 0 150 150" class="nb-radar-svg">
+          <!-- Background -->
+          <polygon [attr.points]="radarBgPts" class="r-bg"/>
+          <!-- Grid rings -->
+          @for (pts of radarRingPts; track pts) {
+            <polygon [attr.points]="pts" class="r-ring"/>
+          }
+          <!-- Axes -->
+          @for (ax of radarAxes; track ax[0]) {
+            <line [attr.x1]="ax[0]" [attr.y1]="ax[1]"
+                  [attr.x2]="ax[2]" [attr.y2]="ax[3]" class="r-axis"/>
+          }
+          <!-- Data -->
+          <polygon [attr.points]="radarPoints(emp)" class="r-data"/>
+          <!-- Labels -->
+          <text x="75" y="10" class="r-lbl" text-anchor="middle">T.năng</text>
+          <text x="145" y="78" class="r-lbl" text-anchor="end">H.suất</text>
+          <text x="75" y="148" class="r-lbl" text-anchor="middle">Ổn định</text>
+          <text x="5"  y="78" class="r-lbl" text-anchor="start">N.lực</text>
+        </svg>
+      </div>
+
+      <!-- Score bars -->
+      <div class="nb-bars">
+        <div class="nb-bar-row">
+          <span class="nb-bar-lbl">Hiệu suất</span>
+          <div class="nb-bar-track">
+            <div class="nb-bar-fill nb-bar-perf" [style.width.%]="emp.perf"></div>
+          </div>
+          <span class="nb-bar-val">{{ emp.perf }}</span>
+        </div>
+        <div class="nb-bar-row">
+          <span class="nb-bar-lbl">Tiềm năng</span>
+          <div class="nb-bar-track">
+            <div class="nb-bar-fill nb-bar-pot" [style.width.%]="emp.pot"></div>
+          </div>
+          <span class="nb-bar-val">{{ emp.pot }}</span>
+        </div>
+        <div class="nb-bar-row">
+          <span class="nb-bar-lbl">Ổn định</span>
+          <div class="nb-bar-track">
+            <div class="nb-bar-fill nb-bar-stab" [style.width.%]="emp.stability"></div>
+          </div>
+          <span class="nb-bar-val">{{ emp.stability }}</span>
+        </div>
+        <div class="nb-bar-row">
+          <span class="nb-bar-lbl">Năng lực</span>
+          <div class="nb-bar-track">
+            <div class="nb-bar-fill nb-bar-comp" [style.width.%]="emp.competency"></div>
+          </div>
+          <span class="nb-bar-val">{{ emp.competency }}</span>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      @if (emp.tags.length) {
+        <div class="nb-tags">
+          @for (tag of emp.tags; track tag) {
+            <nz-tag [nzColor]="riskColor(tag)">{{ tag }}</nz-tag>
+          }
+        </div>
+      }
+
+      <!-- Profile link -->
+      <a class="nb-profile-link" [routerLink]="['/talent', emp.id]">
+        <span nz-icon nzType="user" nzTheme="outline"></span>
+        Xem hồ sơ đầy đủ
+      </a>
+
+    </div><!-- /nb-drawer-body -->
+  </div>
+}

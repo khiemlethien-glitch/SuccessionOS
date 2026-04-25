@@ -58,7 +58,7 @@ export class SuccessionService {
   private async _fetchNineBox() {
     const { data, error } = await this.sb
       .from('v_nine_box')
-      .select('id, full_name, performance_score, potential_score, department_id, talent_tier, risk_band, box');
+      .select('id, full_name, position, performance_score, potential_score, department_id, talent_tier, risk_band, box');
     if (error) { console.error('[SuccessionService.getNineBox]', error); return []; }
     return data ?? [];
   }
