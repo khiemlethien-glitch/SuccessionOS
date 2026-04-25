@@ -13,22 +13,23 @@
   align-items:center;
   gap:4px;
   background:#f1f5f9;
-  border-radius:12px;
+  border-radius:14px;
   padding:4px;
   align-self:center;
 }
 .vt-btn {
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  width:36px;
-  height:36px;
-  border-radius:9px;
+  gap:5px;
+  width:72px;
+  height:58px;
+  border-radius:10px;
   border:none;
   background:transparent;
   cursor:pointer;
   color:#64748b;
-  font-size:16px;
   transition: background .15s, color .15s, box-shadow .15s;
 
   &:hover {
@@ -39,10 +40,25 @@
   &.vt-active {
     background:#fff;
     color:#4f46e5;
-    box-shadow:0 1px 4px rgba(0,0,0,.10);
+    box-shadow:0 1px 6px rgba(0,0,0,.12);
   }
 
   ::ng-deep .anticon { display:flex; }
+}
+.vt-icon {
+  font-size:22px !important;
+  line-height:1 !important;
+}
+.vt-icon-svg {
+  width:22px;
+  height:22px;
+  flex-shrink:0;
+}
+.vt-label {
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:0.01em;
+  line-height:1;
 }
 
 .toolbar {
@@ -390,22 +406,9 @@
   overflow:hidden;
 }
 
-.talent-tabs {
-  ::ng-deep .ant-tabs-nav {
-    padding: 6px 20px 0;
-    border-bottom:1px solid #f1f5f9;
-    margin-bottom:0;
-  }
-  ::ng-deep .ant-tabs-content-holder { padding: 18px 20px 22px; }
-  ::ng-deep .ant-tabs-ink-bar { background:#4f46e5; height:3px !important; border-radius:3px 3px 0 0; }
-  ::ng-deep .ant-tabs-tab {
-    padding: 12px 6px !important;
-    font-size: 13.5px !important;
-    font-weight: 600 !important;
-    color:#64748b !important;
-  }
-  ::ng-deep .ant-tabs-tab-active .ant-tabs-tab-btn { color:#4f46e5 !important; font-weight:800 !important; }
-  ::ng-deep .ant-tabs-tab:hover { color:#4338ca !important; }
+// Padding wrapper that replaces the old nz-tabs content-holder padding
+.view-content {
+  padding: 18px 20px 22px;
 }
 
 // ── Toolbar above 9-box ────────────────────────────────────────────────────

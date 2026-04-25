@@ -13,12 +13,25 @@
     <!-- View toggle: Danh sách | 9-Box -->
     <div class="view-toggle">
       <button class="vt-btn" [class.vt-active]="activeView() === 'list'"
-              (click)="activeView.set('list')" nz-tooltip nzTooltipTitle="Danh sách">
-        <span nz-icon nzType="unordered-list"></span>
+              (click)="activeView.set('list')">
+        <span nz-icon nzType="unordered-list" class="vt-icon"></span>
+        <span class="vt-label">Danh sách</span>
       </button>
       <button class="vt-btn" [class.vt-active]="activeView() === 'ninebox'"
-              (click)="activeView.set('ninebox')" nz-tooltip nzTooltipTitle="9-Box Grid">
-        <span nz-icon nzType="appstore"></span>
+              (click)="activeView.set('ninebox')">
+        <!-- Custom 3×3 grid icon for 9-Box -->
+        <svg class="vt-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="2"    y="2"    width="5.5" height="5.5" rx="0.8"/>
+          <rect x="9.25" y="2"    width="5.5" height="5.5" rx="0.8"/>
+          <rect x="16.5" y="2"    width="5.5" height="5.5" rx="0.8"/>
+          <rect x="2"    y="9.25" width="5.5" height="5.5" rx="0.8"/>
+          <rect x="9.25" y="9.25" width="5.5" height="5.5" rx="0.8"/>
+          <rect x="16.5" y="9.25" width="5.5" height="5.5" rx="0.8"/>
+          <rect x="2"    y="16.5" width="5.5" height="5.5" rx="0.8"/>
+          <rect x="9.25" y="16.5" width="5.5" height="5.5" rx="0.8"/>
+          <rect x="16.5" y="16.5" width="5.5" height="5.5" rx="0.8"/>
+        </svg>
+        <span class="vt-label">9-Box</span>
       </button>
     </div>
   </div>
@@ -28,15 +41,18 @@
 
     <!-- ═══ View: 9-Box Grid ════════════════════════════════════════════════ -->
     @if (activeView() === 'ninebox') {
-      @if (nineboxLoading()) {
-        <div class="nb-loading"><nz-spin nzSimple></nz-spin></div>
-      } @else {
-        <app-nine-box [rawTalents]="nineboxTalents()"></app-nine-box>
-      }
+      <div class="view-content">
+        @if (nineboxLoading()) {
+          <div class="nb-loading"><nz-spin nzSimple></nz-spin></div>
+        } @else {
+          <app-nine-box [rawTalents]="nineboxTalents()"></app-nine-box>
+        }
+      </div>
     }
 
     <!-- ═══ View: Danh sách nhân tài ═══════════════════════════════════════ -->
     @if (activeView() === 'list') {
+      <div class="view-content">
 
         <div class="toolbar" (click)="$event.stopPropagation()">
           <div class="tb-left">
@@ -242,9 +258,10 @@
           </div>
         }
 
+      </div><!-- /view-content -->
     }
 
-  </div>
+  </div><!-- /talent-card -->
 
 </div>
 
