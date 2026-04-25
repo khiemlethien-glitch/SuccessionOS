@@ -32,7 +32,30 @@ export interface NineBoxConfig {
   xThresholds:   [number, number];
   yThresholds:   [number, number];
   cells:         Record<number, NbCellConfig>;
+  _presetId?:    string; // 'default'|'mckinsey'|'ptsc'|'risk'|'custom'
 }
+
+export interface NbPreset {
+  id:    string;
+  name:  string;
+  desc:  string;
+  icon:  string;
+  color: string; // accent color token
+}
+
+// ── Preset definitions ────────────────────────────────────────────────────────
+export const PRESETS: NbPreset[] = [
+  { id: 'default',  name: 'Mặc định',        desc: 'Thuật ngữ tiếng Việt chuẩn, phù hợp đa số doanh nghiệp',    icon: 'appstore',  color: '#6366f1' },
+  { id: 'mckinsey', name: 'McKinsey Classic', desc: 'Phân loại nhân tài chuẩn McKinsey, sử dụng toàn cầu',       icon: 'rise',      color: '#0ea5e9' },
+  { id: 'ptsc',     name: 'PTSC Model',       desc: 'Phù hợp doanh nghiệp nhà nước, thuật ngữ hành chính chuẩn', icon: 'apartment', color: '#10b981' },
+  { id: 'risk',     name: 'Phân tích Rủi ro', desc: 'Nhận diện nguy cơ nhân sự, ưu tiên hành động giữ chân',     icon: 'warning',   color: '#f59e0b' },
+];
+
+const PRESET_CUSTOM: NbPreset = {
+  id: 'custom', name: 'Tùy chỉnh', desc: 'Cấu hình toàn bộ theo nhu cầu riêng của tổ chức', icon: 'tool', color: '#8b5cf6',
+};
+
+export const ALL_PRESETS: NbPreset[] = [...PRESETS, PRESET_CUSTOM];
 
 // ── Employee / Cell types ─────────────────────────────────────────────────────
 export interface NbEmployee {
@@ -97,6 +120,62 @@ const DEFAULT_NB_CONFIG: NineBoxConfig = {
     3: { name: 'Kim cương thô',     sub: 'H.suất thấp · T.năng cao', description: 'Tiềm năng ẩn lớn, chưa phát huy được trong vai trò hiện tại.', actions: 'Xem xét chuyển vai trò phù hợp hơn, coaching chuyên sâu.' },
     2: { name: 'Không nhất quán',   sub: 'H.suất thấp · T.năng TB',  description: 'Có tiềm năng nhưng hiệu suất chưa ổn định.', actions: 'Tìm hiểu nguyên nhân, hỗ trợ kịp thời, theo dõi chặt.' },
     1: { name: 'Cần cải thiện',     sub: 'H.suất thấp · T.năng thấp',description: 'Cần can thiệp ngay về hiệu suất và định hướng phát triển.', actions: 'PIP (Performance Improvement Plan), đánh giá lại phù hợp vai trò.' },
+  },
+};
+
+// ── Preset config data (must follow DEFAULT_NB_CONFIG) ───────────────────────
+const PRESET_CONFIGS: Record<string, NineBoxConfig> = {
+  default: { ...DEFAULT_NB_CONFIG, _presetId: 'default' },
+  mckinsey: {
+    xAxisTitle: 'Tiềm năng', yAxisTitle: 'Hiệu suất',
+    xField: 'potential_score', yField: 'performance_score',
+    placementRule: 'db_box', xThresholds: [33, 67], yThresholds: [33, 67],
+    _presetId: 'mckinsey',
+    cells: {
+      9: { name: 'Ngôi sao',             sub: 'Stars',                description: 'Hiệu suất và tiềm năng đều xuất sắc — nhân tài chiến lược quan trọng nhất của tổ chức.',      actions: 'Lộ trình lãnh đạo cấp cao, mentoring 1:1, đưa vào succession pool ưu tiên.' },
+      8: { name: 'Hiệu suất vượt trội',  sub: 'High Performers',      description: 'Hiệu suất xuất sắc, tiềm năng tốt — backbone tin cậy của đội ngũ.',                          actions: 'Vai trò mở rộng, stretch assignments, lộ trình thăng tiến rõ ràng.' },
+      7: { name: 'Trụ cột ổn định',      sub: 'Pillars',              description: 'Hiệu suất cao, tiềm năng phát triển xa hạn chế — ổn định và chuyên sâu.',                    actions: 'Ghi nhận đóng góp, giữ chân bằng phúc lợi, giao nhiệm vụ chuyên môn sâu.' },
+      6: { name: 'Ngôi sao mới nổi',     sub: 'Rising Stars',         description: 'Tiềm năng lớn, hiệu suất đang xây dựng — đầu tư dài hạn có giá trị cao.',                    actions: 'Mentor chuyên sâu, đẩy nhanh learning path, giao thách thức phù hợp.' },
+      5: { name: 'Nhân lực cốt lõi',     sub: 'Core Players',         description: 'Vận hành ổn định — xương sống của hoạt động ngày-to-ngày tổ chức.',                          actions: 'Coaching định kỳ, tạo môi trường an toàn để phát triển thêm.' },
+      4: { name: 'Thực thi hiệu quả',    sub: 'Effective Core',       description: 'Làm tốt vai trò hiện tại, tiềm năng phát triển hạn chế — đáng tin cậy.',                     actions: 'Duy trì hiệu suất, hỗ trợ để không tụt dốc.' },
+      3: { name: 'Kim cương thô',         sub: 'Rough Diamonds',       description: 'Tiềm năng ẩn lớn, hiệu suất thấp — có thể đang ở sai vị trí.',                               actions: 'Đánh giá lại phù hợp vai trò, coaching 1:1, xem xét chuyển đổi vị trí.' },
+      2: { name: 'Chưa đồng đều',         sub: 'Inconsistent Players', description: 'Hiệu suất không ổn định, tiềm năng trung bình — cần hỗ trợ và theo dõi sát.',               actions: 'Tìm nguyên nhân gốc rễ, xây dựng kế hoạch hỗ trợ cụ thể.' },
+      1: { name: 'Cần can thiệp',         sub: 'Under-performers',     description: 'Cả hiệu suất lẫn tiềm năng đều ở mức thấp — cần hành động ngay.',                           actions: 'PIP (Performance Improvement Plan), đánh giá lại phù hợp vai trò tổng thể.' },
+    },
+  },
+  ptsc: {
+    xAxisTitle: 'Năng lực', yAxisTitle: 'Kết quả công tác',
+    xField: 'potential_score', yField: 'performance_score',
+    placementRule: 'db_box', xThresholds: [34, 67], yThresholds: [34, 67],
+    _presetId: 'ptsc',
+    cells: {
+      9: { name: 'Nhân tài chiến lược',  sub: 'Xuất sắc toàn diện',       description: 'Hoàn thành xuất sắc nhiệm vụ, có năng lực phát triển lãnh đạo cấp cao.',            actions: 'Quy hoạch lãnh đạo, đào tạo chuyên sâu, đưa vào diện kế cận chiến lược.' },
+      8: { name: 'Nhân sự nòng cốt',    sub: 'KQ tốt · Năng lực tốt',    description: 'Đóng góp ổn định, hoàn thành tốt nhiệm vụ, có tiềm năng phát triển thêm.',          actions: 'Giao thêm trách nhiệm, xây dựng lộ trình phát triển trung hạn.' },
+      7: { name: 'Chuyên gia kỹ thuật', sub: 'KQ tốt · Năng lực TB',     description: 'Thành thạo chuyên môn trong phạm vi hiện tại, hoàn thành tốt nhiệm vụ.',           actions: 'Phát triển kỹ năng lãnh đạo nhóm, công nhận đóng góp chuyên môn.' },
+      6: { name: 'Nhân tài tiềm năng',  sub: 'KQ TB · Năng lực tốt',     description: 'Năng lực nổi bật nhưng kết quả công tác chưa phản ánh đầy đủ tiềm năng.',          actions: 'Mentor trực tiếp, xem xét giao nhiệm vụ thách thức hơn.' },
+      5: { name: 'Nhân viên hiệu quả',  sub: 'KQ TB · Năng lực TB',      description: 'Hoàn thành đủ nhiệm vụ, đóng vai trò ổn định trong hoạt động thường ngày.',        actions: 'Đào tạo kỹ năng bổ sung, theo dõi định kỳ qua đánh giá 6 tháng.' },
+      4: { name: 'Thực thi ổn định',    sub: 'KQ TB · Năng lực thấp',    description: 'Làm đúng nhiệm vụ nhưng năng lực phát triển thêm bị giới hạn.',                   actions: 'Hỗ trợ duy trì hiệu suất, đảm bảo môi trường làm việc ổn định.' },
+      3: { name: 'Tiềm năng ẩn',        sub: 'KQ thấp · Năng lực tốt',   description: 'Năng lực tốt nhưng kết quả công tác chưa tương xứng — cần xem xét lại điều kiện.',  actions: 'Đánh giá phù hợp vị trí, xem xét luân chuyển sang vai trò phù hợp hơn.' },
+      2: { name: 'Đang phát triển',     sub: 'KQ thấp · Năng lực TB',    description: 'Kết quả chưa đạt yêu cầu, cần thêm thời gian và hỗ trợ để phát triển.',           actions: 'Lập kế hoạch cải thiện cụ thể, tăng cường giám sát và hỗ trợ.' },
+      1: { name: 'Cần xem xét',         sub: 'KQ thấp · Năng lực thấp',  description: 'Cả kết quả lẫn năng lực chưa đáp ứng yêu cầu — cần can thiệp toàn diện.',          actions: 'Kế hoạch cải thiện hiệu suất (PIP), đánh giá lại phù hợp vị trí công tác.' },
+    },
+  },
+  risk: {
+    xAxisTitle: 'Tiềm năng', yAxisTitle: 'Hiệu suất',
+    xField: 'potential_score', yField: 'performance_score',
+    placementRule: 'db_box', xThresholds: [34, 67], yThresholds: [34, 67],
+    _presetId: 'risk',
+    cells: {
+      9: { name: 'Giữ chân ngay lập tức', sub: 'Rủi ro mất = thảm họa',    description: 'Nhân tài xuất sắc nhất — mất đi sẽ ảnh hưởng nghiêm trọng đến chiến lược.',           actions: 'Đàm phán giữ chân ngay, gói phúc lợi đặc biệt, cam kết lộ trình thăng tiến.' },
+      8: { name: 'Ưu tiên giữ chân cao',  sub: 'Mất đi = thiệt hại lớn',   description: 'Trụ cột thực thi — rủi ro mất đi ảnh hưởng vận hành tức thì.',                   actions: 'Tăng gắn kết, nhận diện sớm tín hiệu nghỉ việc, rà soát lương định kỳ.' },
+      7: { name: 'Ghi nhận & ổn định',    sub: 'Chuyên sâu, rủi ro thấp',  description: 'Hiệu suất cao, ổn định — ít nguy cơ nghỉ việc nhưng cần được ghi nhận liên tục.',   actions: 'Khen thưởng kịp thời, giao nhiệm vụ chuyên sâu, tránh nhàm chán.' },
+      6: { name: 'Đầu tư phát triển',     sub: 'Tiềm năng lớn, cần giữ',   description: 'Tiềm năng nổi bật — không đầu tư kịp sẽ có nguy cơ ra đi tìm cơ hội khác.',       actions: 'Mentor trực tiếp, tạo cảm giác tiến bộ rõ ràng, đẩy nhanh lộ trình.' },
+      5: { name: 'Theo dõi định kỳ',      sub: 'Bình thường, rủi ro TB',   description: 'Nhân lực nền tảng — theo dõi để không sa sút xuống nhóm rủi ro cao hơn.',           actions: 'Check-in định kỳ, môi trường làm việc tốt, phát hiện sớm dấu hiệu bất mãn.' },
+      4: { name: 'Duy trì hiện trạng',    sub: 'Ổn định, ít nguy cơ',      description: 'Ổn định nhưng ít phát triển — nguy cơ rời đi thấp nếu điều kiện được duy trì.',     actions: 'Đảm bảo công việc ổn định, phúc lợi hợp lý, tránh gây bất mãn không cần thiết.' },
+      3: { name: 'Xem xét lại vai trò',   sub: 'Tiềm năng chưa bộc lộ',   description: 'Có tiềm năng nhưng kết quả thấp — có thể đang bị đặt sai vị trí.',                  actions: 'Chuyển đổi sang vai trò phù hợp hơn, tránh tiếp tục lãng phí tiềm năng.' },
+      2: { name: 'Can thiệp sớm',         sub: 'Rủi ro sa sút tăng dần',   description: 'Hiệu suất thấp và không ổn định — nếu không can thiệp sẽ trở thành gánh nặng.',     actions: 'PIP nhẹ, tìm nguyên nhân gốc rễ, hỗ trợ kỹ năng hoặc cải thiện điều kiện.' },
+      1: { name: 'Đánh giá lại',          sub: 'Hiệu suất thấp toàn diện', description: 'Cả hiệu suất lẫn tiềm năng đều thấp — cần quyết định chiến lược rõ ràng.',            actions: 'Đánh giá phù hợp vai trò, xem xét chuyển đổi vị trí hoặc chia tay có trách nhiệm.' },
+    },
   },
 };
 
@@ -166,6 +245,19 @@ export class NineBoxComponent implements OnChanges {
   // Config drawer open/close
   configOpen = signal(false);
 
+  // Preset picker ('presets') vs full custom form ('custom')
+  configView = signal<'presets' | 'custom'>('presets');
+
+  // All presets (including Tùy chỉnh) for template iteration
+  readonly allPresets = ALL_PRESETS;
+
+  // Badge label on the config button
+  activePresetName = computed<string>(() => {
+    const id = this.config()._presetId;
+    const found = ALL_PRESETS.find(p => p.id === id && p.id !== 'custom');
+    return found?.name ?? 'Tùy chỉnh';
+  });
+
   // Draft — plain mutable object for ngModel bindings
   draft = {
     xAxisTitle:    DEFAULT_NB_CONFIG.xAxisTitle,
@@ -189,6 +281,7 @@ export class NineBoxComponent implements OnChanges {
   readonly cellOrder = [7, 8, 9, 4, 5, 6, 1, 2, 3];
 
   openConfig(): void {
+    this.configView.set('presets');
     const cfg = this.config();
     this.draft = {
       xAxisTitle:    cfg.xAxisTitle,
@@ -221,6 +314,7 @@ export class NineBoxComponent implements OnChanges {
       xThresholds:   [xLo, xHi],
       yThresholds:   [yLo, yHi],
       cells:         structuredClone(this.draft.cells),
+      _presetId:     'custom',
     };
     this.config.set(cfg);
     persistConfig(cfg);
@@ -242,6 +336,40 @@ export class NineBoxComponent implements OnChanges {
       yHi: def.yThresholds[1],
       cells: structuredClone(def.cells),
     };
+  }
+
+  /** Apply a named preset immediately and close the drawer. */
+  selectPreset(preset: NbPreset): void {
+    const cfg = PRESET_CONFIGS[preset.id];
+    if (!cfg) return;
+    const clone = structuredClone(cfg);
+    this.config.set(clone);
+    persistConfig(clone);
+    this.configOpen.set(false);
+    this.ngOnChanges();
+  }
+
+  /** Switch drawer to full custom form, seeded from current config. */
+  openCustom(): void {
+    const cfg = this.config();
+    this.draft = {
+      xAxisTitle:    cfg.xAxisTitle,
+      yAxisTitle:    cfg.yAxisTitle,
+      xField:        cfg.xField,
+      yField:        cfg.yField,
+      placementRule: cfg.placementRule,
+      xLo: cfg.xThresholds[0],
+      xHi: cfg.xThresholds[1],
+      yLo: cfg.yThresholds[0],
+      yHi: cfg.yThresholds[1],
+      cells: structuredClone(cfg.cells),
+    };
+    this.configView.set('custom');
+  }
+
+  /** Go back to the preset picker without saving. */
+  backToPresets(): void {
+    this.configView.set('presets');
   }
 
   // ── Build cells from raw talent rows ─────────────────────────────────────
