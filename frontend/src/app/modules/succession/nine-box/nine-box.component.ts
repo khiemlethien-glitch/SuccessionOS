@@ -372,14 +372,45 @@ export class NineBoxComponent implements OnChanges {
     this.configView.set('presets');
   }
 
+  // ── Department filter ─────────────────────────────────────────────────────
+  deptFilter   = signal<string>('');
+  deptOptions  = signal<{ label: string; value: string }[]>([]);
+  totalVisible = signal(0);
+
+  setDeptFilter(v: string): void {
+    this.deptFilter.set(v ?? '');
+    this.ngOnChanges();
+  }
+
   // ── Build cells from raw talent rows ─────────────────────────────────────
   cells = signal<CellDef[]>([]);
 
   ngOnChanges(): void {
-    const cfg = this.config();
+    const cfg    = this.config();
+    const filter = this.deptFilter();
+
+    // Rebuild dept options from current rawTalents (sorted A→Z)
+    const deptMap = new Map<string, string>();
+    for (const t of this.rawTalents) {
+      if (t.department_id && t.department_name && t.department_name !== '—') {
+        deptMap.set(t.department_id, t.department_name);
+      }
+    }
+    this.deptOptions.set(
+      Array.from(deptMap.entries())
+        .map(([value, label]) => ({ label, value }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'vi'))
+    );
+
+    // Apply dept filter
+    const source = filter
+      ? this.rawTalents.filter(t => t.department_id === filter)
+      : this.rawTalents;
+    this.totalVisible.set(source.length);
+
     const empMap = new Map<number, NbEmployee[]>();
 
-    for (const t of this.rawTalents) {
+    for (const t of source) {
       const xScore = Math.round((t[cfg.xField] as number) ?? 0);
       const yScore = Math.round((t[cfg.yField] as number) ?? 0);
 

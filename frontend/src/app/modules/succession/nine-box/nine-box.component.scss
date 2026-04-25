@@ -414,8 +414,60 @@
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 .nb-toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px 16px 0;
+  gap: 12px;
+}
+
+// Department filter group
+.nb-dept-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.nb-dept-ico {
+  font-size: 14px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.nb-dept-sel {
+  width: 210px;
+
+  ::ng-deep .ant-select-selector {
+    border-radius: 9px !important;
+    border-color: #e0e7ff !important;
+    background: #fafaff !important;
+    font-size: 13px !important;
+  }
+  ::ng-deep .ant-select-focused .ant-select-selector,
+  ::ng-deep .ant-select-open .ant-select-selector {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 2px rgba(99,102,241,.12) !important;
+  }
+}
+
+.nb-dept-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  [nz-icon] { font-size: 11px; }
+}
+
+.nb-dept-total {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
 }
 
 .nb-cfg-btn {

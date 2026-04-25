@@ -1,10 +1,37 @@
 <!-- ══ Toolbar ════════════════════════════════════════════════════ -->
 <div class="nb-toolbar">
+
+  <!-- Department filter -->
+  <div class="nb-dept-wrap">
+    <span class="nb-dept-ico" nz-icon nzType="filter" nzTheme="outline"></span>
+    <nz-select
+      [ngModel]="deptFilter()"
+      (ngModelChange)="setDeptFilter($event)"
+      nzPlaceHolder="Tất cả phòng ban"
+      nzAllowClear
+      nzShowSearch
+      class="nb-dept-sel">
+      @for (opt of deptOptions(); track opt.value) {
+        <nz-option [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+      }
+    </nz-select>
+    @if (deptFilter()) {
+      <span class="nb-dept-count">
+        <span nz-icon nzType="user" nzTheme="outline"></span>
+        {{ totalVisible() }}
+      </span>
+    } @else {
+      <span class="nb-dept-total">{{ rawTalents.length }} nhân viên</span>
+    }
+  </div>
+
+  <!-- Config button -->
   <button class="nb-cfg-btn" (click)="openConfig()">
     <span class="nb-cfg-btn-ico" nz-icon nzType="setting" nzTheme="fill"></span>
     Cấu hình 9-Grid
     <span class="nb-cfg-badge">{{ activePresetName() }}</span>
   </button>
+
 </div>
 
 <div class="nb-root">
