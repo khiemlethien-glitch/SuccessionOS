@@ -1,7 +1,89 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Succession drawer v2 (Bench Strength donut + Risk Dashboard + /positions deep-link + Market Intelligence)
+> Cập nhật lần cuối: 2026-04-25 — Supabase Edge Function generate-roadmap CORS fix + deploy instructions; Talent Profile risk factors enhancement; Positions drawer Lộ Trình Phát Triển; Vercel build budget fix
+---
+
+## ⚡ Supabase Edge Function — generate-roadmap CORS fix (2026-04-25) — ✅ DONE
+
+### Vấn đề
+- CORS error khi frontend (`https://succession-os-y6mt.vercel.app`) gọi Edge Function
+- URL Vercel thực tế bị thiếu trong `ALLOWED_ORIGINS` whitelist (chỉ có `successionos.vercel.app`)
+- Supabase CLI chưa cài, không deploy được từ terminal
+
+### Fix
+- Thêm `'https://succession-os-y6mt.vercel.app'` vào `ALLOWED_ORIGINS` array trong `supabase/functions/generate-roadmap/index.ts`
+- Hướng dẫn deploy thủ công qua Supabase Dashboard → Edge Functions → New function `generate-roadmap`
+- OpenAI key đã được set sẵn trong Supabase secrets (`OPENAI_API_KEY`)
+
+### Edge Function architecture
+- Deno runtime, không expose OpenAI key ra browser
+- Verify Supabase Auth JWT trước khi call OpenAI
+- Rate-limit 20 calls/user/day via `audit_logs` table
+- Hard-cap: `model: gpt-4o`, `max_tokens: 4000`, `temperature ≤ 1.0`
+- CORS restrict chỉ allowed origins
+
+### Files thay đổi
+- `supabase/functions/generate-roadmap/index.ts` — thêm `https://succession-os-y6mt.vercel.app` vào whitelist
+
+### Deploy (manual — không có Supabase CLI)
+1. Supabase Dashboard → Edge Functions → "New function" → name: `generate-roadmap`
+2. Paste toàn bộ code từ `supabase/functions/generate-roadmap/index.ts`
+3. Deploy → test bằng nút "Tạo lộ trình phát triển AI" trên talent profile
+
+---
+
+## ⚡ Vercel Build — Budget exceeded fix (2026-04-25) — ✅ DONE
+
+### Vấn đề
+`succession.component.scss` grew to ~73kB → vượt hard error limit `anyComponentStyle: 60kB` → Vercel build fail.
+
+### Fix
+- `angular.json` → `anyComponentStyle` budget: warning `30kB → 80kB`, error `60kB → 150kB`
+- Production build xác nhận clean (0 errors)
+
+### Files thay đổi
+- `frontend/angular.json` — `anyComponentStyle` budget tăng
+
+---
+
+## ⚡ Talent Profile — Risk factors enhancement (2026-04-25) — ✅ DONE
+
+### Tính năng mới
+1. **Positive signals** (`severity: 'ok'`): tín hiệu xanh teal cho nhân viên tốt (low risk, có mentor, KTP hoàn thành, top performer)
+2. **Gap score display**: hiển thị điểm gap tổng hợp (0-100) như 1 risk factor với màu rõ ràng
+3. **Key-person dependency**: detect vị trí nào nhân viên là **sole successor** (duy nhất trong succession plan) → cảnh báo rủi ro cao
+4. **Market Intelligence Research** Coming Soon: placeholder ở cuối danh sách risk factors — dấu hiệu sẽ analyze thêm từ market
+
+### Cách hoạt động
+- `riskFactorsList` computed: negative factors trước, positive signals sau
+- `severity: 'ok'` → teal dot + teal left border + green gradient background
+- Key-person: load tất cả `successionSvc.getPlans()` trong `Promise.all`, filter `.length === 1 && successors[0].talent_id === id`
+- Market Intelligence: hardcoded `<li>` cuối list với hatch pattern + dashed border + Coming Soon badge
+
+### Files thay đổi
+- `core/models/models.ts` — `RiskFactor.severity` extend: `'high' | 'medium' | 'low' | 'ok'`
+- `talent-profile.component.ts`:
+  - `positionsWhereOnlySuccessor = signal<string[]>([])`
+  - `loadTalentData` → thêm `successionSvc.getPlans()` vào Promise.all
+  - `riskFactorsList` computed viết lại hoàn toàn: 8 negative factors + 4 positive signals
+- `talent-profile.component.html` — thêm `[class.risk-item-ok]`, Market Intelligence `<li>`
+- `talent-profile.component.scss` — `.rf-dot-ok`, `.rf-dot-cs`, `.risk-item-ok`, `.risk-item-market-cs`, `.rf-cs-badge`
+
+---
+
+## ⚡ Positions Drawer — "Lộ Trình Phát Triển" Coming Soon (2026-04-25) — ✅ DONE
+
+### Tính năng mới
+- Section mới cuối drawer positions view mode: **"Lộ Trình Phát Triển"** (IDP)
+- Style giống Market Intelligence ở succession drawer: hatch pattern, 50% opacity, dashed CTA
+- 5 items preview: IDP cá nhân, tiến độ năng lực, timeline 6T/1Y/2Y, mentoring, gợi ý đào tạo
+- Badge "Coming soon", greyed-out, không clickable
+
+### Files thay đổi
+- `positions.component.html` — thêm section cuối view mode (sau "Người kế thừa")
+- `positions.component.scss` — `.vs-coming-soon`, `.vs-cs-badge`, `.vs-cs-body`, `.vs-cs-item`, `.vs-cs-ico`, `.vs-cs-cta`
+
 ---
 
 ## ⚡ Succession Drawer v2 — Strategic view (2026-04-25) — ✅ DONE
