@@ -1,672 +1,263 @@
-import { Component, OnInit, signal, computed, WritableSignal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzModalModule } from 'ng-zorro-antd/modal';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzSwitchModule } from 'ng-zorro-antd/switch';
-import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { ApiService } from '../../core/services/api.service';
-import { SupabaseService } from '../../core/services/supabase.service';
-import { EmployeeService } from '../../core/services/data/employee.service';
-import { AssessmentService, Criterion } from '../../core/services/data/assessment.service';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
+import { NzStepsModule } from 'ng-zorro-antd/steps';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
+import { NzSwitchModule } from 'ng-zorro-antd/switch';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { AuthService } from '../../core/auth/auth.service';
-import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { ScoreConfigService, ScoreWeightConfig } from '../../core/services/data/score-config.service';
-import {
-  AuditLog, AuditLogListResponse,
-  Talent, TalentListResponse,
-  KeyPosition, PositionListResponse,
-  IdpPlan, IdpListResponse,
-  Assessment, AssessmentListResponse,
-  SuccessionPlan, SuccessionPlanListResponse,
-  MentoringPair, MentoringListResponse,
-  CalibrationSession, CalibrationListResponse,
-} from '../../core/models/models';
+import { SupabaseService } from '../../core/services/supabase.service';
+import { ApprovalService } from '../../core/services/data/approval.service';
+import { ApprovalRequest, ApprovalStep, ApprovalType } from '../../core/models/models';
 
-type TabKey = 'overview' | 'data' | 'users' | 'settings' | 'audit' | 'assessment';
+type TabKey = 'approvals' | 'users' | 'audit' | 'settings';
 
 interface AdminUser {
-  id: string;
-  username: string;
-  fullName: string;
-  email: string;
-  role: 'Admin' | 'HR Manager' | 'Line Manager' | 'Viewer';
-  status: 'Active' | 'Disabled';
-  lastLogin: string;
+  id: string; username: string; fullName: string;
+  email: string; role: 'Admin' | 'HR Manager' | 'Line Manager' | 'Viewer';
+  status: 'Active' | 'Disabled'; lastLogin?: string;
 }
 
-interface EntityColumn {
-  key: string;
-  label: string;
-  width?: string;
-  type?: 'text' | 'tag' | 'number' | 'progress';
-  editable?: boolean;
-}
-
-interface EntityDef {
-  key: string;
-  label: string;
-  icon: string;
-  data: WritableSignal<any[]>;
-  columns: EntityColumn[];
-  idKey: string;
-  titleKey: string;
+interface AuditLog {
+  id: string; timestamp: string; actor: string;
+  action: string; description: string; module: string;
 }
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, NzTableModule, NzTagModule, NzButtonModule, NzIconModule,
-    NzModalModule, NzInputModule, NzInputNumberModule, NzSelectModule, NzSwitchModule, NzPopconfirmModule, NzDrawerModule, NzSpinModule],
+  imports: [
+    CommonModule, FormsModule,
+    NzTableModule, NzTagModule, NzButtonModule, NzIconModule, NzSelectModule,
+    NzDrawerModule, NzFormModule, NzInputModule,
+    NzBadgeModule, NzStepsModule, NzSpinModule,
+    NzTooltipModule, NzSwitchModule, NzDividerModule,
+  ],
+  providers: [NzMessageService],
   templateUrl: './admin.component.html',
-  styleUrl: './admin.component.scss',
-  // nz-drawer / nz-modal portal content to the body's cdk-overlay-container
-  // on the client, so SSR-prerendered DOM doesn't match what the client
-  // expects and hydration throws "Cannot read properties of null".
-  host: { ngSkipHydration: 'true' },
+  styleUrl:    './admin.component.scss',
 })
 export class AdminComponent implements OnInit {
-  activeTab = signal<TabKey>('overview');
-  loading   = signal(true);
+  private msg         = inject(NzMessageService);
+  private auth        = inject(AuthService);
+  private sbSvc       = inject(SupabaseService);
+  private approvalSvc = inject(ApprovalService);
 
-  // ── Entities
-  logs        = signal<AuditLog[]>([]);
-  talents     = signal<Talent[]>([]);
-  positions   = signal<KeyPosition[]>([]);
-  idpPlans    = signal<IdpPlan[]>([]);
-  assessments = signal<Assessment[]>([]);
-  successions = signal<SuccessionPlan[]>([]);
-  mentorings  = signal<MentoringPair[]>([]);
-  calibrations = signal<CalibrationSession[]>([]);
+  // ── State ─────────────────────────────────────────────────────────────────────
+  activeTab   = signal<TabKey>('approvals');
+  loading     = signal(true);
+  isAdmin     = computed(() => this.auth.isAdmin());
+  currentUser = computed(() => this.auth.currentUser());
 
-  users = signal<AdminUser[]>([]);
+  // ── Approvals ─────────────────────────────────────────────────────────────────
+  allApprovals  = signal<ApprovalRequest[]>([]);
+  typeFilter    = signal<ApprovalType | 'all'>('all');
+  statusFilter  = signal<'all' | 'pending' | 'approved' | 'rejected'>('pending');
 
+  filteredApprovals = computed(() => {
+    let list = this.allApprovals();
+    if (this.typeFilter()   !== 'all') list = list.filter(r => r.type   === this.typeFilter());
+    if (this.statusFilter() !== 'all') list = list.filter(r => r.status === this.statusFilter());
+    return list;
+  });
+
+  pendingCount = computed(() => this.allApprovals().filter(r => r.status === 'pending').length);
+
+  // Action drawer
+  actionDrawer  = signal(false);
+  actionRequest = signal<ApprovalRequest | null>(null);
+  actionStep    = signal<ApprovalStep | null>(null);
+  actionMode    = signal<'approve' | 'reject'>('approve');
+  actionNote    = signal('');
+  actionSaving  = signal(false);
+
+  // ── Users ─────────────────────────────────────────────────────────────────────
+  users          = signal<AdminUser[]>([]);
+  editUserDrawer = signal(false);
+  editingUser    = signal<AdminUser | null>(null);
+  readonly userRoles = ['Admin', 'HR Manager', 'Line Manager', 'Viewer'];
+
+  // ── Audit ─────────────────────────────────────────────────────────────────────
+  logs         = signal<AuditLog[]>([]);
+  auditSearch  = signal('');
+  filteredLogs = computed(() => {
+    const q = this.auditSearch().toLowerCase();
+    if (!q) return this.logs();
+    return this.logs().filter(l =>
+      l.actor.toLowerCase().includes(q) ||
+      l.action.toLowerCase().includes(q) ||
+      (l.description ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  // ── Settings ──────────────────────────────────────────────────────────────────
   modules = signal([
-    { key: 'talent',      name: 'Quản lý Nhân tài',         desc: 'Talent Pool + Tier + Readiness', enabled: true,  tier: 'core' },
-    { key: 'positions',   name: 'Vị trí Then chốt',          desc: 'Key Position + Criticality',    enabled: true,  tier: 'core' },
-    { key: 'succession',  name: 'Kế hoạch Kế thừa',          desc: '9-Box + Succession Map',         enabled: true,  tier: 'core' },
-    { key: 'idp',         name: 'Kế hoạch Phát triển (IDP)', desc: 'Goals + Approval workflow',      enabled: true,  tier: 'core' },
-    { key: 'assessment',  name: 'Đánh giá Năng lực',          desc: '360° + Competency framework',    enabled: true,  tier: 'core' },
-    { key: 'mentoring',   name: 'Mentoring',                 desc: 'Mentor pairs + Logbook',         enabled: true,  tier: 'pro' },
-    { key: 'calibration', name: 'Calibration',               desc: '9-Box calibration sessions',     enabled: true,  tier: 'pro' },
-    { key: 'reports',     name: 'Báo cáo & Xuất dữ liệu',     desc: 'Charts + Excel/PDF export',      enabled: false, tier: 'pro' },
-    { key: 'api',         name: 'API & Webhook',             desc: 'HRMS integration',               enabled: false, tier: 'enterprise' },
+    { key: 'idp',         name: 'Kế hoạch IDP',            enabled: true,  tier: 'core' },
+    { key: 'succession',  name: 'Kế hoạch Kế thừa',         enabled: true,  tier: 'core' },
+    { key: 'assessment',  name: 'Đánh giá Năng lực 360°',   enabled: true,  tier: 'core' },
+    { key: 'mentoring',   name: 'Chương trình Mentoring',    enabled: true,  tier: 'pro' },
+    { key: 'calibration', name: 'Calibration Sessions',      enabled: true,  tier: 'pro' },
+    { key: 'ai_roadmap',  name: 'AI Lộ Trình Phát Triển',   enabled: true,  tier: 'pro' },
+    { key: 'marketplace', name: 'Marketplace',               enabled: false, tier: 'enterprise' },
   ]);
 
-  // ── Module config drawer
-  drawerOpen         = signal(false);
-  drawerModuleKey    = signal<string>('');
-
-  // TODO: fetch từ /api/v1/admin/modules/:key/config
-  readonly moduleConfigs: Record<string, {
-    rules:    { name: string; description: string; active: boolean }[];
-    formulas: { name: string; expression: string; note?: string }[];
-    sort:     { field: string; order: 'asc' | 'desc'; note?: string }[];
-    settings: { label: string; value: string }[];
-  }> = {
-    talent: {
-      rules: [
-        { name: 'Phân tầng Talent Tier', description: 'Nòng cốt: perf≥85 & pot≥85. Kế thừa: perf≥75 & pot≥70. Tiềm năng: còn lại', active: true },
-        { name: 'Ngưỡng Readiness',      description: 'Ready Now: gapScore≤10. Ready 1Y: gap 11-25. Ready 2Y: gap>25', active: true },
-        { name: 'Cờ rủi ro cao',          description: 'Risk score ≥ 60 → banner đỏ + card "Yếu tố rủi ro" auto-hiển thị', active: true },
-      ],
-      formulas: [
-        { name: 'Overall Score',   expression: 'round((performance + potential + max(competencies)) / 3)', note: 'Dùng cho điểm tổng hợp trên profile' },
-        { name: 'Risk vs Dept Avg', expression: 'round(((talent.risk - avg(dept.risk)) / avg(dept.risk)) × 100)', note: 'Hiện trong alert strip' },
-        { name: 'Readiness Gap',   expression: 'target.requiredScore − current.overallScore', note: 'Càng thấp càng sẵn sàng' },
-      ],
-      sort: [
-        { field: 'overallScore', order: 'desc', note: 'Mặc định danh sách nhân tài' },
-        { field: 'riskScore',    order: 'desc', note: 'Khi lọc "High Risk"' },
-      ],
-      settings: [
-        { label: 'Chu kỳ review',    value: '6 tháng' },
-        { label: 'Số mentor tối đa', value: '5 mentees / mentor' },
-      ],
-    },
-    positions: {
-      rules: [
-        { name: 'Phân loại criticality', description: 'Critical: impact=high & time-to-hire>6m. High: 2 trong 3 yếu tố. Medium/Low: còn lại', active: true },
-        { name: 'Yêu cầu kế thừa',        description: 'Vị trí Critical phải có ≥3 successors, ≥1 Ready Now', active: true },
-      ],
-      formulas: [
-        { name: 'Criticality Score', expression: '(impact × 0.4) + (replaceability × 0.35) + (knowledgeDepth × 0.25)' },
-        { name: 'Dependency Score',  expression: '1 − (readyNowCount / requiredSuccessors)', note: '0 = an toàn, 1 = nguy hiểm' },
-      ],
-      sort: [
-        { field: 'criticalLevel',  order: 'desc' },
-        { field: 'dependencyScore', order: 'desc', note: 'Vị trí thiếu kế thừa lên đầu' },
-      ],
-      settings: [
-        { label: 'Số successors tối thiểu', value: '3' },
-        { label: 'Cảnh báo khi < Ready Now', value: '1' },
-      ],
-    },
-    succession: {
-      rules: [
-        { name: '9-Box mapping',        description: 'Box = f(performance tier, potential tier) — threshold Perf: <70/70-84/≥85, Pot: <70/70-84/≥85', active: true },
-        { name: 'Ưu tiên kế thừa',       description: 'Box 9 (star) > Box 8 > Box 6 > Box 7 > còn lại', active: true },
-        { name: 'Loại trừ',             description: 'Không đưa vào succession pool nếu: riskScore≥80 OR readiness=Ready in 2 Years cho vị trí Critical', active: true },
-      ],
-      formulas: [
-        { name: 'Match Score', expression: '(skillMatch × 0.5) + (readinessScore × 0.3) + (potentialScore × 0.2)' },
-        { name: 'Gap Score',   expression: 'Σ (targetCompetency[i] − currentCompetency[i]) / n' },
-      ],
-      sort: [
-        { field: 'matchScore', order: 'desc' },
-        { field: 'readiness',  order: 'asc', note: 'Ready Now lên đầu' },
-      ],
-      settings: [
-        { label: 'Threshold Performance', value: '70 / 85' },
-        { label: 'Threshold Potential',   value: '70 / 85' },
-      ],
-    },
-    idp: {
-      rules: [
-        { name: 'Workflow duyệt',   description: 'Draft → Pending Review → Approved → Active → Completed. Cần 2 cấp duyệt (Line Manager + HR)', active: true },
-        { name: 'Tự động nhắc',     description: 'Nhắc mentor/mentee 7 ngày trước deadline goal', active: true },
-        { name: 'Khoá khi Completed', description: 'IDP đã Completed không sửa lại, phải tạo IDP mới', active: true },
-      ],
-      formulas: [
-        { name: 'Overall Progress', expression: 'avg(goal.progress for goal in goals where status != "Not Started")' },
-        { name: 'At Risk Goal',     expression: 'deadline < today + 14d AND progress < 50%' },
-      ],
-      sort: [
-        { field: 'deadline', order: 'asc', note: 'Goal sắp đến hạn lên đầu' },
-        { field: 'progress', order: 'asc', note: 'Khi filter "At Risk"' },
-      ],
-      settings: [
-        { label: 'Chu kỳ review IDP',       value: '3 tháng' },
-        { label: 'Số goals/năm khuyến nghị', value: '3 – 5' },
-      ],
-    },
-    assessment: {
-      rules: [
-        { name: 'Trọng số người đánh giá', description: 'Quản lý (QL) 50% · Đồng nghiệp (ĐN) 30% · Cấp dưới (CĐ) 20%', active: true },
-        { name: 'Số rater tối thiểu',     description: '≥1 QL + ≥3 ĐN + ≥2 CĐ để kết quả có hiệu lực', active: true },
-        { name: 'Ẩn danh',                description: 'Rater ĐN/CĐ luôn ẩn danh, chỉ HR thấy raw data', active: true },
-      ],
-      formulas: [
-        { name: 'Overall Score', expression: '(avg(QL) × 0.5) + (avg(ĐN) × 0.3) + (avg(CĐ) × 0.2)' },
-        { name: 'Criterion Score', expression: 'avg(rater_score[criterion]) theo trọng số rater' },
-      ],
-      sort: [
-        { field: 'overallScore', order: 'desc' },
-        { field: 'period',       order: 'desc', note: 'Kỳ gần nhất lên đầu' },
-      ],
-      settings: [
-        { label: 'Thang điểm',        value: '5 (1.0 – 5.0, step 0.01)' },
-        { label: 'Benchmark/Target',  value: '4.5 / 5' },
-        { label: 'Chu kỳ đánh giá',   value: '1 năm' },
-      ],
-    },
-    mentoring: {
-      rules: [
-        { name: 'Ghép cặp',     description: 'Mentor phải có ≥8 năm KN, tier Nòng cốt/Kế thừa, không cùng line mentee', active: true },
-        { name: 'Tải tối đa',   description: 'Mỗi mentor không có quá 5 mentees đang active', active: true },
-        { name: 'Logbook',      description: 'Bắt buộc log sau mỗi session, quá 14 ngày không log → nhắc', active: true },
-      ],
-      formulas: [
-        { name: 'Effectiveness', expression: '(sessionsCompleted / sessionsTotal) × (menteeProgress / 100)' },
-        { name: 'Match Score',   expression: '(skillOverlap × 0.5) + (experienceGap × 0.3) + (departmentAffinity × 0.2)' },
-      ],
-      sort: [
-        { field: 'effectiveness', order: 'desc' },
-        { field: 'nextSession',   order: 'asc', note: 'Sắp tới lên đầu' },
-      ],
-      settings: [
-        { label: 'Min năm KN mentor',  value: '8 năm' },
-        { label: 'Max mentees/mentor', value: '5' },
-      ],
-    },
-    calibration: {
-      rules: [
-        { name: 'Quorum',       description: 'Phiên cần ≥3 người tham gia + ≥1 HR để hợp lệ', active: true },
-        { name: 'Lock session', description: 'Sau khi Lock không sửa được, chỉ HR Admin mới unlock', active: true },
-        { name: 'Biến động lớn', description: 'Score thay đổi >15 cần ghi chú justification', active: true },
-      ],
-      formulas: [
-        { name: 'Delta Score', expression: 'after − before (cho cả performance & potential)' },
-        { name: 'Box Move',    expression: 'boxAfter − boxBefore (âm=tụt hạng, dương=thăng hạng)' },
-      ],
-      sort: [
-        { field: 'date',   order: 'desc' },
-        { field: 'status', order: 'asc' },
-      ],
-      settings: [
-        { label: 'Ngưỡng biến động cần note', value: '15 điểm' },
-        { label: 'Min participants',          value: '3' },
-      ],
-    },
-    reports: {
-      rules: [
-        { name: 'Phân quyền xuất',   description: 'Admin/HR: full. Line Manager: chỉ team mình. Viewer: read-only', active: false },
-        { name: 'Lưu lịch sử export', description: 'Mỗi lần xuất ghi audit log (actor + format + range)', active: false },
-      ],
-      formulas: [
-        { name: 'Đang xây dựng', expression: '—', note: 'Module chưa kích hoạt' },
-      ],
-      sort: [],
-      settings: [
-        { label: 'Format hỗ trợ', value: 'Excel (.xlsx), PDF (A4)' },
-      ],
-    },
-    api: {
-      rules: [
-        { name: 'Rate limit',       description: '60 req/min/token, 1000 req/hour/token', active: false },
-        { name: 'Webhook retry',    description: 'Exponential backoff 3 lần, max 24h', active: false },
-      ],
-      formulas: [
-        { name: 'Token scope', expression: 'read:talents | write:idp | admin:* | ...', note: 'Scope-based authorization' },
-      ],
-      sort: [],
-      settings: [
-        { label: 'Base URL', value: 'https://api.successionos.vn/api/v1' },
-        { label: 'Auth',     value: 'Bearer JWT (OIDC compatible)' },
-      ],
-    },
+  // ── Label helpers ─────────────────────────────────────────────────────────────
+  readonly typeLabel: Record<string, string> = {
+    idp: 'IDP', succession: 'Kế thừa', position: 'Vị trí', career_roadmap: 'Lộ trình',
+  };
+  readonly typeIcon: Record<string, string> = {
+    idp: 'file-text', succession: 'team', position: 'bank', career_roadmap: 'compass',
+  };
+  readonly typeColor: Record<string, string> = {
+    idp: 'blue', succession: 'purple', position: 'orange', career_roadmap: 'cyan',
+  };
+  readonly statusColor: Record<string, string> = {
+    pending: 'warning', approved: 'success', rejected: 'error',
+  };
+  readonly statusLabel: Record<string, string> = {
+    pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối',
   };
 
-  currentModuleConfig = computed(() => this.moduleConfigs[this.drawerModuleKey()] ?? null);
-  currentModule = computed(() => this.modules().find(m => m.key === this.drawerModuleKey()) ?? null);
-
-  openModuleDrawer(key: string): void {
-    this.drawerModuleKey.set(key);
-    this.drawerOpen.set(true);
-  }
-  closeModuleDrawer(): void { this.drawerOpen.set(false); }
-
-  // ── Data tab: entity selector
-  selectedEntity = signal<string>('talents');
-  entitySearch   = signal('');
-
-  entities = computed<EntityDef[]>(() => [
-    { key: 'talents', label: 'Nhân tài', icon: 'team', data: this.talents, idKey: 'id', titleKey: 'fullName',
-      columns: [
-        { key: 'id',         label: 'ID',        width: '80px' },
-        { key: 'fullName',   label: 'Họ tên',    editable: true },
-        { key: 'position',   label: 'Vị trí',    editable: true },
-        { key: 'department', label: 'Phòng ban', editable: true, width: '130px' },
-        { key: 'talentTier', label: 'Tier',      type: 'tag', editable: true, width: '110px' },
-        { key: 'riskScore',  label: 'Risk',      type: 'number', editable: true, width: '80px' },
-      ] },
-    { key: 'positions', label: 'Vị trí then chốt', icon: 'apartment', data: this.positions, idKey: 'id', titleKey: 'title',
-      columns: [
-        { key: 'id',            label: 'ID',        width: '80px' },
-        { key: 'title',         label: 'Tên vị trí', editable: true },
-        { key: 'department',    label: 'Phòng ban', editable: true, width: '140px' },
-        { key: 'currentHolder', label: 'Đang giữ',  editable: true },
-        { key: 'criticalLevel', label: 'Mức độ',    type: 'tag', editable: true, width: '110px' },
-        { key: 'successorCount',label: 'Kế thừa',   type: 'number', width: '90px' },
-      ] },
-    { key: 'idpPlans', label: 'Kế hoạch IDP', icon: 'solution', data: this.idpPlans, idKey: 'id', titleKey: 'talentName',
-      columns: [
-        { key: 'id',              label: 'ID',        width: '80px' },
-        { key: 'talentName',      label: 'Nhân viên', editable: true },
-        { key: 'year',            label: 'Năm',       type: 'number', editable: true, width: '80px' },
-        { key: 'status',          label: 'Trạng thái',type: 'tag', editable: true, width: '120px' },
-        { key: 'overallProgress', label: 'Tiến độ',   type: 'progress', editable: true, width: '140px' },
-      ] },
-    { key: 'assessments', label: 'Đánh giá 360°', icon: 'star', data: this.assessments, idKey: 'id', titleKey: 'talentName',
-      columns: [
-        { key: 'id',            label: 'ID',        width: '80px' },
-        { key: 'talentName',    label: 'Nhân viên', editable: true },
-        { key: 'period',        label: 'Kỳ',        editable: true, width: '140px' },
-        { key: 'overallScore',  label: 'Overall',   type: 'number', editable: true, width: '90px' },
-        { key: 'assessorCount', label: 'Đánh giá',  type: 'number', width: '100px' },
-        { key: 'status',        label: 'Trạng thái', type: 'tag', editable: true, width: '130px' },
-      ] },
-    { key: 'successions', label: 'Kế hoạch Kế thừa', icon: 'cluster', data: this.successions, idKey: 'id', titleKey: 'positionTitle',
-      columns: [
-        { key: 'id',            label: 'ID',        width: '80px' },
-        { key: 'positionTitle', label: 'Vị trí',    editable: true },
-        { key: 'department',    label: 'Phòng ban', editable: true, width: '160px' },
-        { key: 'successorCount',label: 'Số kế thừa', type: 'number', width: '120px' },
-      ] },
-    { key: 'mentorings', label: 'Mentoring', icon: 'user-add', data: this.mentorings, idKey: 'id', titleKey: 'mentorName',
-      columns: [
-        { key: 'id',         label: 'ID',       width: '80px' },
-        { key: 'mentorName', label: 'Mentor',   editable: true },
-        { key: 'menteeName', label: 'Mentee',   editable: true },
-        { key: 'focus',      label: 'Trọng tâm', editable: true },
-        { key: 'status',     label: 'Trạng thái', type: 'tag', editable: true, width: '110px' },
-      ] },
-    { key: 'calibrations', label: 'Calibration', icon: 'audit', data: this.calibrations, idKey: 'id', titleKey: 'title',
-      columns: [
-        { key: 'id',          label: 'ID',       width: '80px' },
-        { key: 'title',       label: 'Tên phiên', editable: true },
-        { key: 'facilitator', label: 'Chủ trì',  editable: true, width: '140px' },
-        { key: 'date',        label: 'Ngày',     editable: true, width: '120px' },
-        { key: 'status',      label: 'Trạng thái', type: 'tag', editable: true, width: '120px' },
-      ] },
-    { key: 'users', label: 'Người dùng', icon: 'user', data: this.users as WritableSignal<any[]>, idKey: 'id', titleKey: 'fullName',
-      columns: [
-        { key: 'username',  label: 'Username',  editable: true, width: '130px' },
-        { key: 'fullName',  label: 'Họ tên',    editable: true },
-        { key: 'email',     label: 'Email',     editable: true },
-        { key: 'role',      label: 'Vai trò',   type: 'tag', editable: true, width: '130px' },
-        { key: 'status',    label: 'Trạng thái', type: 'tag', editable: true, width: '110px' },
-        { key: 'lastLogin', label: 'Login gần nhất', width: '160px' },
-      ] },
-  ]);
-
-  currentEntity = computed<EntityDef>(() => {
-    const key = this.selectedEntity();
-    return this.entities().find(e => e.key === key) ?? this.entities()[0];
-  });
-
-  filteredRows = computed<any[]>(() => {
-    const q = this.entitySearch().trim().toLowerCase();
-    const rows = this.currentEntity().data();
-    if (!q) return rows;
-    return rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(q)));
-  });
-
-  // ── Edit modal
-  editOpen = signal(false);
-  editMode = signal<'add' | 'edit'>('edit');
-  editForm = signal<Record<string, any>>({});
-  editEntityKey = signal('');
-
-  // ── Stats
-  stats = computed(() => ({
-    users:       this.users().length,
-    talents:     this.talents().length,
-    positions:   this.positions().length,
-    idps:        this.idpPlans().length,
-    assessments: this.assessments().length,
-    events30d:   this.logs().length,
-  }));
-
-  recentLogs = computed(() => this.logs().slice(0, 5));
-
-  // ── VnR Sync ──────────────────────────────────────────────────────────────
-  syncing    = signal(false);
-  lastSyncAt = signal<string | null>(null);
-  syncEndpoints = signal<Record<string, any> | null>(null);
-  syncProfilesN = signal<number | null>(null);
-  endpointEntries(obj: Record<string, any> | null): { key: string; value: any }[] {
-    if (!obj) return [];
-    return Object.entries(obj).map(([key, value]) => ({ key, value }));
-  }
-
-  syncVnR(): void {
-    this.syncing.set(true);
-    this.api.post<{ message: string; syncedAt: string }>('employees/sync', {}).subscribe({
-      next:  r => {
-        this.syncing.set(false);
-        this.lastSyncAt.set(r.syncedAt ?? new Date().toISOString());
-        this.msg.success('Đồng bộ dữ liệu VnR thành công!');
-      },
-      error: () => {
-        this.syncing.set(false);
-        this.msg.warning('Không thể kết nối backend — đang dùng mock data');
-      },
-    });
-  }
-
-  // ── Assessment display config (drag-drop max 4) ──────────────────────────
-  allCriteria          = signal<Criterion[]>([]);
-  availableCriteria    = signal<Criterion[]>([]);
-  selectedCriteria     = signal<Criterion[]>([]);
-  savingDisplayConfig  = signal(false);
-
-  isAdmin = computed(() => this.auth.isAdmin());
-
-  // ── Score weight config ───────────────────────────────────────────────────
-  private scoreSvc  = inject(ScoreConfigService);
-  weightConfig = signal<ScoreWeightConfig>({ assessment_weight: 60, weight_360: 40 });
-  weightSaving = signal(false);
-  weightSum    = computed(() => (this.weightConfig().assessment_weight ?? 0) + (this.weightConfig().weight_360 ?? 0));
-  readonly pctFormatter = (v: number) => `${v}%`;
-
-  setWeight(field: keyof ScoreWeightConfig, value: number): void {
-    this.weightConfig.set({ ...this.weightConfig(), [field]: value ?? 0 });
-  }
-
-  async saveWeightConfig(): Promise<void> {
-    if (this.weightSum() !== 100) return;
-    this.weightSaving.set(true);
-    const ok = await this.scoreSvc.updateWeightConfig(this.weightConfig());
-    this.weightSaving.set(false);
-    if (ok) this.msg.success('Đã lưu cấu hình trọng số điểm');
-    else    this.msg.error('Lưu thất bại, vui lòng thử lại');
-  }
-
-  // ── API Integration config (360°) ─────────────────────────────────────────
-  apiBaseUrl = signal('https://api.successionos.vn/api/v1');
-
-  readonly apiPayloadExample = `{
-  "employee_id": "E001",
-  "cycle_id":    "2025-Annual",
-  "score_360":   82.5,
-  "criteria": [
-    { "label": "Lãnh đạo",    "score": 4.2 },
-    { "label": "Giao tiếp",   "score": 4.5 },
-    { "label": "Kỹ năng làm việc nhóm", "score": 3.9 }
-  ]
-}`;
-
-  copyApiEndpoint(): void {
-    const url = `${this.apiBaseUrl()}/external/360-scores`;
-    navigator.clipboard.writeText(url).then(
-      () => this.msg.success('Đã sao chép endpoint'),
-      () => this.msg.error('Không sao chép được')
-    );
-  }
-
-  constructor(
-    private api: ApiService,
-    private msg: NzMessageService,
-    private sbSvc: SupabaseService,
-    private employeeSvc: EmployeeService,
-    private assessmentSvc: AssessmentService,
-    private auth: AuthService,
-  ) {}
-
-  async loadAssessmentConfig(): Promise<void> {
-    const [all, selectedIds] = await Promise.all([
-      this.assessmentSvc.getAllCriteria(),
-      this.assessmentSvc.getDisplayConfig(),
-    ]);
-    this.allCriteria.set(all);
-    const selectedIdSet = new Set(selectedIds);
-    const selected = selectedIds.map(id => all.find(c => c.id === id)).filter((c): c is Criterion => !!c);
-    const available = all.filter(c => !selectedIdSet.has(c.id));
-    this.selectedCriteria.set(selected);
-    this.availableCriteria.set(available);
-  }
-
-  onDropCriterion(event: CdkDragDrop<Criterion[]>): void {
-    const isSelected = event.container.id === 'selected-criteria';
-    const toSelected = isSelected && event.previousContainer.id !== event.container.id;
-    // Enforce max 4
-    if (toSelected && this.selectedCriteria().length >= 4) {
-      this.msg.warning('Chỉ được chọn tối đa 4 tiêu chí');
-      return;
-    }
-    if (event.previousContainer === event.container) {
-      const list = [...event.container.data];
-      moveItemInArray(list, event.previousIndex, event.currentIndex);
-      if (event.container.id === 'available-criteria') this.availableCriteria.set(list);
-      else this.selectedCriteria.set(list);
-    } else {
-      const prev = [...event.previousContainer.data];
-      const curr = [...event.container.data];
-      transferArrayItem(prev, curr, event.previousIndex, event.currentIndex);
-      if (event.previousContainer.id === 'available-criteria') {
-        this.availableCriteria.set(prev);
-        this.selectedCriteria.set(curr);
-      } else {
-        this.selectedCriteria.set(prev);
-        this.availableCriteria.set(curr);
-      }
-    }
-  }
-
-  addCriterion(c: Criterion): void {
-    if (this.selectedCriteria().length >= 4) {
-      this.msg.warning('Chỉ được chọn tối đa 4 tiêu chí');
-      return;
-    }
-    this.availableCriteria.update(list => list.filter(x => x.id !== c.id));
-    this.selectedCriteria.update(list => [...list, c]);
-  }
-
-  removeCriterion(c: Criterion): void {
-    this.selectedCriteria.update(list => list.filter(x => x.id !== c.id));
-    this.availableCriteria.update(list => [...list, c]);
-  }
-
-  async saveAssessmentConfig(): Promise<void> {
-    if (!this.isAdmin()) {
-      this.msg.error('Chỉ Admin được phép cấu hình tiêu chí đánh giá');
-      return;
-    }
-    this.savingDisplayConfig.set(true);
-    const ok = await this.assessmentSvc.updateDisplayConfig(
-      this.selectedCriteria().map(c => c.id)
-    );
-    this.savingDisplayConfig.set(false);
-    if (ok) this.msg.success('Đã lưu cấu hình hiển thị đánh giá');
-    else    this.msg.error('Lưu thất bại — xem console');
-  }
-
-  async ngOnInit(): Promise<void> {
+  // ─────────────────────────────────────────────────────────────────────────────
+  async ngOnInit() {
     this.loading.set(true);
-    // Overview: fetch talents (cho stats.talents count + avgRisk) + audit logs
-    try {
-      const [empRes, auditRes] = await Promise.all([
-        this.employeeSvc.getAll(),
-        this.sbSvc.client.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(100),
-      ]);
-      this.talents.set(empRes.data);
-      if (!auditRes.error && auditRes.data) this.logs.set(auditRes.data as any);
-      // Load assessment config cho tab "Đánh giá"
-      await this.loadAssessmentConfig();
-    } catch (e) {
-      console.warn('[admin] load error', e);
-    }
-    // Load score weight config
-    const cfg = await this.scoreSvc.getWeightConfig().catch(() => null);
-    if (cfg) this.weightConfig.set(cfg);
-    // Users tab: query user_profiles
-    const { data: profileRows } = await this.sbSvc.client
-      .from('user_profiles')
-      .select('id, email, full_name, role, status, last_sign_in_at')
-      .order('full_name', { ascending: true })
-      .then(r => r, () => ({ data: null }));
-    if (profileRows) {
-      this.users.set(profileRows.map((p: any) => ({
-        id:        p.id,
-        username:  (p.email ?? '').split('@')[0],
-        fullName:  p.full_name ?? p.email ?? p.id,
-        email:     p.email ?? '',
-        role:      p.role ?? 'Viewer',
-        status:    p.status === 'disabled' ? 'Disabled' : 'Active',
-        lastLogin: p.last_sign_in_at
-          ? new Date(p.last_sign_in_at).toLocaleString('vi-VN')
-          : '—',
-      })));
-    }
-    // TODO Data tab: positions/idps/assessments/successions/mentorings/calibrations — chờ fix RLS
+    await Promise.all([this.loadApprovals(), this.loadUsers(), this.loadAuditLogs()]);
     this.loading.set(false);
   }
 
-  // ── Tab control
-  setTab(t: TabKey): void { this.activeTab.set(t); }
+  setTab(t: TabKey) { this.activeTab.set(t); }
 
-  // ── Data tab helpers
-  selectEntity(key: string): void {
-    this.selectedEntity.set(key);
-    this.entitySearch.set('');
+  // ── Approvals ─────────────────────────────────────────────────────────────────
+  async loadApprovals() {
+    const role = this.currentUser()?.role ?? 'Viewer';
+    const list = await this.approvalSvc.getByRole(role);
+    this.allApprovals.set(list);
   }
 
-  // ── CRUD
-  openAdd(): void {
-    const ent = this.currentEntity();
-    const draft: Record<string, any> = { [ent.idKey]: this.generateId(ent.key) };
-    ent.columns.forEach(c => { if (c.editable) draft[c.key] = (c.type === 'number' || c.type === 'progress') ? 0 : ''; });
-    this.editForm.set(draft);
-    this.editMode.set('add');
-    this.editEntityKey.set(ent.key);
-    this.editOpen.set(true);
+  currentUserStep(req: ApprovalRequest): ApprovalStep | null {
+    const myRole = this.currentUser()?.role ?? '';
+    return req.steps.find(s => s.status === 'pending' && s.approver_role === myRole) ?? null;
   }
 
-  openEdit(row: any): void {
-    this.editForm.set({ ...row });
-    this.editMode.set('edit');
-    this.editEntityKey.set(this.currentEntity().key);
-    this.editOpen.set(true);
+  canActOn(req: ApprovalRequest): boolean {
+    return req.status === 'pending' && this.currentUserStep(req) !== null;
   }
 
-  saveEdit(): void {
-    const ent = this.entities().find(e => e.key === this.editEntityKey());
-    if (!ent) return;
-    const form = this.editForm();
-    const idVal = form[ent.idKey];
-    const list = ent.data();
-    if (this.editMode() === 'add') {
-      ent.data.set([{ ...form }, ...list]);
-    } else {
-      ent.data.set(list.map(r => r[ent.idKey] === idVal ? { ...r, ...form } : r));
+  openAction(req: ApprovalRequest, mode: 'approve' | 'reject') {
+    const step = this.currentUserStep(req);
+    if (!step) return;
+    this.actionRequest.set(req);
+    this.actionStep.set(step);
+    this.actionMode.set(mode);
+    this.actionNote.set('');
+    this.actionDrawer.set(true);
+  }
+
+  async confirmAction() {
+    const req  = this.actionRequest();
+    const step = this.actionStep();
+    const user = this.currentUser();
+    if (!req || !step || !user) return;
+
+    if (this.actionMode() === 'reject' && !this.actionNote().trim()) {
+      this.msg.warning('Vui lòng nhập lý do từ chối');
+      return;
     }
-    this.editOpen.set(false);
+    this.actionSaving.set(true);
+    try {
+      let updated: ApprovalRequest;
+      if (this.actionMode() === 'approve') {
+        updated = await this.approvalSvc.approveStep(req, step, user.full_name, user.id, this.actionNote());
+        this.msg.success('✓ Đã phê duyệt thành công');
+      } else {
+        updated = await this.approvalSvc.rejectStep(req, step, user.full_name, user.id, this.actionNote());
+        this.msg.warning('Đã từ chối yêu cầu');
+      }
+      this.allApprovals.update(list => list.map(r => r.id === updated.id ? updated : r));
+      this.actionDrawer.set(false);
+    } catch (e: any) {
+      this.msg.error('Lỗi: ' + e.message);
+    } finally {
+      this.actionSaving.set(false);
+    }
   }
 
-  closeEdit(): void { this.editOpen.set(false); }
-
-  deleteRow(row: any): void {
-    const ent = this.currentEntity();
-    ent.data.set(ent.data().filter(r => r[ent.idKey] !== row[ent.idKey]));
+  // ── Users ─────────────────────────────────────────────────────────────────────
+  async loadUsers() {
+    try {
+      const { data } = await this.sbSvc.client
+        .from('user_profiles')
+        .select('id, email, full_name, role, status, last_sign_in_at')
+        .order('full_name', { ascending: true });
+      this.users.set((data ?? []).map((p: any) => ({
+        id: p.id, username: (p.email ?? '').split('@')[0],
+        fullName: p.full_name ?? p.email ?? p.id,
+        email: p.email ?? '', role: p.role ?? 'Viewer',
+        status: p.status === 'disabled' ? 'Disabled' : 'Active',
+        lastLogin: p.last_sign_in_at,
+      })));
+    } catch { /* silent */ }
   }
 
-  updateFormField(key: string, value: any): void {
-    this.editForm.set({ ...this.editForm(), [key]: value });
+  openEditUser(u: AdminUser) { this.editingUser.set({ ...u }); this.editUserDrawer.set(true); }
+
+  async saveUser() {
+    const u = this.editingUser();
+    if (!u) return;
+    try {
+      await this.sbSvc.client.from('user_profiles')
+        .update({ role: u.role, status: u.status === 'Active' ? 'active' : 'disabled' })
+        .eq('id', u.id);
+      this.users.update(list => list.map(x => x.id === u.id ? u : x));
+      this.editUserDrawer.set(false);
+      this.msg.success('Đã cập nhật người dùng');
+    } catch (e: any) { this.msg.error('Lỗi: ' + e.message); }
   }
 
-  private generateId(entityKey: string): string {
-    const prefix = { talents:'T', positions:'P', idpPlans:'IDP', assessments:'A', successions:'S', mentorings:'M', calibrations:'C', users:'U' }[entityKey] ?? 'X';
-    return `${prefix}${Math.floor(Math.random() * 900 + 100)}`;
+  roleColor(role: string): string {
+    return ({ Admin: 'red', 'HR Manager': 'purple', 'Line Manager': 'blue', Viewer: 'default' } as any)[role] ?? 'default';
   }
 
-  // ── Users
-  addUser(): void {
-    this.selectEntity('users');
-    this.setTab('data');
-    setTimeout(() => this.openAdd(), 0);
+  // ── Audit ─────────────────────────────────────────────────────────────────────
+  async loadAuditLogs() {
+    try {
+      const { data } = await this.sbSvc.client
+        .from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(200);
+      this.logs.set((data ?? []).map((l: any) => ({
+        id: l.id ?? l.timestamp, timestamp: l.timestamp, actor: l.user_id ?? '—',
+        action: l.action,
+        description: l.details ? JSON.stringify(l.details) : '',
+        module: l.action?.split('_')[0] ?? '—',
+      })));
+    } catch { /* silent */ }
   }
 
-  // ── Modules
-  toggleModule(key: string, enabled: boolean): void {
-    this.modules.set(this.modules().map(m => m.key === key ? { ...m, enabled } : m));
+  auditActionColor(action: string): string {
+    if (action?.includes('approved'))  return 'success';
+    if (action?.includes('rejected'))  return 'error';
+    if (action?.includes('submitted')) return 'processing';
+    if (action?.includes('generate'))  return 'warning';
+    return 'default';
   }
 
-  // ── Audit log helpers
-  actionColor(a: string): string { return { UPDATE:'blue', CREATE:'green', DELETE:'red', LOCK:'orange', IMPORT:'purple' }[a] ?? 'default'; }
-  formatDate(ts: string): string { return new Date(ts).toLocaleString('vi-VN'); }
-
-  // ── Table cell helpers
-  cellValue(row: any, key: string): any { return row[key]; }
-
-  tagColor(value: string): string {
-    const map: Record<string, string> = {
-      'Nòng cốt':'purple', 'Tiềm năng':'orange', 'Kế thừa':'green',
-      'Critical':'red', 'High':'orange', 'Medium':'blue', 'Low':'default',
-      'Active':'blue', 'Completed':'green', 'Pending':'orange', 'Draft':'default', 'Disabled':'red',
-      'Admin':'red', 'HR Manager':'purple', 'Line Manager':'blue', 'Viewer':'default',
-    };
-    return map[value] ?? 'default';
+  // ── Settings ──────────────────────────────────────────────────────────────────
+  toggleModule(key: string, enabled: boolean) {
+    this.modules.update(list => list.map(m => m.key === key ? { ...m, enabled } : m));
+    this.msg.success(`${enabled ? 'Bật' : 'Tắt'} module thành công`);
   }
 
-  editableColumns = computed(() => this.currentEntity().columns.filter(c => c.editable));
+  tierColor(tier: string): string {
+    return ({ core: 'blue', pro: 'purple', enterprise: 'gold' } as any)[tier] ?? 'default';
+  }
 }

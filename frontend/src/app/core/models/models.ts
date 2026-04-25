@@ -194,3 +194,41 @@ export interface ModuleListResponse { data: AppModule[]; total: number; }
 
 // ── AI Insight ────────────────────────────────────────────────────────────────
 export interface AiInsight { insight: string; }
+
+// ── Approval System ───────────────────────────────────────────────────────────
+export type ApprovalType   = 'idp' | 'succession' | 'position' | 'career_roadmap';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type ApproverRole   = 'Admin' | 'Line Manager' | 'HR Manager';
+
+export interface ApprovalStep {
+  id:            string;
+  request_id:    string;
+  step_order:    number;          // 1, 2, 3...
+  approver_role: ApproverRole;
+  approver_id?:  string;
+  approver_name?: string;
+  status:        ApprovalStatus;
+  note?:         string;
+  acted_at?:     string;
+  created_at:    string;
+}
+
+export interface ApprovalRequest {
+  id:                 string;
+  type:               ApprovalType;
+  title:              string;
+  description?:       string;
+  ref_id?:            string;     // FK sang entity thật
+  ref_data?:          any;        // snapshot dữ liệu
+  requested_by_id:    string;
+  requested_by_name:  string;
+  requested_by_role:  string;     // 'HR Manager' | 'Line Manager'
+  department?:        string;
+  status:             ApprovalStatus;
+  steps:              ApprovalStep[];
+  created_at:         string;
+  updated_at:         string;
+  resolved_at?:       string;
+}
+
+export interface ApprovalListResponse { data: ApprovalRequest[]; total: number; }

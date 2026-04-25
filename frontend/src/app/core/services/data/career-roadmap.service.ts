@@ -221,7 +221,7 @@ export class CareerRoadmapService {
    * it is never included in the browser bundle or visible in DevTools.
    */
   async callOpenAI(talent: Talent, track: 'expert' | 'manager'): Promise<CareerRoadmap> {
-    const apiKey = environment.openaiKey;
+    const apiKey = (environment as any).openaiKey as string | undefined;
     if (!apiKey) throw new Error('OpenAI key chưa được cấu hình');
 
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
