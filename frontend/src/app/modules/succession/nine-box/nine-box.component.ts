@@ -47,6 +47,8 @@ export interface NbEmployee {
   competency:  number;
   department:  string;
   riskBand:    string;
+  empCode:     string | null;   // employee_code e.g. "E001"
+  readiness:   string | null;   // "Ready Now" | "Ready in 1 Year" | "Ready in 2 Years"
 }
 
 export interface CellDef {
@@ -274,8 +276,10 @@ export class NineBoxComponent implements OnChanges {
         tags:       [t.talent_tier, t.risk_band].filter(Boolean),
         stability:  RISK_STABILITY[t.risk_band]    ?? 50,
         competency: TIER_COMPETENCY[t.talent_tier] ?? 50,
-        department: t.department_name ?? '—',
-        riskBand:   t.risk_band       ?? '—',
+        department: t.department_name  ?? '—',
+        riskBand:   t.risk_band        ?? '—',
+        empCode:    t.employee_code    ?? null,
+        readiness:  t.readiness        ?? null,
       };
       const list = empMap.get(box) ?? [];
       list.push(emp);
@@ -433,4 +437,26 @@ export class NineBoxComponent implements OnChanges {
     const m: Record<string, string> = { High: 'red', Med: 'orange', Low: 'green' };
     return m[tag] ?? 'default';
   }
+
+  riskLabel(band: string): string {
+    const m: Record<string, string> = { High: 'Cao', Med: 'Trung bình', Low: 'Thấp' };
+    return m[band] ?? band;
+  }
+
+  riskClass(band: string): string {
+    const m: Record<string, string> = { High: 'risk-high', Med: 'risk-med', Low: 'risk-low' };
+    return m[band] ?? '';
+  }
+
+  readinessLabel(r: string): string {
+    const m: Record<string, string> = {
+      'Ready Now':        'Sẵn sàng ngay',
+      'Ready in 1 Year':  'Trong 1–2 năm',
+      'Ready in 2 Years': 'Trong 3–5 năm',
+    };
+    return m[r] ?? r;
+  }
+
+  /** Format score 0-100 as "X.X" on a /10 display scale */
+  fmt10(v: number): string { return (v / 10).toFixed(1); }
 }

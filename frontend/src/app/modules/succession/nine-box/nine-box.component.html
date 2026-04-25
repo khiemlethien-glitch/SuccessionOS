@@ -68,28 +68,83 @@
                      [nzPopoverContent]="empHoverTpl"
                      nzPopoverTrigger="hover"
                      nzPopoverPlacement="top"
+                     nzPopoverOverlayClassName="nb-emp-hover-overlay"
                      (click)="openEmpFromAvatar(emp, $event)">
                   {{ emp.initials }}
                 </div>
                 <ng-template #empHoverTpl>
-                  <div class="nb-emp-hover">
-                    <div class="neh-name">{{ emp.name }}</div>
-                    <div class="neh-role">{{ emp.role }}</div>
-                    @if (emp.department !== '—') {
-                      <div class="neh-dept">
-                        <span nz-icon nzType="bank" nzTheme="outline"></span>
-                        {{ emp.department }}
+                  <div class="neh-card">
+
+                    <!-- Header: avatar + name + MNV -->
+                    <div class="neh-head">
+                      <app-avatar [name]="emp.name" [size]="36"></app-avatar>
+                      <div class="neh-head-text">
+                        <div class="neh-head-name">{{ emp.name }}</div>
+                        @if (emp.empCode) {
+                          <div class="neh-head-code">MNV: {{ emp.empCode }}</div>
+                        }
                       </div>
-                    }
-                    <div class="neh-scores">
-                      <span class="neh-y">{{ config().yAxisTitle }}: <b>{{ emp.perf }}</b></span>
-                      <span class="neh-x">{{ config().xAxisTitle }}: <b>{{ emp.pot }}</b></span>
                     </div>
-                    @if (emp.riskBand && emp.riskBand !== '—') {
-                      <div class="neh-risk">
-                        <nz-tag [nzColor]="riskColor(emp.riskBand)" style="margin:0">{{ emp.riskBand }}</nz-tag>
+
+                    <!-- Field rows — only show if value exists -->
+                    <div class="neh-fields">
+                      @if (emp.department && emp.department !== '—') {
+                        <div class="neh-field">
+                          <span class="neh-field-ico" nz-icon nzType="bank" nzTheme="outline"></span>
+                          <div class="neh-field-body">
+                            <div class="neh-field-lbl">Phòng ban</div>
+                            <div class="neh-field-val">{{ emp.department }}</div>
+                          </div>
+                        </div>
+                      }
+                      @if (emp.role && emp.role !== '—') {
+                        <div class="neh-field">
+                          <span class="neh-field-ico" nz-icon nzType="idcard" nzTheme="outline"></span>
+                          <div class="neh-field-body">
+                            <div class="neh-field-lbl">Chức danh</div>
+                            <div class="neh-field-val">{{ emp.role }}</div>
+                          </div>
+                        </div>
+                      }
+                      @if (emp.riskBand && emp.riskBand !== '—') {
+                        <div class="neh-field">
+                          <span class="neh-field-ico neh-ico-risk" nz-icon nzType="warning" nzTheme="outline"></span>
+                          <div class="neh-field-body">
+                            <div class="neh-field-lbl">Rủi ro rời đi</div>
+                            <div class="neh-field-val" [ngClass]="riskClass(emp.riskBand)">
+                              {{ riskLabel(emp.riskBand) }}
+                            </div>
+                          </div>
+                        </div>
+                      }
+                      @if (emp.readiness) {
+                        <div class="neh-field">
+                          <span class="neh-field-ico neh-ico-ready" nz-icon nzType="clock-circle" nzTheme="outline"></span>
+                          <div class="neh-field-body">
+                            <div class="neh-field-lbl">Mức độ sẵn sàng</div>
+                            <div class="neh-field-val">{{ readinessLabel(emp.readiness) }}</div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Score bar -->
+                    <div class="neh-scores">
+                      <div class="neh-score-item">
+                        <div class="neh-score-lbl">{{ config().yAxisTitle }}</div>
+                        <div class="neh-score-val neh-sv-y">
+                          {{ fmt10(emp.perf) }}<span class="neh-score-unit">/10</span>
+                        </div>
                       </div>
-                    }
+                      <div class="neh-score-sep"></div>
+                      <div class="neh-score-item">
+                        <div class="neh-score-lbl">{{ config().xAxisTitle }}</div>
+                        <div class="neh-score-val neh-sv-x">
+                          {{ fmt10(emp.pot) }}<span class="neh-score-unit">/10</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </ng-template>
               }

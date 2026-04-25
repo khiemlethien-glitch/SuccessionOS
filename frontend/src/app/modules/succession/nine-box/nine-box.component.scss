@@ -480,37 +480,100 @@
 }
 
 // ── Employee avatar hover card ────────────────────────────────────────────────
-.nb-emp-hover {
-  min-width: 180px; max-width: 220px;
-  .neh-name {
-    font-size: 13px; font-weight: 700; color: #0f172a;
-    margin-bottom: 2px;
+// Popover overlay width via global class (nzPopoverOverlayClassName)
+::ng-deep .nb-emp-hover-overlay {
+  .ant-popover-inner { padding: 0 !important; border-radius: 14px !important; overflow: hidden; }
+  .ant-popover-inner-content { padding: 0 !important; }
+  .ant-popover-arrow { display: none; }
+}
+
+.neh-card {
+  width: 272px;
+  font-family: inherit;
+
+  // ── Header ──────────────────────────────────────────────
+  .neh-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, #f8faff 0%, #fff 100%);
   }
-  .neh-role {
-    font-size: 11.5px; color: #64748b;
-    margin-bottom: 6px;
+  .neh-head-text { min-width: 0; flex: 1; }
+  .neh-head-name {
+    font-size: 13.5px; font-weight: 800; color: #0f172a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .neh-dept {
-    font-size: 11px; color: #6b7280;
-    display: flex; align-items: center; gap: 4px;
-    margin-bottom: 6px;
-    [nz-icon] { font-size: 11px; }
+  .neh-head-code {
+    font-size: 11px; color: #94a3b8; margin-top: 2px;
   }
+
+  // ── Field rows ──────────────────────────────────────────
+  .neh-fields {
+    padding: 8px 0 4px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .neh-field {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 16px;
+  }
+  .neh-field-ico {
+    font-size: 13px; color: #94a3b8;
+    margin-top: 2px; flex-shrink: 0;
+    &.neh-ico-risk  { color: #f59e0b; }
+    &.neh-ico-ready { color: #6366f1; }
+  }
+  .neh-field-body { min-width: 0; flex: 1; }
+  .neh-field-lbl {
+    font-size: 10.5px; font-weight: 600; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .04em;
+    margin-bottom: 1px;
+  }
+  .neh-field-val {
+    font-size: 13px; font-weight: 600; color: #1e293b;
+    line-height: 1.4;
+
+    &.risk-high { color: #dc2626; }
+    &.risk-med  { color: #d97706; }
+    &.risk-low  { color: #16a34a; }
+  }
+
+  // ── Score footer ─────────────────────────────────────────
   .neh-scores {
-    display: flex; gap: 10px;
-    font-size: 12px; color: #374151;
-    margin-bottom: 6px;
-    .neh-y b { color: #6366f1; }
-    .neh-x b { color: #8b5cf6; }
+    display: flex; align-items: stretch;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 4px;
+    background: #fafbff;
   }
-  .neh-risk { margin-top: 2px; }
+  .neh-score-item {
+    flex: 1; padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .neh-score-sep {
+    width: 1px; background: #f1f5f9; flex-shrink: 0;
+    margin: 8px 0;
+  }
+  .neh-score-lbl {
+    font-size: 10px; font-weight: 700; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .neh-score-val {
+    font-size: 20px; font-weight: 800; line-height: 1;
+    display: flex; align-items: baseline; gap: 1px;
+    &.neh-sv-y { color: #6366f1; }
+    &.neh-sv-x { color: #8b5cf6; }
+  }
+  .neh-score-unit {
+    font-size: 11px; font-weight: 500; color: #94a3b8; margin-left: 1px;
+  }
 }
 
 // ── Employee dept line (inside emp drawer right column) ───────────────────────
 .nb-emp-dept {
   display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: #374151;
-  [nz-icon] { color: #9ca3af; }
+  font-size: 13px; font-weight: 500; color: #374151;
+  padding: 6px 10px;
+  background: #f8f9ff; border-radius: 8px;
+  [nz-icon] { color: #9ca3af; font-size: 13px; }
 }
 
 // ── Config drawer: global override ────────────────────────────────────────────
