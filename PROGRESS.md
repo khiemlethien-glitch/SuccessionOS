@@ -5,7 +5,7 @@
 
 ---
 
-## 📍 TRẠNG THÁI HIỆN TẠI (2026-04-27)
+## 📍 TRẠNG THÁI HIỆN TẠI (2026-04-27 — updated)
 
 ### ✅ Đã hoàn thành & hoạt động
 | Module | Trạng thái | Ghi chú |
@@ -44,6 +44,12 @@
 | Marketplace | Placeholder |
 | Role-based route guard | Chưa implement |
 | Seed database đầy đủ | ~500 nhân viên × tất cả bảng |
+
+### ✅ Vừa hoàn thành (2026-04-27)
+- **Schema export:** `docs/exports/SCHEMA.md` — full schema documentation từ migration files (tables, views, functions, RLS, relationships, approval workflow matrix)
+- **Data export script:** `docs/exports/export_data.sh` — bash script export tất cả 20 tables + 2 views thành CSV, chạy: `bash docs/exports/export_data.sh`
+- **README:** `docs/exports/README.md` — hướng dẫn đọc export files, expected row counts per table
+- **Lưu ý:** Data CSVs chưa được generate (cần Bash permission cho curl — chạy `export_data.sh` thủ công)
 
 ---
 
