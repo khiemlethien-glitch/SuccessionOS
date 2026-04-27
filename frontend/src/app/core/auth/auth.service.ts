@@ -8,6 +8,7 @@ export interface UserProfile {
   full_name: string;
   role: string;
   department_id?: string | null;
+  department_name?: string | null;  // resolved from v_employees via employee_id
   avatar_url?: string | null;
   employee_id?: string | null;   // linked talent/employee record ID
 }
@@ -24,9 +25,9 @@ export class AuthService {
   /**
    * RBAC — phân quyền theo role. Hierarchy: Admin > HR Manager > Line Manager > Viewer.
    */
-  readonly isAdmin = computed(() => this.currentUser()?.role === 'Admin');
-
-  readonly isViewer = computed(() => this.currentUser()?.role === 'Viewer');
+  readonly isAdmin       = computed(() => this.currentUser()?.role === 'Admin');
+  readonly isLineManager = computed(() => this.currentUser()?.role === 'Line Manager');
+  readonly isViewer      = computed(() => this.currentUser()?.role === 'Viewer');
 
   readonly hasRole = (role: string): boolean => {
     const user = this.currentUser();
@@ -41,10 +42,10 @@ export class AuthService {
   private get sb() { return this.supabaseService.client; }
 
   constructor(private supabaseService: SupabaseService) {
-    this.sb.auth.getSession().then(({ data }) => {
+    this.sb.auth.getSession().then(async ({ data }) => {
       this.session.set(data.session);
-      if (data.session?.user) this.loadProfile(data.session.user);
-      this.isLoading.set(false);
+      if (data.session?.user) await this.loadProfile(data.session.user);
+      this.isLoading.set(false);  // wait until profile (+ dept) fully loaded
     });
 
     this.sb.auth.onAuthStateChange((_event, session) => {
@@ -74,6 +75,19 @@ export class AuthService {
       const { data: emp } = await this.sb
         .from('employees').select('id').eq('email', email).maybeSingle();
       if (emp?.id) baseProfile.employee_id = emp.id;
+    }
+
+    // Load department info from employee record (needed for LM dept-scoped views)
+    if (baseProfile.employee_id) {
+      const { data: empData } = await this.sb
+        .from('v_employees')
+        .select('department_id, department_name')
+        .eq('id', baseProfile.employee_id)
+        .maybeSingle();
+      if (empData) {
+        if (!baseProfile.department_id) baseProfile.department_id = empData.department_id;
+        baseProfile.department_name = empData.department_name ?? null;
+      }
     }
 
     this.currentUser.set(baseProfile);

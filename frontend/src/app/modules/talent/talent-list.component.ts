@@ -17,6 +17,7 @@ import { NzTreeSelectModule } from 'ng-zorro-antd/tree-select';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { EmployeeService, DeptTreeNode } from '../../core/services/data/employee.service';
 import { SuccessionService } from '../../core/services/data/succession.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { Talent, TalentTier, KeyPosition } from '../../core/models/models';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { TierBadgeComponent } from '../../shared/components/tier-badge/tier-badge.component';
@@ -197,8 +198,13 @@ export class TalentListComponent implements OnInit {
 
   private employeeSvc   = inject(EmployeeService);
   private successionSvc = inject(SuccessionService);
+  private authSvc       = inject(AuthService);
   private msg           = inject(NzMessageService);
   private _searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // LM restriction: lock dept filter to own department
+  isLmRestricted = signal(false);
+  lmDeptId       = signal<string | null>(null);
 
   constructor(
     private router: Router,
@@ -207,6 +213,14 @@ export class TalentListComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    // Line Manager: lock dept filter to own department
+    const user = this.authSvc.currentUser();
+    if (user?.role === 'Line Manager' && user.department_id) {
+      this.isLmRestricted.set(true);
+      this.lmDeptId.set(user.department_id);
+      this.depts.set([user.department_id]);
+    }
+
     const filterParam = this.route.snapshot.queryParamMap.get('filter');
     if (filterParam === 'high-risk') {
       this.riskBand.set('High');
@@ -219,7 +233,13 @@ export class TalentListComponent implements OnInit {
       this.fetchPage(),
     ]);
     this.deptTreeNodes.set(deptTree);
-    this.nineboxTalents.set(nineBox as any);
+
+    // LM: filter 9-box to own department only
+    let filteredNineBox = nineBox as any[];
+    if (this.isLmRestricted() && this.lmDeptId()) {
+      filteredNineBox = filteredNineBox.filter((t: any) => t.department_id === this.lmDeptId());
+    }
+    this.nineboxTalents.set(filteredNineBox);
     this.nineboxLoading.set(false);
     this.loading.set(false);
   }
@@ -257,7 +277,13 @@ export class TalentListComponent implements OnInit {
     this.onSortChange();
   }
   reset(): void {
-    this.search.set(''); this.tier.set(null); this.depts.set([]);
+    this.search.set(''); this.tier.set(null);
+    // LM: restore locked dept filter; others: clear all
+    if (this.isLmRestricted() && this.lmDeptId()) {
+      this.depts.set([this.lmDeptId()!]);
+    } else {
+      this.depts.set([]);
+    }
     this.readiness.set(null); this.riskBand.set(null);
     this.sortCol.set('overall_score'); this.sortDir.set('desc');
     this.page.set(1); this.fetchPage();

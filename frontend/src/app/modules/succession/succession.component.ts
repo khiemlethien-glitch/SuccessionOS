@@ -683,7 +683,21 @@ export class SuccessionComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
-    this.currentUser.set(this.auth.currentUser() as any);
+    const authUser = this.auth.currentUser();
+    // Map auth profile → local currentUser (succession component uses name-based dept match)
+    this.currentUser.set({
+      role:       authUser?.role,
+      department: authUser?.department_name ?? undefined,
+      talentId:   authUser?.employee_id     ?? undefined,
+      fullName:   authUser?.full_name,
+      name:       authUser?.full_name,
+    });
+
+    // Line Manager: pre-filter Density tab to own department
+    if (authUser?.role === 'Line Manager' && authUser.department_id) {
+      this.densityDeptFilter.set([authUser.department_id]);
+    }
+
     // Nine-box dùng v_nine_box view (có cột `box` 1-9 compute sẵn) — wire vào talents.
     const nineBox = await this.successionSvc.getNineBox();
     this.talents.set(nineBox as any);

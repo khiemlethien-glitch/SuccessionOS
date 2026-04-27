@@ -323,7 +323,14 @@ export class PositionsComponent implements OnInit {
         .eq('is_active', true),
     ]);
 
-    this.positions.set(positions as any);
+    // Line Manager: scope to own department only
+    const authUser = this.auth.currentUser();
+    const lmDeptId = authUser?.role === 'Line Manager' ? (authUser.department_id ?? null) : null;
+    const filteredPositions = lmDeptId
+      ? (positions as any[]).filter((p: any) => p.department_id === lmDeptId)
+      : (positions as any[]);
+
+    this.positions.set(filteredPositions as any);
     this.plans.set(plans as any);
 
     // Deep-link từ Succession module: ?gapPos=<posId>&gapEmp=<empId>&gapName=<name>

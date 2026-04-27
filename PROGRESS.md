@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25
+> Cập nhật lần cuối: 2026-04-27
 
 ---
 
@@ -11,12 +11,12 @@
 | Module | Trạng thái | Ghi chú |
 |---|---|---|
 | Auth (login/logout) | ✅ | Supabase Auth, email+password, Google OAuth |
-| Dashboard | ✅ | Line Manager trở lên |
-| Talent List | ✅ | Supabase `v_employees` |
+| Dashboard | ✅ | LM scope: chỉ thấy bộ phận mình |
+| Talent List | ✅ | LM scope: dept filter locked; 9-box filtered |
 | Talent Profile | ✅ | Đầy đủ: năng lực, đánh giá, phát triển, rủi ro |
 | Career Roadmap (AI) | ✅ | OpenAI GPT-4o, lưu vào `career_roadmaps` |
-| Key Positions | ✅ | Quản lý vị trí then chốt |
-| Succession Map | ✅ | Bản đồ kế thừa |
+| Key Positions | ✅ | LM scope: filtered by department |
+| Succession Map | ✅ | LM scope: tree + density filtered by dept |
 | Admin Panel | ✅ | 4 tabs: Approvals / Users / Audit / Settings |
 | Approval Workflow | ✅ | Supabase tables, multi-step, per-role |
 | RBAC Sidebar | ✅ | 4 roles đúng quyền |

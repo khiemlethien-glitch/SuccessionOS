@@ -7,6 +7,7 @@ import { NzAvatarModule } from 'ng-zorro-antd/avatar';
 import { NzDrawerModule } from 'ng-zorro-antd/drawer';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { DashboardService } from '../../core/services/data/dashboard.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { TalentPreviewDrawerComponent } from '../../shared/components/talent-preview-drawer/talent-preview-drawer.component';
 
 @Component({
@@ -23,6 +24,7 @@ import { TalentPreviewDrawerComponent } from '../../shared/components/talent-pre
 })
 export class DashboardComponent implements OnInit {
   private dashboardSvc = inject(DashboardService);
+  private authSvc      = inject(AuthService);
 
   // ─── Talent preview drawer ────────────────────────────────────────────────
   previewId   = signal<string | null>(null);
@@ -106,10 +108,14 @@ export class DashboardComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.isLoading.set(true);
+    // Line Manager only sees their own department's data
+    const user   = this.authSvc.currentUser();
+    const deptId = user?.role === 'Line Manager' ? (user.department_id ?? undefined) : undefined;
+
     const [kpi, alerts, posStats] = await Promise.all([
-      this.dashboardSvc.getKpi(),
-      this.dashboardSvc.getRiskAlerts(3),
-      this.dashboardSvc.getPositionStats(),
+      this.dashboardSvc.getKpi(deptId),
+      this.dashboardSvc.getRiskAlerts(3, deptId),
+      this.dashboardSvc.getPositionStats(deptId),
     ]);
 
     this.totalTalents.set(kpi.totalTalents);

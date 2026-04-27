@@ -7,18 +7,22 @@ export class DashboardService {
   private sb    = inject(SupabaseService).client;
   private cache = inject(CacheService);
 
-  async getKpi() {
-    return this.cache.get('dash:kpi', () => this._fetchKpi());
+  async getKpi(deptId?: string) {
+    return this.cache.get(`dash:kpi:${deptId ?? 'all'}`, () => this._fetchKpi(deptId));
   }
 
-  private async _fetchKpi() {
-    const active = { is_active: true };
+  private async _fetchKpi(deptId?: string) {
+    const base = () => {
+      let q = this.sb.from('v_employees').select('id', { count: 'exact', head: true }).eq('is_active', true);
+      if (deptId) q = q.eq('department_id', deptId);
+      return q;
+    };
     const [total, core, potential, successor, highRisk] = await Promise.all([
-      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match(active),
-      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Nòng cốt' }),
-      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Tiềm năng' }),
-      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match({ ...active, talent_tier: 'Kế thừa' }),
-      this.sb.from('v_employees').select('id', { count: 'exact', head: true }).match(active).gte('risk_score', 60),
+      base(),
+      base().eq('talent_tier', 'Nòng cốt'),
+      base().eq('talent_tier', 'Tiềm năng'),
+      base().eq('talent_tier', 'Kế thừa'),
+      base().gte('risk_score', 60),
     ]);
     return {
       totalTalents:   total.count     ?? 0,
@@ -29,28 +33,34 @@ export class DashboardService {
     };
   }
 
-  async getRiskAlerts(limit = 5) {
-    return this.cache.get(`dash:risk:${limit}`, () => this._fetchRiskAlerts(limit));
+  async getRiskAlerts(limit = 5, deptId?: string) {
+    return this.cache.get(`dash:risk:${limit}:${deptId ?? 'all'}`, () => this._fetchRiskAlerts(limit, deptId));
   }
 
-  private async _fetchRiskAlerts(limit: number) {
-    const { data, error } = await this.sb
+  private async _fetchRiskAlerts(limit: number, deptId?: string) {
+    let q = this.sb
       .from('v_employees')
       .select('id, full_name, position, department_name, risk_score, risk_reasons')
       .eq('is_active', true)
       .gte('risk_score', 60)
       .order('risk_score', { ascending: false })
       .limit(limit);
+    if (deptId) q = q.eq('department_id', deptId);
+    const { data, error } = await q;
     if (error) { console.error('[DashboardService.getRiskAlerts]', error); return []; }
     return data ?? [];
   }
 
-  async getPositionStats() {
-    return this.cache.get('dash:pos-stats', () => this._fetchPositionStats());
+  async getPositionStats(deptId?: string) {
+    return this.cache.get(`dash:pos-stats:${deptId ?? 'all'}`, () => this._fetchPositionStats(deptId));
   }
 
-  private async _fetchPositionStats() {
-    const base = () => this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('is_active', true);
+  private async _fetchPositionStats(deptId?: string) {
+    const base = () => {
+      let q = this.sb.from('key_positions').select('id', { count: 'exact', head: true }).eq('is_active', true);
+      if (deptId) q = q.eq('department_id', deptId);
+      return q;
+    };
     const [total, critical, highRisk, noSuccessor, hasSuccessor] = await Promise.all([
       base(),
       base().eq('critical_level', 'Critical'),
