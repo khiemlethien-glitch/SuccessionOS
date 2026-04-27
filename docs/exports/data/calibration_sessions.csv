@@ -1,0 +1,4 @@
+id,name,cycle,department_id,status,locked_at,locked_by_id,created_at
+0d2fa966-5c30-4949-a269-2595bd224cf8,"Calibration Đánh Giá Giữa Năm 2024",2024-mid,4d6bb379-289d-44bf-9a83-46ad5731cf3f,Completed,"2024-06-30 17:00:00+00",b50d6fd6-5c2e-4133-8aee-f3b093b46113,"2026-04-24 14:19:18.646907+00"
+93511ac0-e0cb-4ec8-90b4-44a8066a5018,"Calibration Đánh Giá Cuối Năm 2024",2024-end,4d6bb379-289d-44bf-9a83-46ad5731cf3f,Completed,"2024-12-27 17:00:00+00",b50d6fd6-5c2e-4133-8aee-f3b093b46113,"2026-04-24 14:19:18.646907+00"
+03e21bc4-93de-432f-b427-6c9d9f33f8de,"Calibration Đánh Giá Giữa Năm 2025",2025-mid,4d6bb379-289d-44bf-9a83-46ad5731cf3f,"In Progress",,,"2026-04-24 14:19:18.646907+00"

@@ -1,0 +1,11 @@
+id,name,type,start_date,end_date,status,sort_order,created_at
+dd16d8ce-5ed1-499e-833b-7d03e781ae81,"IPA | Mid-Year 2022",Mid-year,2022-01-01,2022-06-30,closed,1,"2026-02-03 17:13:46.323+00"
+0906f035-68c8-4656-8646-99f368151628,"IPA | Year-End 2022",Mid-year,2022-07-01,2022-12-31,closed,2,"2026-02-03 17:12:52.063+00"
+693dfbb8-c230-45d4-9fa5-226789335b0c,"Mid-Year Review 2023",Mid-year,2023-01-01,2023-06-30,closed,3,"2025-12-13 12:32:00.997+00"
+40ebb268-aa8c-44f3-94ef-63e223196f05,"Year-End Review 2023",Mid-year,2023-07-01,2023-12-31,closed,4,"2025-12-13 12:33:36.217+00"
+880cf192-aa6e-4552-b4b4-5f615ae2471a,"Mid-Year Review 2024",Mid-year,2024-01-01,2024-06-30,closed,5,"2025-12-13 12:38:38.583+00"
+99b2f2d8-7100-4ad0-ba7b-588491f6ffe1,"Year-End Review 2024",Mid-year,2024-07-01,2024-12-31,closed,6,"2025-12-13 12:38:00.003+00"
+e58d9159-09e3-4ad9-96e4-197a3fab86cb,"IPA - Mid-Year - 2025",Mid-year,2025-01-01,2025-06-30,closed,7,"2025-12-13 12:40:37.56+00"
+14130fb9-1690-4dbf-a7f6-bcae1da343d0,"IPA - Year-End - 2025",Mid-year,2025-07-01,2025-12-31,closed,8,"2025-12-13 12:39:49.807+00"
+f8685ec3-01d2-4488-b8b7-081e71fcb128,"IPA | Mid-Year 2026",Mid-year,2026-01-01,2026-06-30,open,9,"2025-12-16 01:53:16.65+00"
+8c5562f4-265e-46cc-bc5d-f4cb69b8a556,"IPA | Year-End 2026",Mid-year,2026-07-01,2026-12-31,open,10,"2026-02-03 17:10:35.08+00"
