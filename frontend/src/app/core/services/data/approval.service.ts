@@ -130,7 +130,12 @@ export class ApprovalService {
       .select('*, approval_steps(*)')
       .order('created_at', { ascending: false });
 
-    if (error || !data) return [];
+    if (error) {
+      console.error('[ApprovalService] getAll error:', error.code, error.message, error.details);
+      return [];
+    }
+    if (!data) return [];
+    console.log('[ApprovalService] getAll rows:', data.length);
     return data.map((r: any) => ({
       ...r,
       steps: (r.approval_steps ?? []).sort((a: any, b: any) => a.step_order - b.step_order),

@@ -109,7 +109,10 @@
 }
 
 // ── Body ──────────────────────────────────────────────────────────────────────
-.admin-body { padding: 24px 32px; }
+.admin-body {
+  padding: 24px 32px;
+  min-width: 0;
+}
 
 .tab-pane { animation: fadeIn .18s ease; }
 @keyframes fadeIn {
@@ -197,31 +200,21 @@
 }
 .apr-step {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
 
   .step-dot {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     border: 2px solid #d1d5db;
     background: #f9fafb;
     color: #9ca3af;
-  }
-  .step-role {
-    font-size: 10px;
-    color: #9ca3af;
-    white-space: nowrap;
-    text-align: center;
-    max-width: 64px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex-shrink: 0;
   }
   &.step-ok  .step-dot { background: #d1fae5; border-color: #10b981; color: #10b981; }
   &.step-no  .step-dot { background: #fee2e2; border-color: #ef4444; color: #ef4444; }
@@ -237,18 +230,19 @@
   50%       { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
 }
 .step-line {
-  width: 20px;
+  width: 10px;
   height: 2px;
   background: #e5e7eb;
-  margin: 13px 2px 0; // vertically center with dots
+  flex-shrink: 0;
 }
 
 // ── Action buttons ────────────────────────────────────────────────────────────
 .act-btns {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 6px;
   align-items: center;
+  justify-content: center;
 }
 
 // ── Section header ────────────────────────────────────────────────────────────

@@ -143,7 +143,12 @@ export class AdminComponent implements OnInit {
   // ─────────────────────────────────────────────────────────────────────────────
   async ngOnInit() {
     this.loading.set(true);
-    await Promise.all([this.loadApprovals(), this.loadUsers(), this.loadAuditLogs()]);
+    const tasks: Promise<any>[] = [this.loadApprovals()];
+    // loadUsers: chỉ Admin mới có quyền đọc toàn bộ user_profiles
+    if (this.isAdmin()) tasks.push(this.loadUsers());
+    // loadAuditLogs: Admin + HR Manager
+    if (this.isAdmin() || this.isHRManager()) tasks.push(this.loadAuditLogs());
+    await Promise.all(tasks);
     this.loading.set(false);
   }
 

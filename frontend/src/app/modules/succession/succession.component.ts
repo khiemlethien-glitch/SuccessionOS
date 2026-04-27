@@ -84,7 +84,7 @@ export class SuccessionComponent implements OnInit {
   activeTabIndex = signal(0);
 
   // ─── Succession Map view mode ─────────────────────────────────
-  smvViewMode = signal<'tree' | 'org'>('tree');
+  smvViewMode = signal<'tree' | 'org'>('org');
 
   // ─── Collapse state for both SMV views (collapsed = children hidden) ──
   collapsedNodes = signal<Set<string>>(new Set());
@@ -507,17 +507,51 @@ export class SuccessionComponent implements OnInit {
     return [...deptMap.values()].sort((a, b) => b.children.length - a.children.length);
   }
 
-  /** Prune tree for Line Manager: keep only nodes matching filter + ancestors of matches */
-  private pruneTree(nodes: TreeNode[], match: (n: TreeNode) => boolean): TreeNode[] {
-    const result: TreeNode[] = [];
-    for (const n of nodes) {
-      const prunedChildren = this.pruneTree(n.children, match);
-      const selfMatch = match(n);
-      if (selfMatch || prunedChildren.length > 0) {
-        result.push({ ...n, children: prunedChildren });
+  /**
+   * LM view: chỉ hiện đúng 2 node:
+   *  1. Vị trí của LM (current_holder_id === talentId)
+   *  2. Vị trí trực tiếp trên (parent) — để LM biết mình báo cáo cho ai
+   * Không hiện thêm nhánh nào khác, không hiện children của own position.
+   */
+  private buildLMView(roots: TreeNode[], talentId?: string): TreeNode[] {
+    if (!talentId) return [];
+
+    // Tìm node theo predicate (đệ quy toàn cây)
+    const findNode = (nodes: TreeNode[], pred: (n: TreeNode) => boolean): TreeNode | null => {
+      for (const n of nodes) {
+        if (pred(n)) return n;
+        const f = findNode(n.children, pred);
+        if (f) return f;
       }
+      return null;
+    };
+
+    // Tìm node cha trực tiếp của childId
+    const findParent = (nodes: TreeNode[], childId: string): TreeNode | null => {
+      for (const n of nodes) {
+        if (n.children.some(c => c.positionId === childId)) return n;
+        const f = findParent(n.children, childId);
+        if (f) return f;
+      }
+      return null;
+    };
+
+    // Own node: vị trí LM đang giữ (current_holder)
+    const own = findNode(roots, n => n.current_holder_id === talentId);
+    if (!own) return [];
+
+    // Own leaf: không hiện children của vị trí LM (đang giữ vị trí này, không cần xem bên dưới)
+    const ownLeaf: TreeNode = { ...own, children: [], depth: 1 };
+
+    // Parent: vị trí trực tiếp trên LM
+    const parent = findParent(roots, own.positionId);
+    if (!parent) {
+      // LM đang là root (không có cha) → chỉ hiện vị trí của mình
+      return [{ ...ownLeaf, depth: 0 }];
     }
-    return result;
+
+    // Trả về: [parent → [ownLeaf]] — bỏ hết siblings, bỏ grandparent trở lên
+    return [{ ...parent, children: [ownLeaf], depth: 0 }];
   }
 
   treeRoots = computed<TreeNode[]>(() => {
@@ -529,10 +563,7 @@ export class SuccessionComponent implements OnInit {
     const user = this.currentUser();
     if (!user || user.role !== 'Line Manager') return full;
 
-    const match = (n: TreeNode) =>
-      (user.department ? n.department === user.department : false) ||
-      (user.talentId   ? n.successors.some(s => s.talent_id === user.talentId) : false);
-    return this.pruneTree(full, match);
+    return this.buildLMView(full, user.talentId);
   });
 
   /** Flat count of all visible positions for banner display */

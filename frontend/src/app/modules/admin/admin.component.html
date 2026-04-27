@@ -87,13 +87,13 @@
           <nz-table [nzData]="filteredApprovals()" [nzPageSize]="20" nzSize="middle" class="apr-table">
             <thead>
               <tr>
-                <th nzWidth="110px">Loại</th>
+                <th nzWidth="90px">Loại</th>
                 <th>Tiêu đề / Mô tả</th>
-                <th nzWidth="170px">Người đề xuất</th>
-                <th nzWidth="100px">Ngày tạo</th>
-                <th nzWidth="240px">Tiến độ duyệt</th>
-                <th nzWidth="110px">Trạng thái</th>
-                <th nzWidth="160px" nzAlign="center">Thao tác</th>
+                <th nzWidth="145px">Người đề xuất</th>
+                <th nzWidth="88px">Ngày tạo</th>
+                <th nzWidth="160px">Tiến độ duyệt</th>
+                <th nzWidth="90px">Trạng thái</th>
+                <th nzWidth="110px" nzAlign="center">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -147,7 +147,6 @@
                             @else if (step.status==='rejected') { <span nz-icon nzType="close"></span> }
                             @else { {{ step.step_order }} }
                           </div>
-                          <div class="step-role">{{ step.approver_role }}</div>
                         </div>
                         @if (!$last) { <div class="step-line"></div> }
                       }
@@ -166,11 +165,13 @@
                   <td nzAlign="center">
                     @if (canActOn(req)) {
                       <div class="act-btns">
-                        <button nz-button nzType="primary" nzSize="small" (click)="openAction(req,'approve')">
-                          <span nz-icon nzType="check"></span> Duyệt
+                        <button nz-button nzType="primary" nzSize="small" (click)="openAction(req,'approve')"
+                                nz-tooltip nzTooltipTitle="Phê duyệt">
+                          <span nz-icon nzType="check"></span>
                         </button>
-                        <button nz-button nzDanger nzSize="small" (click)="openAction(req,'reject')">
-                          <span nz-icon nzType="close"></span> Từ chối
+                        <button nz-button nzDanger nzSize="small" (click)="openAction(req,'reject')"
+                                nz-tooltip nzTooltipTitle="Từ chối">
+                          <span nz-icon nzType="close"></span>
                         </button>
                       </div>
                     } @else if (req.status === 'pending') {
