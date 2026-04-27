@@ -8,7 +8,7 @@
         <h1 class="hero-title">Quản trị hệ thống</h1>
         <p class="hero-sub">
           @if (isAdmin()) { Phê duyệt · Người dùng · Audit Trail · Cấu hình }
-          @else if (isHRManager()) { Phê duyệt (xem) · Audit Trail }
+          @else if (isHRManager()) { Phê duyệt toàn cty · Audit Trail }
           @else { Phê duyệt · Yêu cầu chờ duyệt bởi bạn }
         </p>
       </div>
@@ -20,8 +20,8 @@
         </nz-badge>
       }
       @if (isHRManager()) {
-        <span class="role-readonly-chip">
-          <span nz-icon nzType="eye"></span> Chế độ xem — không thể phê duyệt
+        <span class="role-hrm-chip">
+          <span nz-icon nzType="check-circle"></span> HR Manager · Bước duyệt bắt buộc
         </span>
       }
     </div>

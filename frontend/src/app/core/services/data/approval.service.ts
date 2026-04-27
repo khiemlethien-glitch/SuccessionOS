@@ -139,8 +139,10 @@ export class ApprovalService {
 
   async getByRole(role: string, userId?: string): Promise<ApprovalRequest[]> {
     const all = await this.getAll();
-    // Admin + HR Manager: thấy toàn bộ request của cty — HRM có quyền approve bước của mình
-    if (role === 'Admin' || role === 'HR Manager') return all;
+    if (role === 'Admin') return all;
+    // HR Manager: thấy tất cả request có HRM step (approver_id match hoặc chưa gán)
+    // Supabase RLS đã filter sẵn dựa trên approver_id = auth.uid() — getAll() trả đúng
+    if (role === 'HR Manager') return all;
     // Line Manager: chỉ thấy requests được giao cho họ (approver_id match) hoặc chưa gán
     if (role === 'Line Manager' && userId) {
       return all.filter(r =>
@@ -201,12 +203,16 @@ export class ApprovalService {
 
   // ── Submit new request ────────────────────────────────────────────────────────
   async submit(payload: Omit<ApprovalRequest, 'id' | 'status' | 'steps' | 'created_at' | 'updated_at'>): Promise<ApprovalRequest> {
-    // Resolve specific Line Manager for this employee via parent_id chain
+    // Resolve specific approver IDs để Supabase RLS cho phép đọc (approver_id = auth.uid())
     let managerId: string | null = null;
+    let hrmId:     string | null = null;
     if (!this.useMock && payload.requested_by_id) {
-      managerId = await this.resolveManagerUserId(payload.requested_by_id);
+      [managerId, hrmId] = await Promise.all([
+        this.resolveManagerUserId(payload.requested_by_id),
+        this.resolveHRManagerUserId(),
+      ]);
     }
-    const steps = this._buildSteps(payload.requested_by_role, payload.type, managerId);
+    const steps = this._buildSteps(payload.requested_by_role, payload.type, managerId, hrmId);
 
     if (this.useMock) {
       const req: ApprovalRequest = {
@@ -258,9 +264,10 @@ export class ApprovalService {
    *    Line Manager → HR Manager → Admin
    *    Viewer       → Line Manager (direct) → HR Manager → Admin
    */
-  private _buildSteps(requestorRole: string, type?: string, managerId?: string | null): Partial<ApprovalStep>[] {
+  private _buildSteps(requestorRole: string, type?: string, managerId?: string | null, hrmId?: string | null): Partial<ApprovalStep>[] {
     const lmStep:    Partial<ApprovalStep> = { approver_role: 'Line Manager', approver_id: managerId ?? undefined, status: 'pending' };
-    const hrmStep:   Partial<ApprovalStep> = { approver_role: 'HR Manager',   status: 'pending' };
+    // Embed hrmId vào approver_id → Supabase RLS (approver_id = auth.uid()) cho phép HRM đọc record
+    const hrmStep:   Partial<ApprovalStep> = { approver_role: 'HR Manager', approver_id: hrmId ?? undefined, status: 'pending' };
     const adminStep: Partial<ApprovalStep> = { approver_role: 'Admin',        status: 'pending' };
 
     // Mentor: LM → HRM (không qua Admin)
@@ -330,6 +337,25 @@ export class ApprovalService {
       // Nếu không tìm được (LM chưa có tài khoản) → trả null
       // → _buildSteps sẽ không gán approver_id → mọi LM đều thấy (safe fallback)
       return mgr?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Tìm user_profiles.id của HR Manager trong hệ thống.
+   * Dùng để gán approver_id cho HRM step → Supabase RLS (approver_id = auth.uid()) cho phép HRM đọc request.
+   * Nếu có nhiều HRM: lấy người đầu tiên (trong thực tế nên có chính sách rõ ràng).
+   */
+  private async resolveHRManagerUserId(): Promise<string | null> {
+    try {
+      const { data } = await this.sb.client
+        .from('user_profiles')
+        .select('id')
+        .eq('role', 'HR Manager')
+        .limit(1)
+        .maybeSingle();
+      return data?.id ?? null;
     } catch {
       return null;
     }
