@@ -11,8 +11,17 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { filter, Subscription } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 
-interface NavItem { label: string; icon: string; route: string; disabled?: boolean; requiredRole?: string; }
-interface NavGroup { label: string; items: NavItem[]; }
+interface NavItem {
+  label: string; icon: string; route: string;
+  disabled?: boolean;
+  requiredRole?: string;   // minimum role để thấy item
+  viewerOnly?:  boolean;   // chỉ hiện với Viewer, ẩn với roles cao hơn
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
 
 @Component({
   selector: 'app-shell',
@@ -35,23 +44,24 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   navGroups: NavGroup[] = [
     { label: 'QUẢN LÝ NHÂN TÀI', items: [
-      { label: 'Dashboard',          icon: 'dashboard', route: '/dashboard' },
-      { label: 'Nhân tài',           icon: 'team',      route: '/talent' },
-      { label: 'Vị trí then chốt',   icon: 'apartment', route: '/positions' },
-      { label: 'Bản đồ kế thừa',     icon: 'cluster',   route: '/succession' },
+      { label: 'Dashboard',          icon: 'dashboard',  route: '/dashboard',   requiredRole: 'Line Manager' },
+      { label: 'Hồ sơ của tôi',      icon: 'user',       route: '/me',          viewerOnly: true },
+      { label: 'Nhân tài',           icon: 'team',       route: '/talent',      requiredRole: 'Line Manager' },
+      { label: 'Vị trí then chốt',   icon: 'apartment',  route: '/positions',   requiredRole: 'Line Manager' },
+      { label: 'Bản đồ kế thừa',     icon: 'cluster',    route: '/succession',  requiredRole: 'Line Manager' },
     ]},
     { label: 'PHÁT TRIỂN', items: [
-      { label: 'Kế hoạch IDP',       icon: 'solution',  route: '/idp',        disabled: true },
-      { label: 'Đánh giá',           icon: 'star',      route: '/assessment',  disabled: true },
-      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',  route: '/mentoring',   disabled: true },
-      { label: 'Họp hiệu chỉnh',     icon: 'audit',     route: '/calibration', disabled: true },
+      { label: 'Kế hoạch IDP',       icon: 'solution',   route: '/idp',         disabled: true },
+      { label: 'Đánh giá',           icon: 'star',       route: '/assessment',  disabled: true },
+      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',   route: '/mentoring',   disabled: true },
+      { label: 'Họp hiệu chỉnh',     icon: 'audit',      route: '/calibration', disabled: true, requiredRole: 'Line Manager' },
     ]},
     { label: 'PHÂN TÍCH', items: [
-      { label: 'Báo cáo',            icon: 'bar-chart', route: '/reports',     disabled: true, requiredRole: 'HR Manager' },
+      { label: 'Báo cáo',            icon: 'bar-chart',  route: '/reports',     disabled: true, requiredRole: 'Line Manager' },
     ]},
     { label: 'HỆ THỐNG', items: [
-      { label: 'Marketplace',        icon: 'shop',      route: '/marketplace', disabled: true },
-      { label: 'Quản trị',           icon: 'setting',   route: '/admin',       requiredRole: 'Admin' },
+      { label: 'Marketplace',        icon: 'shop',       route: '/marketplace', disabled: true, requiredRole: 'HR Manager' },
+      { label: 'Quản trị',           icon: 'setting',    route: '/admin',       requiredRole: 'Line Manager' },
     ]},
   ];
 
@@ -82,7 +92,9 @@ export class ShellComponent implements OnInit, OnDestroy {
   toggle():          void { this.isCollapsed.set(!this.isCollapsed()); }
 
   canSee(item: NavItem): boolean {
-    return !item.requiredRole || this.authService.hasRole(item.requiredRole);
+    if (item.viewerOnly) return this.authService.isViewer();
+    if (item.requiredRole && !this.authService.hasRole(item.requiredRole)) return false;
+    return true;
   }
 
   get currentUser() { return this.authService.currentUser(); }

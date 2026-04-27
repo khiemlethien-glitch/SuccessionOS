@@ -144,6 +144,34 @@
   color:#9ca3af;
   &:hover { background:#fee2e2; color:#dc2626; border-color:#fecaca; }
 }
+/* Viewer: approved mentor row */
+.mentor-row-approved {
+  background: #f0fdf4;
+  border-color: #86efac;
+  border-style: solid;
+  strong { color: #15803d; }
+}
+.mentor-verified-badge {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  color: #16a34a; font-size: 16px;
+}
+/* Viewer: pending mentor row */
+.mentor-row-pending {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-style: solid;
+  strong { color: #92400e; }
+}
+.mentor-icon-pending {
+  color: #f59e0b; font-size: 14px;
+}
+.mentor-pending-badge {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 600; color: #92400e;
+  background: #fef3c7; border: 1px solid #fde68a;
+  padding: 2px 8px; border-radius: 999px;
+}
 
 /* ---------- Mentor picker modal ---------- */
 .mm-hero {
@@ -205,10 +233,13 @@
   transition:transform .15s ease, box-shadow .15s ease;
   &:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.06); }
 }
-.metric-val    { font-size:28px; font-weight:700; line-height:1.1; }
-.metric-val-sm { font-size:16px; font-weight:700; line-height:1.2; margin-top:4px; }
-.metric-label  { font-size:12px; color:#6b7280; font-weight:500; }
-.metric-sub    { font-size:11px; color:#9ca3af; margin-top:auto; padding-top:6px; }
+.metric-val        { font-size:28px; font-weight:700; line-height:1.1; }
+.metric-val-sm     { font-size:16px; font-weight:700; line-height:1.2; margin-top:2px; }
+.metric-label      { font-size:12px; color:#6b7280; font-weight:500; }
+.metric-sub        { font-size:11px; color:#9ca3af; margin-top:auto; padding-top:4px; }
+.metric-chip-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#9ca3af; margin-bottom:2px; }
+.metric-holder     { font-size:11px; color:#6b7280; margin-top:3px; display:flex; align-items:center; }
+.readiness-pill    { margin-top:8px; align-self:flex-start; }
 
 .metric-blue   {
   background:linear-gradient(135deg,#eff6ff,#f8fafc);
@@ -935,8 +966,52 @@
   background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
   white-space: nowrap; flex-shrink: 0;
 }
-.bc-badge-active { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
-.bc-badge-done   { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.bc-badge-active  { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.bc-badge-done    { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.bc-badge-pending { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.bc-badge-soon    { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+.icp-pending-row  { display: flex; align-items: center; padding: 6px 0; }
+
+/* IDP card — AI icon */
+.bc-ico-ai       { color: #7c3aed; }
+.bc-ico-disabled { color: #d1d5db !important; }
+.bc-head-disabled { opacity: .65; }
+.bc-title-disabled { color: #9ca3af !important; }
+
+/* IDP card — AI state blocks */
+.idp-ai-state {
+  display: flex; align-items: center; gap: 12px;
+  margin: 8px 12px 8px; padding: 12px 14px;
+  border-radius: 10px;
+}
+.idp-ai-pending  { background: #fffbeb; border: 1px solid #fde68a; }
+.idp-ai-confirmed{ background: #f0fdf4; border: 1px solid #bbf7d0; }
+.idp-ai-ico      { font-size: 22px; color: #f59e0b; flex-shrink: 0; }
+.idp-ai-ico-ok   { color: #16a34a; }
+.idp-ai-label    { font-size: 13px; font-weight: 600; color: #1f2937; }
+.idp-ai-sub      { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+/* IDP card — empty AI state */
+.bc-empty-sm     { padding: 16px 20px; gap: 4px; }
+.bc-empty-ico-sm { font-size: 20px; color: #d1d5db; }
+
+/* IDP card — section divider */
+.idp-section-divider {
+  margin: 4px 20px 16px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+/* IDP card — eLearning placeholder */
+.idp-elearning-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 24px 20px; margin: 8px 12px 8px;
+  background: #f9fafb; border: 1.5px dashed #e5e7eb;
+  border-radius: 10px; text-align: center;
+  min-height: 100px;
+}
+.idp-el-ico  { font-size: 24px; color: #d1d5db; }
+.idp-el-text { font-size: 13px; font-weight: 600; color: #9ca3af; }
+.idp-el-sub  { font-size: 11px; color: #d1d5db; max-width: 220px; line-height: 1.4; }
 
 /* IDP compact — overview (ring + meta) */
 .icp-overview {
@@ -1212,16 +1287,39 @@
 .tab-section { display: flex; flex-direction: column; gap: 16px; }
 
 /* ── Development tab: IDP (left) + Roadmap (right) ── */
-.dev-layout {
+/* ── Hàng trên: 2 card ngang bằng nhau ─────────────────────────── */
+.dev-top-row {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  margin-bottom: 16px;
+  align-items: stretch;
 
-  @media(max-width: 1100px) { grid-template-columns: 1fr; }
+  @media(max-width: 900px) { grid-template-columns: 1fr; }
 }
 
-/* Make the roadmap card borderless when inside the tab (already inside a card) */
+/* Summary cards trong dev-top-row */
+.dev-summary-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.dev-summary-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 4px 4px;
+}
+
+/* eLearning card: stretch placeholder to fill */
+.dev-el-card .idp-elearning-placeholder {
+  flex: 1;
+  margin: 0 12px 16px;
+}
+
+/* ── Career Roadmap — full width ────────────────────────────────── */
 .roadmap-card {
   background: #f8f7ff;
   border: 1px solid #ede9fe;
@@ -1229,9 +1327,6 @@
   overflow: hidden;
   min-height: 300px;
 }
-
-/* IDP card inside dev-layout has no minimum height constraint */
-.dev-layout .idp-compact-card { min-height: unset; }
 
 /* ── Radar source badge variants ── */
 .badge-src-real {

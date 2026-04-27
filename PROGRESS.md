@@ -1,7 +1,218 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-25 — Supabase Edge Function generate-roadmap CORS fix + deploy instructions; Talent Profile risk factors enhancement; Positions drawer Lộ Trình Phát Triển; Vercel build budget fix
+> Cập nhật lần cuối: 2026-04-25
+
+---
+
+## 📍 TRẠNG THÁI HIỆN TẠI (2026-04-27)
+
+### ✅ Đã hoàn thành & hoạt động
+| Module | Trạng thái | Ghi chú |
+|---|---|---|
+| Auth (login/logout) | ✅ | Supabase Auth, email+password, Google OAuth |
+| Dashboard | ✅ | Line Manager trở lên |
+| Talent List | ✅ | Supabase `v_employees` |
+| Talent Profile | ✅ | Đầy đủ: năng lực, đánh giá, phát triển, rủi ro |
+| Career Roadmap (AI) | ✅ | OpenAI GPT-4o, lưu vào `career_roadmaps` |
+| Key Positions | ✅ | Quản lý vị trí then chốt |
+| Succession Map | ✅ | Bản đồ kế thừa |
+| Admin Panel | ✅ | 4 tabs: Approvals / Users / Audit / Settings |
+| Approval Workflow | ✅ | Supabase tables, multi-step, per-role |
+| RBAC Sidebar | ✅ | 4 roles đúng quyền |
+
+### ⚠️ Đã code nhưng cần kiểm tra / còn lỗi
+| Vấn đề | File liên quan | Mô tả |
+|---|---|---|
+| Viewer redirect sau login | `login.component.ts`, `me.component.ts` | Cần `employee_id` trong `user_profiles` — đã seed SQL nhưng chưa verify hoạt động |
+| RBAC route guard | `app.routes.ts` | **Chưa có** — chỉ có sidebar ẩn/hiện, không có route-level guard. Viewer biết URL vẫn vào được `/talent/xxx` |
+| Admin panel access control | `admin.component.ts` | Sidebar ẩn với Viewer nhưng không có route guard → URL trực tiếp vẫn vào được |
+| HR Manager approval display | `admin.component.ts` | `getByRole('HR Manager')` trả all — chưa verify UI đúng |
+| Career Roadmap submit (Viewer) | `career-roadmap.component.ts` | Flow Gửi phê duyệt → lưu roadmap + tạo ApprovalRequest — chưa test end-to-end |
+| LM nhận đúng request | `approval.service.ts` | ✅ Fixed: resolveManagerUserId() gán approver_id đúng LM trực tiếp qua parent_id |
+| audit_logs entity_id error | `talent-profile.component.ts` | ✅ Fixed: bỏ .eq('entity_id'), filter client-side qua details jsonb |
+| Nhiều phần chưa rõ còn lỗi gì | — | User báo "nhiều phần chưa hoạt động đúng" — cần test từng phần |
+
+### 🔲 Chưa làm / Placeholder
+| Module | Lý do |
+|---|---|
+| IDP | Cần kết nối eLearning platform thật |
+| Đánh giá (standalone) | Placeholder |
+| Kèm cặp & Cố vấn | Placeholder |
+| Họp hiệu chỉnh | Placeholder |
+| Báo cáo | Placeholder |
+| Marketplace | Placeholder |
+| Role-based route guard | Chưa implement |
+| Seed database đầy đủ | ~500 nhân viên × tất cả bảng |
+
+---
+
+## 🔐 RBAC — Chi tiết implement (để debug)
+
+### auth.service.ts
+```typescript
+readonly isViewer    = computed(() => currentUser()?.role === 'Viewer');
+readonly isAdmin     = computed(() => currentUser()?.role === 'Admin');
+readonly hasRole     = (role: string): boolean => userLevel >= neededLevel;
+// Hierarchy index: Viewer=0, Line Manager=1, HR Manager=2, Admin=3
+```
+
+### shell.component.ts — canSee()
+```typescript
+canSee(item: NavItem): boolean {
+  if (item.viewerOnly)  return this.authService.isViewer();
+  if (item.requiredRole) return this.authService.hasRole(item.requiredRole);
+  return true;
+}
+```
+
+### Nav items và requiredRole
+| Nav item | Hiển thị với |
+|---|---|
+| Dashboard | Line Manager trở lên |
+| Hồ sơ của tôi | Viewer only (`viewerOnly: true`) |
+| Nhân tài | Line Manager trở lên |
+| Vị trí then chốt | Line Manager trở lên |
+| Bản đồ kế thừa | Line Manager trở lên |
+| IDP, Đánh giá, Mentoring | Tất cả (nhưng `disabled: true`) |
+| Họp hiệu chỉnh | Line Manager trở lên (disabled) |
+| Báo cáo | Line Manager trở lên (disabled) |
+| Marketplace | HR Manager trở lên (disabled) |
+| Quản trị | Line Manager trở lên |
+
+### approval.service.ts — getByRole()
+```typescript
+// Admin + HR Manager → thấy tất cả
+// Line Manager (với userId) → chỉ requests có step.approver_id === userId hoặc !approver_id
+// Viewer → không truy cập Admin panel
+```
+
+### approval.service.ts — resolveManagerUserId()
+```
+user_profiles(id) → employee_id
+→ employees.parent_id
+→ user_profiles(employee_id=parent_id, role='Line Manager').id
+```
+Request được giao đúng LM trực tiếp của nhân viên qua parent_id trong org chart.
+Nếu không tìm được LM (chưa liên kết), step không có approver_id → mọi LM đều thấy (fallback an toàn).
+
+### approval.service.ts — _buildSteps()
+```
+Admin tạo      → [] (auto-approved)
+LM tạo         → [Admin]
+HR Manager tạo → [Line Manager (direct) → Admin]
+Viewer tạo     → [Line Manager (direct) → Admin]
+Mentor request → [Line Manager (direct) → HR Manager]
+```
+step.approver_id được gán = managerId nếu resolve được.
+
+### admin.component.ts — Tab visibility
+```
+canSeeUsersTab    = isAdmin()
+canSeeAuditTab    = isAdmin() || isHRManager()
+canSeeSettingsTab = isAdmin()
+// Approvals tab: tất cả (Admin/HR/LM) đều thấy
+```
+
+### admin.component.ts — canActOn()
+```typescript
+// HR Manager → false (read-only)
+// Others → req.status === 'pending' && có pending step khớp với role mình
+```
+
+---
+
+## 🗂️ Lịch sử task gần nhất
+
+
+
+## 🔐 RBAC 4 Roles — hoàn chỉnh (2026-04-25) ✅
+
+### Fix: infinite recursion login
+- `navigateAfterLogin()` else branch gọi lại chính nó → "Maximum call stack size exceeded"
+- Fix: `else { this.router.navigateByUrl(this.returnUrl) }`
+
+### Fix: RBAC logic đúng cho từng role
+
+| Role | Dashboard/Talent | Admin Panel | Approve |
+|------|-----------------|-------------|---------|
+| Viewer | ❌ (chỉ `/me`) | ❌ | ❌ (gửi lên duyệt) |
+| Line Manager | ✅ | ✅ (Approvals tab) | ✅ (LM steps) |
+| HR Manager | ✅ | ✅ (Approvals + Audit) | ❌ read-only |
+| Admin | ✅ | ✅ Full | ✅ |
+
+#### `approval.service.ts`
+- `getByRole('HR Manager')` → trả tất cả requests (trước đây trả rỗng vì filter sai)
+- `_buildSteps(Viewer)` → [LM step, Admin step] (2 bước: LM duyệt trước, Admin sau)
+
+#### `shell.component.ts`
+- `'Quản trị'` nav item: `requiredRole: 'Line Manager'` (LM trở lên mới thấy)
+
+#### `admin.component.ts`
+- Thêm `isHRManager`, `isLineManager`, `canSeeUsersTab`, `canSeeAuditTab`, `canSeeSettingsTab`
+- `canActOn()`: HR Manager luôn trả `false` (cannot approve)
+
+#### `admin.component.html`
+- Tabs Users/Settings/Audit ẩn/hiện theo role
+- Hero sub-text hiển thị đúng vai trò
+- Chip "Chế độ xem — không thể phê duyệt" cho HR Manager
+
+#### `supabase/seeds/demo_users.sql`
+- Viết lại hoàn toàn: hướng dẫn link 4 demo accounts → real employees trong DB
+- Bao gồm HELPER query auto-pick employees (nếu không muốn chọn tay)
+
+### Build
+- ✅ 0 errors (2026-04-25 13:59)
+
+---
+
+## 🔐 Viewer Experience — hoàn chỉnh (2026-04-25) ✅
+
+### Mục tiêu
+Viewer (nhân viên) chỉ thấy profile của mình, không thấy dashboard hay dữ liệu nhạy cảm.
+
+### Thay đổi
+
+#### 1. `auth.service.ts` — isViewer signal + employee_id lookup
+- `isViewer = computed(() => currentUser()?.role === 'Viewer')`
+- `loadProfile()` lookup `employees` table theo email → set `employee_id` vào UserProfile
+- Fallback role: `'Viewer'` (không phải `'user'` cũ)
+
+#### 2. `login.component.ts` — redirect sau đăng nhập
+- `navigateAfterLogin()`: Viewer → `/talent/:employee_id`, others → `returnUrl`
+- Fix infinite recursion bug (cũ gọi lại chính nó)
+
+#### 3. `shell.component.ts` — RBAC sidebar
+- Thêm `NavGroup` interface (fix build error)
+- Thêm `viewerOnly?: boolean` vào `NavItem`
+- Dashboard: `requiredRole: 'Line Manager'` (Viewer không thấy)
+- Thêm `{ label: 'Hồ sơ của tôi', icon: 'user', route: '/me', viewerOnly: true }`
+- `canSee()`: nếu `viewerOnly` → chỉ show khi `isViewer()`, nếu `requiredRole` → check hierarchy
+
+#### 4. `/me` route + `MeComponent`
+- `src/app/modules/me/me.component.ts` — standalone component redirect đến `/talent/:employee_id`
+- `app.routes.ts` — thêm route `{ path: 'me', loadComponent: MeComponent }`
+
+#### 5. `talent-profile.component` — ẩn Risk với Viewer
+- Inject `AuthService`, thêm `isViewer = computed()`
+- Ẩn risk banner (`@if (isHighRisk() && !isViewer())`)
+- Ẩn metric Rủi ro trong hero card (`@if (!isViewer())`)
+- Ẩn Tab 3 "Rủi ro & Lịch sử" hoàn toàn (`@if (!isViewer())` quanh `<nz-tab>`)
+- Gap đến vị trí mục tiêu (Tab 2 Phát triển): vẫn visible với Viewer ✅
+
+#### 6. `career-roadmap.component` — nút Gửi phê duyệt
+- Viewer thấy nút **"Gửi Phê Duyệt"** thay cho "Xác nhận & Lưu"
+- Modal nhập ghi chú → gọi `ApprovalService.submit()` + lưu roadmap vào DB
+- Sau khi gửi → hiện chip "Đã gửi · Chờ phê duyệt"
+- Non-Viewer vẫn thấy flow cũ (Xác nhận & Lưu trực tiếp)
+
+### Build
+- ✅ 0 errors (2026-04-25 13:48)
+
+### Pending
+- IDP eLearning platform connection (deferred)
+- Seed database đầy đủ cuối kỳ
+
 ---
 
 ## ⚡ Supabase Edge Function — generate-roadmap CORS fix (2026-04-25) — ✅ DONE

@@ -58,25 +58,51 @@
         <span>AI đang phân tích hồ sơ nhân viên…</span>
       </div>
     } @else {
-      <button class="cr-gen-btn" (click)="generate(track)">
-        <span nz-icon nzType="thunderbolt" nzTheme="fill"></span>
-        {{ getDisplay(track) ? 'Tạo lại lộ trình' : 'Tạo Lộ Trình AI' }}
-      </button>
-
-      @if (hasDraft(track)) {
-        <button class="cr-confirm-btn" [disabled]="isSaving(track)" (click)="confirm(track)">
-          @if (isSaving(track)) { <nz-spin nzSimple nzSize="small"></nz-spin> } @else {
-            <span nz-icon nzType="check"></span>
-          }
-          Xác nhận & Lưu
+      <!-- Generate button — available to all roles -->
+      @if (!isSubmitted(track)) {
+        <button class="cr-gen-btn" (click)="generate(track)">
+          <span nz-icon nzType="thunderbolt" nzTheme="fill"></span>
+          {{ getDisplay(track) ? 'Tạo lại lộ trình' : 'Tạo Lộ Trình AI' }}
         </button>
-        <button class="cr-cancel-btn" (click)="cancelDraft(track)">Huỷ</button>
       }
 
-      @if (isConfirmedOnly(track)) {
+      @if (hasDraft(track)) {
+        <!-- Viewer: submit for approval instead of direct save -->
+        @if (isViewer()) {
+          <button class="cr-submit-btn" (click)="openSubmitModal(track)">
+            <span nz-icon nzType="send"></span>
+            Gửi Phê Duyệt
+          </button>
+          <button class="cr-cancel-btn" (click)="cancelDraft(track)">Huỷ</button>
+        } @else {
+          <button class="cr-confirm-btn" [disabled]="isSaving(track)" (click)="confirm(track)">
+            @if (isSaving(track)) { <nz-spin nzSimple nzSize="small"></nz-spin> } @else {
+              <span nz-icon nzType="check"></span>
+            }
+            Xác nhận & Lưu
+          </button>
+          <button class="cr-cancel-btn" (click)="cancelDraft(track)">Huỷ</button>
+        }
+      }
+
+      @if (isConfirmedOnly(track) && !isViewer()) {
         <span class="cr-confirmed-chip">
           <span nz-icon nzType="check-circle" nzTheme="fill"></span>
           Đã xác nhận · {{ fmtDate(getDisplay(track)?.confirmed_at) }}
+        </span>
+      }
+
+      <!-- Viewer: show submitted / confirmed chip -->
+      @if (isViewer() && isConfirmedOnly(track) && !isSubmitted(track)) {
+        <button class="cr-submit-btn" (click)="openSubmitModal(track)">
+          <span nz-icon nzType="send"></span>
+          Gửi Phê Duyệt
+        </button>
+      }
+      @if (isViewer() && isSubmitted(track)) {
+        <span class="cr-submitted-chip">
+          <span nz-icon nzType="clock-circle" nzTheme="fill"></span>
+          Đã gửi · Chờ phê duyệt
         </span>
       }
     }
@@ -306,3 +332,42 @@
 
   } <!-- end @if getDisplay -->
 </ng-template>
+
+<!-- ══ Approval submit modal (Viewer only) ══════════════════════════════════ -->
+<nz-modal
+  [nzVisible]="submitTrack() !== null"
+  (nzVisibleChange)="$event ? null : closeSubmitModal()"
+  nzTitle="Gửi Phê Duyệt Lộ Trình"
+  [nzFooter]="null"
+  [nzWidth]="480"
+  nzCentered>
+  <ng-container *nzModalContent>
+    <div class="submit-modal-body">
+      <p class="submit-modal-desc">
+        Lộ trình sẽ được gửi đến Admin để phê duyệt. Bạn có thể thêm ghi chú bên dưới.
+      </p>
+      <div class="submit-modal-track">
+        <span nz-icon [nzType]="submitTrack() === 'expert' ? 'trophy' : 'team'"></span>
+        {{ submitTrack() === 'expert' ? 'Hướng Chuyên Gia Kỹ Thuật' : 'Hướng Nhà Quản Lý' }}
+      </div>
+      <textarea
+        class="submit-note-input"
+        rows="3"
+        placeholder="Ghi chú thêm (không bắt buộc)…"
+        [ngModel]="submitNote()"
+        (ngModelChange)="submitNote.set($event)">
+      </textarea>
+      <div class="submit-modal-actions">
+        <button class="cr-cancel-btn" (click)="closeSubmitModal()" [disabled]="submitting()">
+          Huỷ
+        </button>
+        <button class="cr-submit-btn" (click)="confirmSubmit()" [disabled]="submitting()">
+          @if (submitting()) { <nz-spin nzSimple nzSize="small"></nz-spin> } @else {
+            <span nz-icon nzType="send"></span>
+          }
+          Xác nhận gửi
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</nz-modal>

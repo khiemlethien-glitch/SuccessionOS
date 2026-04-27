@@ -22,6 +22,8 @@ import { ScoreConfigService, ComputedScore } from '../../core/services/data/scor
 import { EmployeeExtrasService, EmployeeExtras, extrasToProject, extrasToKt, extrasTo360 } from '../../core/services/data/employee-extras.service';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { CareerRoadmapComponent } from './career-roadmap/career-roadmap.component';
+import { AuthService } from '../../core/auth/auth.service';
+import { ApprovalService } from '../../core/services/data/approval.service';
 import {
   Talent,
   Assessment,
@@ -514,6 +516,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // Target position: prioritise succession relationship over IDP data
   successionTargetPosition = signal<string | null>(null);
+  successionTargetDetails  = signal<{ title: string; holderName: string; priority: number } | null>(null);
 
   // Successors (people who will inherit current person's position)
   successorNodes = signal<{ talent_id: string; talent_name: string; readiness: string; priority: number; idp_progress: number }[]>([]);
@@ -572,6 +575,26 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!w) return '';
     return type === 'kpi' ? `${w.assessment_weight}%` : `${w.weight_360}%`;
   }
+
+  // ─── Auth / role ──────────────────────────────────────────────────────────
+  private authSvc     = inject(AuthService);
+  private approvalSvc = inject(ApprovalService);
+  /** True when logged-in user is a Viewer — used to hide sensitive sections */
+  readonly isViewer = computed(() => this.authSvc.isViewer());
+
+  // ─── Pending mentor request (Viewer flow) ─────────────────────────────────
+  /** Tên mentor đang chờ phê duyệt (chỉ dùng cho Viewer) */
+  pendingMentorName = signal<string | null>(null);
+  mentorSubmitting  = signal(false);
+
+  // ─── Career Roadmap summary (hiển thị trong IDP card) ──────────────────────
+  roadmapSummary = signal<{
+    hasPending:      boolean;
+    hasConfirmed:    boolean;
+    pendingTrack?:   'expert' | 'manager';
+    confirmedTarget?: string;
+    confirmedTrack?:  'expert' | 'manager';
+  }>({ hasPending: false, hasConfirmed: false });
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
   private sbSvc        = inject(SupabaseService);
@@ -895,6 +918,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     this.successorNodes.set([]);
     this.showAllSuccessors.set(false);
     this.successionTargetPosition.set(null);
+    this.successionTargetDetails.set(null);
+    this.pendingMentorName.set(null);
+    this.roadmapSummary.set({ hasPending: false, hasConfirmed: false });
     this.talent.set(null);
     this.idp.set(null);
     this.aspiration.set(null);
@@ -912,11 +938,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!talent) { this.cyclesLoading.set(false); return; }
 
     // ② Secondary data in parallel (sections show skeletons until ready)
-    const [all, cycles, successors, succTarget, summaries, allPlans] = await Promise.all([
+    const [all, cycles, successors, succTargetInfo, summaries, allPlans] = await Promise.all([
       this.employeeSvc.getAll(),
       this.assessmentSvc.getCycles(),
       this.successionSvc.getSuccessorsForHolder(id).catch(() => []),
-      this.successionSvc.getTargetPositionForSuccessor(id).catch(() => null),
+      this.successionSvc.getTargetPositionInfo(id).catch(() => null),
       // Lấy danh sách cycle_id có assessment_summary cho employee này
       this.sbSvc.client
         .from('assessment_summary')
@@ -932,7 +958,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     const relevantCycles = cycles.filter(c => summaries.has(c.id));
     this.cycles.set(relevantCycles.length > 0 ? relevantCycles : cycles);
     this.successorNodes.set(successors);
-    this.successionTargetPosition.set(succTarget);
+    this.successionTargetDetails.set(succTargetInfo);
+    this.successionTargetPosition.set(succTargetInfo?.title ?? null);
 
     // Key-person dependency: tìm vị trí mà talent này là ứng viên DUY NHẤT
     const keyPersonPositions = (allPlans as any[])
@@ -953,9 +980,23 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // IDP
     try {
       const idp = await this.idpSvc.getByEmployee(id);
-      if (idp) { this.idp.set(idp as any); this.idpLoaded.set(true); }
-      else this.idpLoaded.set(false);
+      if (idp) {
+        this.idp.set(idp as any);
+        this.idpLoaded.set(true);
+        // Nếu IDP đang pending → đảm bảo có approval_request để LM thấy
+        if (idp.status === 'pending') {
+          this.ensureIdpApprovalRequest(idp).catch(() => {});
+        }
+      } else {
+        this.idpLoaded.set(false);
+      }
     } catch { this.idpLoaded.set(false); }
+
+    // Restore pending mentor request từ DB (tránh mất state khi refresh)
+    this.restorePendingMentor(id).catch(() => {});
+
+    // Load career roadmap summary cho IDP card
+    this.loadRoadmapSummary(id).catch(() => {});
 
     // Employee extras (project, KT, 360°, quick stats) — fire-and-forget
     this.extrasSvc.getByEmployee(id).then(extras => {
@@ -988,18 +1029,26 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     };
     const events: { date: string; text: string; color: string; _ts: number }[] = [];
 
-    // 1. audit_logs
+    // 1. audit_logs — lọc theo employee_id trong details jsonb
     try {
       const { data: logs } = await this.sbSvc.client
         .from('audit_logs')
-        .select('timestamp, action, description')
-        .eq('entity_id', employeeId)
+        .select('timestamp, action, details')
         .order('timestamp', { ascending: false })
-        .limit(20);
-      (logs ?? []).forEach((l: any) => events.push({
-        date: fmt(l.timestamp), text: l.description ?? l.action,
-        color: '#4f46e5', _ts: new Date(l.timestamp).getTime(),
-      }));
+        .limit(100);
+      // Filter client-side: chỉ giữ log có details.employee_id hoặc details liên quan
+      (logs ?? [])
+        .filter((l: any) => {
+          const d = l.details;
+          return d && (d.employee_id === employeeId || d.requestor_id === employeeId);
+        })
+        .slice(0, 10)
+        .forEach((l: any) => events.push({
+          date: fmt(l.timestamp),
+          text: l.details?.title ?? l.action,
+          color: '#4f46e5',
+          _ts: new Date(l.timestamp).getTime(),
+        }));
     } catch { /* bỏ qua */ }
 
     // 2. assessment_scores — lấy cycle đã đánh giá (1 event/cycle)
@@ -1092,12 +1141,40 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     return name.slice(0, 2).toUpperCase();
   }
 
-  assignMentor(m: Talent): void {
+  async assignMentor(m: Talent): Promise<void> {
     const current = this.talent();
     if (!current) return;
-    this.talent.set({ ...current, mentor: m.full_name });
     this.showMentorModal.set(false);
-    // TODO: PATCH /employees/{id}/mentor khi backend sẵn sàng
+
+    if (this.isViewer()) {
+      // Viewer: tạo approval request thay vì gán trực tiếp
+      this.mentorSubmitting.set(true);
+      this.pendingMentorName.set(m.full_name);
+      try {
+        const user = this.authSvc.currentUser();
+        if (!user) return;
+        await this.approvalSvc.submit({
+          type:               'mentor',
+          title:              `Yêu cầu Mentor — ${current.full_name}`,
+          description:        `${current.full_name} đề xuất ${m.full_name} làm mentor`,
+          ref_id:             current.id,
+          requested_by_id:   user.id,
+          requested_by_name: user.full_name,
+          requested_by_role: user.role,
+          department:        current.department,
+        });
+        this.msg.success('Đã gửi yêu cầu mentor — chờ Line Manager & HR phê duyệt');
+      } catch (err: any) {
+        this.pendingMentorName.set(null);
+        this.msg.error(`Lỗi gửi yêu cầu: ${err.message}`);
+      } finally {
+        this.mentorSubmitting.set(false);
+      }
+    } else {
+      // Admin / LM / HR: gán mentor trực tiếp
+      this.talent.set({ ...current, mentor: m.full_name });
+      // TODO: PATCH /employees/{id}/mentor khi backend sẵn sàng
+    }
   }
 
   clearMentor(): void {
@@ -1107,16 +1184,116 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // TODO: DELETE /employees/{id}/mentor khi backend sẵn sàng
   }
 
+  priorityLabel(p: number): string {
+    if (p === 1) return 'ưu tiên #1';
+    if (p === 2) return 'ưu tiên #2';
+    return `#${p}`;
+  }
+
   readinessLabel(r: string): string {
     return r === 'Ready Now' ? 'Sẵn sàng ngay' : r === 'Ready in 1 Year' ? '1 năm' : '2 năm';
   }
 
   switchCenter(id: string): void {
     if (!id || id === this.talent()?.id) return;
+    // Viewer không được xem hồ sơ người khác
+    if (this.isViewer()) return;
     if (this.embedded) {
       this.embeddedNavigate.emit(id);
       return;
     }
     this.router.navigate(['/talent', id]).then(() => this.loadTalentData(id));
+  }
+
+  /** Khôi phục trạng thái pending mentor từ DB sau khi refresh trang.
+   *  Tránh mất state vì pendingMentorName là in-memory signal. */
+  private async restorePendingMentor(employeeId: string): Promise<void> {
+    const { data } = await this.sbSvc.client
+      .from('approval_requests')
+      .select('description')
+      .eq('type', 'mentor')
+      .eq('ref_id', employeeId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) return;
+
+    // Format description: "X đề xuất Y làm mentor" — extract Y
+    const match = (data.description ?? '').match(/đề xuất (.+) làm mentor/);
+    this.pendingMentorName.set(match?.[1]?.trim() ?? 'Chờ duyệt');
+  }
+
+  /** Fetch trạng thái career roadmap (confirmed / pending) để hiển thị trong IDP card. */
+  private async loadRoadmapSummary(employeeId: string): Promise<void> {
+    // 1. Lấy danh sách career_roadmaps của employee này
+    const { data: roadmaps } = await this.sbSvc.client
+      .from('career_roadmaps')
+      .select('id, track, target_position')
+      .eq('employee_id', employeeId);
+
+    const hasConfirmed = !!roadmaps?.length;
+    const confirmedExpert  = roadmaps?.find(r => r.track === 'expert');
+    const confirmedManager = roadmaps?.find(r => r.track === 'manager');
+    const confirmedRoadmap = confirmedExpert ?? confirmedManager;
+
+    // 2. Kiểm tra có approval_request pending nào cho các roadmap này không
+    let hasPending    = false;
+    let pendingTrack: 'expert' | 'manager' | undefined;
+
+    if (roadmaps?.length) {
+      const ids = roadmaps.map(r => r.id);
+      const { data: pending } = await this.sbSvc.client
+        .from('approval_requests')
+        .select('ref_id')
+        .eq('type', 'career_roadmap')
+        .eq('status', 'pending')
+        .in('ref_id', ids)
+        .limit(1)
+        .maybeSingle();
+
+      if (pending) {
+        hasPending = true;
+        pendingTrack = roadmaps.find(r => r.id === pending.ref_id)?.track as 'expert' | 'manager';
+      }
+    }
+
+    this.roadmapSummary.set({
+      hasPending,
+      hasConfirmed,
+      pendingTrack,
+      confirmedTarget: confirmedRoadmap?.target_position ?? undefined,
+      confirmedTrack: confirmedExpert ? 'expert' : confirmedManager ? 'manager' : undefined,
+    });
+  }
+
+  /** Đảm bảo mỗi IDP pending đều có approval_request tương ứng để LM thấy.
+   *  Idempotent: kiểm tra trước, chỉ tạo nếu chưa có. */
+  private async ensureIdpApprovalRequest(idp: any): Promise<void> {
+    // Kiểm tra đã có approval_request cho IDP này chưa
+    const { data: existing } = await this.sbSvc.client
+      .from('approval_requests')
+      .select('id')
+      .eq('ref_id', idp.id)
+      .eq('type', 'idp')
+      .maybeSingle();
+    if (existing) return; // Đã có → không tạo thêm
+
+    // Chưa có → tạo mới
+    const user    = this.authSvc.currentUser();
+    const talent  = this.talent();
+    if (!user || !talent) return;
+
+    await this.approvalSvc.submit({
+      type:               'idp',
+      title:              `IDP ${idp.year} — ${talent.full_name}`,
+      description:        `Kế hoạch phát triển cá nhân năm ${idp.year}`,
+      ref_id:             idp.id,
+      requested_by_id:    user.id,
+      requested_by_name:  user.full_name,
+      requested_by_role:  user.role,
+      department:         talent.department,
+    });
   }
 }

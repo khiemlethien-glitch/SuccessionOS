@@ -3,9 +3,12 @@ import {
   signal, computed, inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import {
   CareerRoadmapService,
@@ -13,12 +16,14 @@ import {
   SkillGap,
   CourseItem,
 } from '../../../core/services/data/career-roadmap.service';
+import { ApprovalService } from '../../../core/services/data/approval.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { Talent } from '../../../core/models/models';
 
 @Component({
   selector: 'app-career-roadmap',
   standalone: true,
-  imports: [CommonModule, NzIconModule, NzSpinModule, NzButtonModule],
+  imports: [CommonModule, FormsModule, NzIconModule, NzSpinModule, NzButtonModule, NzModalModule, NzTagModule],
   providers: [NzMessageService],
   templateUrl: './career-roadmap.component.html',
   styleUrl: './career-roadmap.component.scss',
@@ -26,8 +31,24 @@ import { Talent } from '../../../core/models/models';
 export class CareerRoadmapComponent implements OnChanges {
   @Input() talent: Talent | null = null;
 
-  private svc = inject(CareerRoadmapService);
-  private msg = inject(NzMessageService);
+  private svc         = inject(CareerRoadmapService);
+  private approvalSvc = inject(ApprovalService);
+  private authSvc     = inject(AuthService);
+  private msg         = inject(NzMessageService);
+
+  // ── Role ─────────────────────────────────────────────────────────────────
+  readonly isViewer = computed(() => this.authSvc.isViewer());
+
+  // ── Approval submit ───────────────────────────────────────────────────────
+  submitting    = signal(false);
+  submitTrack   = signal<'expert' | 'manager' | null>(null);
+  submitNote    = signal('');
+  /** submitted track+status per-track: null=not submitted, 'pending'|'submitted' */
+  submittedExpert  = signal(false);
+  submittedManager = signal(false);
+  isSubmitted(track: 'expert' | 'manager') {
+    return track === 'expert' ? this.submittedExpert() : this.submittedManager();
+  }
 
   // ── DB state (confirmed, from Supabase) ──────────────────────────────────
   expertConfirmed  = signal<CareerRoadmap | null>(null);
@@ -143,6 +164,63 @@ export class CareerRoadmapComponent implements OnChanges {
   }
 
   cancelDraft(track: 'expert' | 'manager') { this.setDraft(track, null); }
+
+  // ── Submit for approval (Viewer only) ────────────────────────────────────
+
+  openSubmitModal(track: 'expert' | 'manager') {
+    this.submitTrack.set(track);
+    this.submitNote.set('');
+  }
+
+  closeSubmitModal() { this.submitTrack.set(null); }
+
+  async confirmSubmit() {
+    const track = this.submitTrack();
+    if (!track || !this.talent) return;
+
+    const user = this.authSvc.currentUser();
+    if (!user) return;
+
+    const draft = this.getDraft(track);
+    this.submitting.set(true);
+    try {
+      // 1. Save roadmap to DB first (as confirmed record)
+      const roadmapToSave = draft;
+      let savedRef: string | undefined;
+      if (roadmapToSave) {
+        const saved = await this.svc.save(roadmapToSave);
+        savedRef = saved.id;
+        if (track === 'expert') this.expertConfirmed.set(saved);
+        else this.managerConfirmed.set(saved);
+        this.setDraft(track, null);
+      } else {
+        // Already confirmed — just submit existing
+        savedRef = this.getDisplay(track)?.id;
+      }
+
+      // 2. Create approval request
+      const trackLabel = track === 'expert' ? 'Chuyên gia Kỹ thuật' : 'Nhà Quản Lý';
+      await this.approvalSvc.submit({
+        type:               'career_roadmap',
+        title:              `Lộ trình ${trackLabel} — ${this.talent.full_name}`,
+        description:        this.submitNote().trim() || `Đề xuất phê duyệt lộ trình phát triển theo hướng ${trackLabel}`,
+        ref_id:             savedRef,
+        requested_by_id:   user.id,
+        requested_by_name: user.full_name,
+        requested_by_role: user.role,
+        department:        this.talent.department,
+      });
+
+      if (track === 'expert') this.submittedExpert.set(true);
+      else this.submittedManager.set(true);
+      this.msg.success('✓ Đã gửi phê duyệt thành công!');
+    } catch (err: any) {
+      this.msg.error(`Lỗi gửi phê duyệt: ${err.message}`);
+    } finally {
+      this.submitting.set(false);
+      this.submitTrack.set(null);
+    }
+  }
 
   // ── Inline edit — remove ──────────────────────────────────────────────────
 

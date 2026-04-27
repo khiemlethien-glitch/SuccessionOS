@@ -43,6 +43,16 @@ export class LoginComponent implements OnInit {
 
   private returnUrl = '/dashboard';
 
+  /** Viewer → /talent/:employee_id, others → returnUrl (default: /dashboard) */
+  private navigateAfterLogin(): void {
+    const user = this.authService.currentUser();
+    if (user?.role === 'Viewer' && user.employee_id) {
+      this.router.navigate(['/talent', user.employee_id]);
+    } else {
+      this.router.navigateByUrl(this.returnUrl);
+    }
+  }
+
   // ── Demo accounts ─────────────────────────────────────────────────────────
   // Các tài khoản này cần được tạo trước trong Supabase Auth Dashboard.
   // Xem supabase/seeds/demo_users.sql để biết cách seed.
@@ -99,7 +109,7 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
     if (this.authService.isAuthenticated()) {
-      this.router.navigateByUrl(this.returnUrl);
+      this.navigateAfterLogin();
     }
   }
 
@@ -114,7 +124,7 @@ export class LoginComponent implements OnInit {
     this.errorMsg.set('');
     try {
       await this.authService.loginWithEmail(e, p);
-      this.router.navigateByUrl(this.returnUrl);
+      this.navigateAfterLogin();
     } catch (err: any) {
       this.errorMsg.set(err?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
@@ -134,7 +144,7 @@ export class LoginComponent implements OnInit {
 
     try {
       await this.authService.loginWithEmail(account.email, account.password);
-      this.router.navigateByUrl(this.returnUrl);
+      this.navigateAfterLogin();
     } catch (err: any) {
       // Thân thiện hơn với user: gợi ý tạo tài khoản nếu chưa có
       const raw = err?.message ?? '';

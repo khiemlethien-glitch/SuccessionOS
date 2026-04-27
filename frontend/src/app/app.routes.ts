@@ -26,6 +26,7 @@ export const routes: Routes = [
       { path: 'reports',     loadChildren: () => import('./modules/reports/reports.routes').then(m => m.REPORTS_ROUTES) },
       { path: 'marketplace', loadChildren: () => import('./modules/marketplace/marketplace.routes').then(m => m.MARKETPLACE_ROUTES) },
       { path: 'admin',       loadChildren: () => import('./modules/admin/admin.routes').then(m => m.ADMIN_ROUTES) },
+      { path: 'me',          loadComponent: () => import('./modules/me/me.component').then(m => m.MeComponent) },
       { path: 'profile',     loadComponent: () => import('./modules/profile/profile.component').then(m => m.ProfileComponent) },
       { path: 'settings',    loadComponent: () => import('./modules/settings/settings.component').then(m => m.SettingsComponent) },
     ],

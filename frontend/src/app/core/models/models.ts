@@ -196,7 +196,7 @@ export interface ModuleListResponse { data: AppModule[]; total: number; }
 export interface AiInsight { insight: string; }
 
 // ── Approval System ───────────────────────────────────────────────────────────
-export type ApprovalType   = 'idp' | 'succession' | 'position' | 'career_roadmap';
+export type ApprovalType   = 'idp' | 'succession' | 'position' | 'career_roadmap' | 'mentor';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type ApproverRole   = 'Admin' | 'Line Manager' | 'HR Manager';
 

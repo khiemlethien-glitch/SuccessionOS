@@ -2,7 +2,16 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseService } from '../supabase.service';
 import { CacheService } from '../cache.service';
 
-function mapIdp(row: any, empMap: Map<string, string>): any {
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '—'
+    : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function mapIdp(row: any, empMap: Map<string, string>, userMap: Map<string, string>): any {
+  const approvedById   = row.approved_by_l3_id ?? row.approved_by_l2_id ?? row.approved_by_l1_id ?? null;
+  const approvedAtRaw  = row.approved_by_l3_at ?? row.approved_by_l2_at ?? row.approved_by_l1_at ?? null;
   return {
     id: row.id,
     talent_id:        row.employee_id,
@@ -11,8 +20,8 @@ function mapIdp(row: any, empMap: Map<string, string>): any {
     status:           row.status,
     overall_progress: row.overall_progress ?? 0,
     target_position:  row.target_position ?? null,
-    approved_by:      row.approved_by_l3_id ?? row.approved_by_l2_id ?? row.approved_by_l1_id ?? '—',
-    approved_date:    row.approved_by_l3_at ?? row.approved_by_l2_at ?? row.approved_by_l1_at ?? '—',
+    approved_by:      approvedById ? (userMap.get(approvedById) ?? '—') : '—',
+    approved_date:    fmtDate(approvedAtRaw),
     goals_12m:   [],
     goals_2to3y: [],
     goals: (row.goals ?? []).map((g: any) => ({
@@ -45,8 +54,18 @@ export class IdpService {
     const empRes = empIds.length
       ? await this.sb.from('v_employees').select('id, full_name').in('id', empIds)
       : { data: [] };
-    const empMap = new Map((empRes.data ?? []).map(e => [e.id, e.full_name]));
-    return rows.map(r => mapIdp(r, empMap));
+    const empMap = new Map((empRes.data ?? []).map((e: any) => [e.id, e.full_name]));
+
+    // Resolve approver UUIDs → names
+    const approverIds = [...new Set(rows.flatMap(r =>
+      [r.approved_by_l1_id, r.approved_by_l2_id, r.approved_by_l3_id].filter(Boolean)
+    ))];
+    const userRes = approverIds.length
+      ? await this.sb.from('user_profiles').select('id, full_name').in('id', approverIds)
+      : { data: [] };
+    const userMap = new Map((userRes.data ?? []).map((u: any) => [u.id, u.full_name]));
+
+    return rows.map(r => mapIdp(r, empMap, userMap));
   }
 
   async getByEmployee(employeeId: string) {
@@ -67,7 +86,16 @@ export class IdpService {
     const emp = await this.sb.from('v_employees').select('id, full_name').eq('id', employeeId).maybeSingle();
     const empMap = new Map<string, string>();
     if (emp.data) empMap.set(emp.data.id, emp.data.full_name);
-    return mapIdp(data, empMap);
+
+    // Resolve approver UUID → name
+    const approverIds = [data.approved_by_l1_id, data.approved_by_l2_id, data.approved_by_l3_id].filter(Boolean);
+    const userMap = new Map<string, string>();
+    if (approverIds.length) {
+      const userRes = await this.sb.from('user_profiles').select('id, full_name').in('id', approverIds);
+      (userRes.data ?? []).forEach((u: any) => userMap.set(u.id, u.full_name));
+    }
+
+    return mapIdp(data, empMap, userMap);
   }
 
   async create(payload: any) {

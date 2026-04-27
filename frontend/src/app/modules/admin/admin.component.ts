@@ -57,8 +57,19 @@ export class AdminComponent implements OnInit {
   // ── State ─────────────────────────────────────────────────────────────────────
   activeTab   = signal<TabKey>('approvals');
   loading     = signal(true);
-  isAdmin     = computed(() => this.auth.isAdmin());
-  currentUser = computed(() => this.auth.currentUser());
+  currentUser  = computed(() => this.auth.currentUser());
+  isAdmin      = computed(() => this.auth.isAdmin());
+  isHRManager  = computed(() => this.currentUser()?.role === 'HR Manager');
+  isLineManager = computed(() => this.currentUser()?.role === 'Line Manager');
+
+  /** Tabs hiển thị theo role:
+   *  Admin:        approvals + users + audit + settings
+   *  HR Manager:   approvals (read-only) + audit
+   *  Line Manager: approvals (chỉ steps của LM)
+   */
+  canSeeUsersTab    = computed(() => this.isAdmin());
+  canSeeAuditTab    = computed(() => this.isAdmin() || this.isHRManager());
+  canSeeSettingsTab = computed(() => this.isAdmin());
 
   // ── Approvals ─────────────────────────────────────────────────────────────────
   allApprovals  = signal<ApprovalRequest[]>([]);
@@ -114,13 +125,13 @@ export class AdminComponent implements OnInit {
 
   // ── Label helpers ─────────────────────────────────────────────────────────────
   readonly typeLabel: Record<string, string> = {
-    idp: 'IDP', succession: 'Kế thừa', position: 'Vị trí', career_roadmap: 'Lộ trình',
+    idp: 'IDP', succession: 'Kế thừa', position: 'Vị trí', career_roadmap: 'Lộ trình', mentor: 'Mentor',
   };
   readonly typeIcon: Record<string, string> = {
-    idp: 'file-text', succession: 'team', position: 'bank', career_roadmap: 'compass',
+    idp: 'file-text', succession: 'team', position: 'bank', career_roadmap: 'compass', mentor: 'user-add',
   };
   readonly typeColor: Record<string, string> = {
-    idp: 'blue', succession: 'purple', position: 'orange', career_roadmap: 'cyan',
+    idp: 'blue', succession: 'purple', position: 'orange', career_roadmap: 'cyan', mentor: 'green',
   };
   readonly statusColor: Record<string, string> = {
     pending: 'warning', approved: 'success', rejected: 'error',
@@ -140,17 +151,27 @@ export class AdminComponent implements OnInit {
 
   // ── Approvals ─────────────────────────────────────────────────────────────────
   async loadApprovals() {
-    const role = this.currentUser()?.role ?? 'Viewer';
-    const list = await this.approvalSvc.getByRole(role);
+    const user = this.currentUser();
+    const list = await this.approvalSvc.getByRole(user?.role ?? 'Viewer', user?.id);
     this.allApprovals.set(list);
   }
 
   currentUserStep(req: ApprovalRequest): ApprovalStep | null {
-    const myRole = this.currentUser()?.role ?? '';
-    return req.steps.find(s => s.status === 'pending' && s.approver_role === myRole) ?? null;
+    const user   = this.currentUser();
+    const myRole = user?.role ?? '';
+    const myId   = user?.id;
+    // Tìm step pending phù hợp với role của mình
+    // Nếu step có approver_id thì phải match đúng user, nếu không có thì match theo role
+    return req.steps.find(s =>
+      s.status === 'pending' &&
+      s.approver_role === myRole &&
+      (!s.approver_id || s.approver_id === myId)
+    ) ?? null;
   }
 
   canActOn(req: ApprovalRequest): boolean {
+    // HR Manager: read-only, không được approve/reject
+    if (this.isHRManager()) return false;
     return req.status === 'pending' && this.currentUserStep(req) !== null;
   }
 

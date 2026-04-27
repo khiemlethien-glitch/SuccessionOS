@@ -64,8 +64,8 @@
       </div>
     }
 
-    <!-- Risk banner -->
-    @if (isHighRisk()) {
+    <!-- Risk banner — hidden from Viewer -->
+    @if (isHighRisk() && !isViewer()) {
       <div class="risk-banner">
         <span nz-icon nzType="warning" nzTheme="outline" class="risk-icon"></span>
         <div class="risk-content">
@@ -127,24 +127,63 @@
           </div>
         </div>
 
-        <div class="mentor-row" [class.empty]="!talent()!.mentor">
-          <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
-          <span class="mentor-text">
+        <!-- ── Mentor row ── -->
+        @if (isViewer()) {
+          <!-- Viewer: approved mentor hiện checkmark xanh, pending hiện bên dưới -->
+          <div class="mentor-row" [class.empty]="!talent()!.mentor" [class.mentor-row-approved]="!!talent()!.mentor">
+            <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
+            <span class="mentor-text">
+              @if (talent()!.mentor) {
+                Mentor: <strong>{{ talent()!.mentor }}</strong>
+              } @else {
+                Chưa có mentor — nhấn (+) để gửi yêu cầu
+              }
+            </span>
             @if (talent()!.mentor) {
-              Mentor: <strong>{{ talent()!.mentor }}</strong>
-            } @else {
-              Chưa có mentor được gán
+              <!-- Checkmark xanh thay cho nút X -->
+              <span class="mentor-verified-badge" title="Đã được phê duyệt">
+                <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+              </span>
             }
-          </span>
-          @if (talent()!.mentor) {
-            <button type="button" class="mentor-btn mentor-btn-clear" (click)="clearMentor()" title="Bỏ gán">
-              <span nz-icon nzType="close"></span>
+            <button type="button" class="mentor-btn" (click)="openMentorModal()"
+                    [disabled]="mentorSubmitting() || !!pendingMentorName()"
+                    title="Gửi yêu cầu mentor mới">
+              <span nz-icon nzType="plus"></span>
             </button>
+          </div>
+
+          <!-- Pending mentor request -->
+          @if (pendingMentorName()) {
+            <div class="mentor-row mentor-row-pending">
+              <span nz-icon nzType="clock-circle" nzTheme="fill" class="mentor-icon-pending"></span>
+              <span class="mentor-text">
+                Mentor mới (chờ duyệt): <strong>{{ pendingMentorName() }}</strong>
+              </span>
+              <span class="mentor-pending-badge">Chờ LM & HR</span>
+            </div>
           }
-          <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor ? 'Đổi mentor' : 'Gán mentor'">
-            <span nz-icon nzType="plus"></span>
-          </button>
-        </div>
+
+        } @else {
+          <!-- Non-Viewer: hành vi gán trực tiếp như cũ -->
+          <div class="mentor-row" [class.empty]="!talent()!.mentor">
+            <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
+            <span class="mentor-text">
+              @if (talent()!.mentor) {
+                Mentor: <strong>{{ talent()!.mentor }}</strong>
+              } @else {
+                Chưa có mentor được gán
+              }
+            </span>
+            @if (talent()!.mentor) {
+              <button type="button" class="mentor-btn mentor-btn-clear" (click)="clearMentor()" title="Bỏ gán">
+                <span nz-icon nzType="close"></span>
+              </button>
+            }
+            <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor ? 'Đổi mentor' : 'Gán mentor'">
+              <span nz-icon nzType="plus"></span>
+            </button>
+          </div>
+        }
       </div>
 
       <!-- Right: 2x2 accent cards -->
@@ -154,20 +193,31 @@
           <div class="metric-label">Điểm tổng hợp</div>
           <div class="metric-sub">{{ overallRank() }}</div>
         </div>
-        <div class="metric metric-red">
-          <div class="metric-val">{{ talent()!.risk_score }}</div>
-          <div class="metric-label">Rủi ro</div>
-          <div class="metric-sub">{{ riskLabel() }}</div>
-        </div>
+        @if (!isViewer()) {
+          <div class="metric metric-red">
+            <div class="metric-val">{{ talent()!.risk_score }}</div>
+            <div class="metric-label">Rủi ro</div>
+            <div class="metric-sub">{{ riskLabel() }}</div>
+          </div>
+        }
         <div class="metric metric-green">
-          <div class="metric-val metric-val-sm">{{ talent()!.target_position ?? '—' }}</div>
-          <div class="metric-label">Vị trí mục tiêu</div>
-          <div class="metric-sub">Kế thừa ưu tiên</div>
+          <div class="metric-chip-label">Mục tiêu</div>
+          <div class="metric-val metric-val-sm">{{ idpTargetPosition() }}</div>
+          @if (successionTargetDetails(); as d) {
+            <div class="metric-holder">
+              <span nz-icon nzType="user" style="font-size:10px;opacity:.6;margin-right:3px"></span>
+              {{ d.holderName }}
+            </div>
+            <div class="metric-sub">Kế thừa {{ priorityLabel(d.priority) }}</div>
+          } @else {
+            <div class="metric-sub">Vị trí mục tiêu</div>
+          }
         </div>
         <div class="metric metric-amber">
-          <div class="metric-val metric-val-sm">{{ readinessLabel(talent()!.readiness_level) }}</div>
-          <div class="metric-label">Thời gian còn lại</div>
-          <div class="metric-sub">Đến readiness</div>
+          <div class="metric-chip-label">Readiness</div>
+          <span class="pill pill-ready readiness-pill">
+            {{ readinessLabel(talent()!.readiness_level) }}
+          </span>
         </div>
       </div>
     </div>
@@ -280,7 +330,7 @@
                     <span nz-icon nzType="cluster" class="net-head-ico"></span>
                     <div>
                       <h3 class="chart-title rc-title">Mạng lưới phát triển</h3>
-                      <p class="chart-sub rc-sub">Click vào node để xem hồ sơ</p>
+                      <p class="chart-sub rc-sub">{{ isViewer() ? 'Chỉ xem — không thể truy cập hồ sơ người khác' : 'Click vào node để xem hồ sơ' }}</p>
                     </div>
                   </div>
                   <div class="net-legend">
@@ -328,8 +378,8 @@
 
                   <!-- ── Mentor (right) ─────────────────────────────────── -->
                   <div class="node node-mentor" style="left:84%;top:50%"
-                       [class.clickable]="!!mentorTalent()"
-                       (click)="mentorTalent() && switchCenter(mentorTalent()!.id)">
+                       [class.clickable]="!!mentorTalent() && !isViewer()"
+                       (click)="!isViewer() && mentorTalent() && switchCenter(mentorTalent()!.id)">
                     @if (mentorTalent(); as m) {
                       <div class="node-circle mentor-circle">{{ nameInitials(m.full_name) }}</div>
                       <div class="node-label node-label-right">{{ lastName(m.full_name) }}</div>
@@ -357,10 +407,11 @@
                   <!-- ── Successors (bottom fan) ────────────────────────── -->
                   @for (pos of netLayout().positions; track pos.talent_id) {
                     <!-- Successor node -->
-                    <div class="node node-succ clickable"
+                    <div class="node node-succ"
+                         [class.clickable]="!isViewer()"
                          [style.left.%]="pos.xPct"
                          [style.top.%]="pos.yPct"
-                         (click)="switchCenter(pos.talent_id)">
+                         (click)="!isViewer() && switchCenter(pos.talent_id)">
                       <div class="node-circle succ-circle">{{ nameInitials(pos.talent_name) }}</div>
                       <div class="node-label net-below-label">{{ lastName(pos.talent_name) }}</div>
                       <div class="node-tip node-tip--below">
@@ -543,105 +594,82 @@
         <!-- ── Tab 2: Phát triển (IDP + Career Roadmap) ───────────── -->
         <nz-tab [nzTitle]="tabTitle2">
           <div class="tab-section">
-            <div class="dev-layout">
 
-              <!-- LEFT: IDP compact card -->
-              <div class="bottom-card idp-compact-card">
+            <!-- ══ Hàng trên: 2 card ngang bằng nhau ══════════════════════ -->
+            <div class="dev-top-row">
+
+              <!-- Card trái: Lộ Trình Phát Triển Cá Nhân (AI) -->
+              <div class="bottom-card dev-summary-card">
                 <div class="bc-head">
-                  <span nz-icon nzType="rocket" class="bc-ico"></span>
+                  <span nz-icon nzType="thunderbolt" nzTheme="fill" class="bc-ico bc-ico-ai"></span>
                   <div class="bc-head-text">
-                    <div class="bc-title">Kế hoạch Phát triển Cá nhân</div>
-                    <div class="bc-sub">IDP {{ idp()?.year ?? '' }}</div>
+                    <div class="bc-title">Lộ Trình Phát Triển Cá Nhân</div>
+                    <div class="bc-sub">Phân tích & đề xuất bởi AI · Xác nhận bởi Manager</div>
                   </div>
-                  @if (idp()) {
-                    <span class="bc-badge" [class.bc-badge-active]="idp()!.status === 'Active'"
-                                           [class.bc-badge-done]="idp()!.status === 'Completed'">
-                      {{ idp()!.status }}
-                    </span>
+                  @if (roadmapSummary().hasPending) {
+                    <span class="bc-badge bc-badge-pending">Chờ duyệt</span>
+                  } @else if (roadmapSummary().hasConfirmed) {
+                    <span class="bc-badge bc-badge-active">Đã xác nhận</span>
                   }
                 </div>
 
-                @if (idp(); as plan) {
-                  <!-- Ring + meta -->
-                  <div class="icp-overview">
-                    <div class="icp-ring-wrap">
-                      <svg class="icp-ring" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e0e7ff" stroke-width="3.2"/>
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#4f46e5" stroke-width="3.2"
-                          [attr.stroke-dasharray]="idpProgress() + ' ' + (100 - idpProgress())"
-                          stroke-dashoffset="25"
-                          stroke-linecap="round"/>
-                      </svg>
-                      <div class="icp-ring-pct">{{ idpProgress() }}%</div>
-                    </div>
-                    <div class="icp-meta">
-                      <div class="icp-meta-row">
-                        <span class="icp-meta-label">Vị trí mục tiêu</span>
-                        <span class="icp-meta-val">{{ idpTargetPosition() }}</span>
-                      </div>
-                      <div class="icp-meta-row">
-                        <span class="icp-meta-label">Duyệt bởi</span>
-                        <span class="icp-meta-val">{{ idpApprovedBy() }}</span>
-                      </div>
-                      <div class="icp-meta-row">
-                        <span class="icp-meta-label">Ngày duyệt</span>
-                        <span class="icp-meta-val">{{ idpApprovedDate() }}</span>
+                <div class="dev-summary-body">
+                  @if (roadmapSummary().hasPending) {
+                    <div class="idp-ai-state idp-ai-pending">
+                      <span nz-icon nzType="clock-circle" nzTheme="fill" class="idp-ai-ico"></span>
+                      <div>
+                        <div class="idp-ai-label">Đang chờ phê duyệt</div>
+                        <div class="idp-ai-sub">
+                          Hướng {{ roadmapSummary().pendingTrack === 'expert' ? 'Chuyên gia Kỹ thuật' : 'Nhà Quản Lý' }}
+                          · Chờ Line Manager → Admin
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <!-- Goals -->
-                  <div class="icp-goals">
-                    @if (idpGoals12m().length) {
-                      <div class="icg-section">
-                        <div class="icg-head">
-                          <span nz-icon nzType="calendar" class="icg-ico icg-ico-12m"></span>
-                          Mục tiêu 12 tháng
+                  } @else if (roadmapSummary().hasConfirmed) {
+                    <div class="idp-ai-state idp-ai-confirmed">
+                      <span nz-icon nzType="check-circle" nzTheme="fill" class="idp-ai-ico idp-ai-ico-ok"></span>
+                      <div>
+                        <div class="idp-ai-label">{{ roadmapSummary().confirmedTarget ?? 'Lộ trình đã xác nhận' }}</div>
+                        <div class="idp-ai-sub">
+                          Hướng {{ roadmapSummary().confirmedTrack === 'expert' ? 'Chuyên gia Kỹ thuật' : 'Nhà Quản Lý' }}
                         </div>
-                        @for (g of idpGoals12m(); track g) {
-                          <div class="icg-item">
-                            <span class="icg-dot icg-dot-12m"></span>{{ g }}
-                          </div>
-                        }
                       </div>
-                    }
-                    @if (idpGoals2to3y().length) {
-                      <div class="icg-section">
-                        <div class="icg-head">
-                          <span nz-icon nzType="aim" class="icg-ico icg-ico-2y"></span>
-                          Mục tiêu 2–3 năm
-                        </div>
-                        @for (g of idpGoals2to3y(); track g) {
-                          <div class="icg-item">
-                            <span class="icg-dot icg-dot-2y"></span>{{ g }}
-                          </div>
-                        }
-                      </div>
-                    }
-                    @if (!idpGoals12m().length && !idpGoals2to3y().length) {
-                      <div class="bc-empty">
-                        <span nz-icon nzType="file-text" class="bc-empty-ico"></span>
-                        <p>Chưa có mục tiêu nào được nhập.</p>
-                      </div>
-                    }
-                  </div>
-
-                } @else {
-                  <!-- No IDP -->
-                  <div class="bc-empty">
-                    <span nz-icon nzType="rocket" class="bc-empty-ico"></span>
-                    <p>Chưa có kế hoạch IDP nào.</p>
-                    <span class="bc-empty-hint">Dữ liệu sẽ được đồng bộ từ module IDP.</span>
-                  </div>
-                }
+                    </div>
+                  } @else {
+                    <div class="bc-empty bc-empty-sm">
+                      <span nz-icon nzType="compass" class="bc-empty-ico-sm"></span>
+                      <p>Chưa có lộ trình</p>
+                      <span class="bc-empty-hint">Tạo lộ trình tại phần bên dưới</span>
+                    </div>
+                  }
+                </div>
               </div>
 
-              <!-- RIGHT: Career Roadmap -->
-              <div class="roadmap-card">
-                <app-career-roadmap [talent]="talent()"></app-career-roadmap>
+              <!-- Card phải: IDP từ eLearning (Coming Soon) -->
+              <div class="bottom-card dev-summary-card dev-el-card">
+                <div class="bc-head bc-head-disabled">
+                  <span nz-icon nzType="read" class="bc-ico bc-ico-disabled"></span>
+                  <div class="bc-head-text">
+                    <div class="bc-title bc-title-disabled">IDP từ hệ thống eLearning</div>
+                    <div class="bc-sub">Đồng bộ tự động từ nền tảng học tập</div>
+                  </div>
+                  <span class="bc-badge bc-badge-soon">Sắp ra mắt</span>
+                </div>
+                <div class="dev-summary-body">
+                  <div class="idp-elearning-placeholder">
+                    <span nz-icon nzType="lock" class="idp-el-ico"></span>
+                    <div class="idp-el-text">Tích hợp eLearning</div>
+                    <div class="idp-el-sub">Mục tiêu, tiến độ và chứng chỉ sẽ hiển thị tại đây sau khi kết nối hệ thống.</div>
+                  </div>
+                </div>
               </div>
 
-            </div><!-- end dev-layout -->
+            </div><!-- end dev-top-row -->
+
+            <!-- ══ Hàng dưới: Career Roadmap full width ════════════════════ -->
+            <div class="roadmap-card">
+              <app-career-roadmap [talent]="talent()"></app-career-roadmap>
+            </div>
 
             <!-- ══ Nguyện vọng cá nhân ══════════════════════════════════ -->
             @if (aspiration(); as asp) {
@@ -778,7 +806,8 @@
           </div><!-- end tab-section -->
         </nz-tab>
 
-        <!-- ── Tab 3: Rủi ro & Lịch sử ─────────────────────────────── -->
+        <!-- ── Tab 3: Rủi ro & Lịch sử — hidden from Viewer ────────── -->
+        @if (!isViewer()) {
         <nz-tab [nzTitle]="tabTitle3">
           <div class="tab-section">
 
@@ -875,6 +904,7 @@
 
           </div><!-- end tab-section -->
         </nz-tab>
+        } <!-- end @if (!isViewer()) -->
 
       </nz-tabs>
     </div><!-- end profile-tab-container -->

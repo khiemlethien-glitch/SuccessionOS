@@ -90,6 +90,41 @@
   background: #fef3c7; border: 1px solid #fde68a;
   padding: 3px 10px; border-radius: 999px;
 }
+.cr-submit-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #4f46e5; color: #fff; border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: opacity .15s;
+  &:hover:not(:disabled) { opacity: .9; }
+  &:disabled { opacity: .6; cursor: not-allowed; }
+}
+.cr-submitted-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: #4f46e5;
+  background: #ede9fe; border: 1px solid #c4b5fd;
+  padding: 4px 10px; border-radius: 999px;
+  [nz-icon] { font-size: 12px; }
+}
+
+/* ── Submit modal ────────────────────────────────────────────────── */
+.submit-modal-body { padding: 4px 0; }
+.submit-modal-desc { font-size: 14px; color: #6b7280; margin-bottom: 16px; }
+.submit-modal-track {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600; color: #4f46e5;
+  background: #ede9fe; border: 1px solid #c4b5fd;
+  padding: 6px 14px; border-radius: 8px; margin-bottom: 16px;
+  [nz-icon] { font-size: 16px; }
+}
+.submit-note-input {
+  width: 100%; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 10px 12px; font-size: 13px; color: #374151;
+  resize: vertical; outline: none; font-family: inherit;
+  &:focus { border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79,70,229,.12); }
+}
+.submit-modal-actions {
+  display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;
+}
 
 /* ── Empty state ─────────────────────────────────────────────── */
 .cr-empty {

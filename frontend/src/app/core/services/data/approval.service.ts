@@ -131,10 +131,19 @@ export class ApprovalService {
     }));
   }
 
-  async getByRole(role: string): Promise<ApprovalRequest[]> {
+  async getByRole(role: string, userId?: string): Promise<ApprovalRequest[]> {
     const all = await this.getAll();
-    if (role === 'Admin') return all;
-    // LM thấy requests có step của mình
+    // Admin + HR Manager: thấy tất cả requests (HR Manager read-only, không approve được)
+    if (role === 'Admin' || role === 'HR Manager') return all;
+    // Line Manager: chỉ thấy requests được giao cho họ (approver_id match) hoặc chưa gán
+    if (role === 'Line Manager' && userId) {
+      return all.filter(r =>
+        r.steps.some(s =>
+          s.approver_role === 'Line Manager' &&
+          (s.approver_id === userId || !s.approver_id)
+        )
+      );
+    }
     return all.filter(r => r.steps.some(s => s.approver_role === role));
   }
 
@@ -186,7 +195,12 @@ export class ApprovalService {
 
   // ── Submit new request ────────────────────────────────────────────────────────
   async submit(payload: Omit<ApprovalRequest, 'id' | 'status' | 'steps' | 'created_at' | 'updated_at'>): Promise<ApprovalRequest> {
-    const steps = this._buildSteps(payload.requested_by_role);
+    // Resolve specific Line Manager for this employee via parent_id chain
+    let managerId: string | null = null;
+    if (!this.useMock && payload.requested_by_id) {
+      managerId = await this.resolveManagerUserId(payload.requested_by_id);
+    }
+    const steps = this._buildSteps(payload.requested_by_role, payload.type, managerId);
 
     if (this.useMock) {
       const req: ApprovalRequest = {
@@ -223,15 +237,103 @@ export class ApprovalService {
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  /** Xác định approval steps dựa trên role người tạo */
-  private _buildSteps(requestorRole: string): Partial<ApprovalStep>[] {
-    if (requestorRole === 'Admin')       return [];                              // auto-approved
-    if (requestorRole === 'Line Manager') return [{ step_order: 1, approver_role: 'Admin',        status: 'pending' }];
-    if (requestorRole === 'HR Manager')   return [
-      { step_order: 1, approver_role: 'Line Manager', status: 'pending' },
-      { step_order: 2, approver_role: 'Admin',        status: 'pending' },
+  /** Xác định approval steps dựa trên role người tạo và loại request.
+   *  managerId: user_profiles.id của Line Manager trực tiếp (từ parent_id chain).
+   *  Nếu resolve được, gán vào approver_id của LM step để chỉ LM đó thấy request.
+   *
+   *  Mentor request (bất kể role):
+   *    → Line Manager (direct) → HR Manager
+   *
+   *  Các loại khác:
+   *    Admin        → auto-approved (no steps)
+   *    Line Manager → Admin
+   *    HR Manager   → Line Manager (direct) → Admin
+   *    Viewer       → Line Manager (direct) → Admin
+   */
+  private _buildSteps(requestorRole: string, type?: string, managerId?: string | null): Partial<ApprovalStep>[] {
+    const lmStep: Partial<ApprovalStep> = {
+      step_order:    1,
+      approver_role: 'Line Manager',
+      approver_id:   managerId ?? undefined,
+      status:        'pending',
+    };
+
+    if (type === 'mentor') return [
+      lmStep,
+      { step_order: 2, approver_role: 'HR Manager', status: 'pending' },
     ];
-    return [{ step_order: 1, approver_role: 'Admin', status: 'pending' }];
+
+    if (requestorRole === 'Admin') return [];
+    if (requestorRole === 'Line Manager') return [
+      { step_order: 1, approver_role: 'Admin', status: 'pending' },
+    ];
+    // HR Manager và Viewer: LM trực tiếp → Admin
+    return [
+      lmStep,
+      { step_order: 2, approver_role: 'Admin', status: 'pending' },
+    ];
+  }
+
+  /**
+   * Tìm user_profiles.id của Line Manager trực tiếp của một user.
+   *
+   * ╔══════════════════════════════════════════════════════════════════════╗
+   * ║  ⚠️  BACKEND INTEGRATION — CRITICAL DATA REQUIREMENTS               ║
+   * ║                                                                      ║
+   * ║  Approval routing (ai nhận request phê duyệt) hoàn toàn phụ thuộc  ║
+   * ║  vào 2 cột sau. Khi import data thực từ client, BẮT BUỘC phải có:  ║
+   * ║                                                                      ║
+   * ║  1. employees.reports_to_id (text, FK → employees.id)               ║
+   * ║     → Cột này xác định ai là Line Manager trực tiếp của nhân viên.  ║
+   * ║     → Phải được điền đầy đủ từ org chart của client (HRM export).   ║
+   * ║     → Nếu NULL: request sẽ hiện cho TẤT CẢ Line Manager (fallback). ║
+   * ║                                                                      ║
+   * ║  2. user_profiles.employee_id (text, FK → employees.id)             ║
+   * ║     → Link tài khoản đăng nhập với hồ sơ nhân viên trong DB.        ║
+   * ║     → Mỗi user có role Line Manager PHẢI được gán employee_id.      ║
+   * ║     → Nếu NULL: LM đó sẽ không nhận được request nào.              ║
+   * ║                                                                      ║
+   * ║  Luồng resolve:                                                      ║
+   * ║  user_profiles.id (auth UUID)                                        ║
+   * ║    → user_profiles.employee_id                                       ║
+   * ║    → employees.reports_to_id  (manager's employee id)               ║
+   * ║    → user_profiles WHERE employee_id = manager's employee id         ║
+   * ║         AND role = 'Line Manager'                                    ║
+   * ║    → trả về user_profiles.id của LM đó (dùng làm approver_id)      ║
+   * ╚══════════════════════════════════════════════════════════════════════╝
+   */
+  private async resolveManagerUserId(requestorUserId: string): Promise<string | null> {
+    try {
+      // 1. Lấy employee_id của người gửi
+      const { data: profile } = await this.sb.client
+        .from('user_profiles')
+        .select('employee_id')
+        .eq('id', requestorUserId)
+        .single();
+      if (!profile?.employee_id) return null;
+
+      // 2. Lấy reports_to_id (LM trực tiếp) trong org chart
+      const { data: emp } = await this.sb.client
+        .from('employees')
+        .select('reports_to_id')
+        .eq('id', profile.employee_id)
+        .single();
+      if (!emp?.reports_to_id) return null;
+
+      // 3. Tìm user_profiles của người LM đó (role = Line Manager)
+      const { data: mgr } = await this.sb.client
+        .from('user_profiles')
+        .select('id')
+        .eq('employee_id', emp.reports_to_id)
+        .eq('role', 'Line Manager')
+        .maybeSingle();
+
+      // Nếu không tìm được (LM chưa có tài khoản) → trả null
+      // → _buildSteps sẽ không gán approver_id → mọi LM đều thấy (safe fallback)
+      return mgr?.id ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /** Mock: update step + recalc request status in memory */

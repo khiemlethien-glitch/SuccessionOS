@@ -93,10 +93,15 @@ export class SuccessionService {
   }
 
   async getTargetPositionForSuccessor(employeeId: string): Promise<string | null> {
-    return this.cache.get(`succ:target:${employeeId}`, () => this._fetchTargetPosition(employeeId));
+    const info = await this.getTargetPositionInfo(employeeId);
+    return info?.title ?? null;
   }
 
-  private async _fetchTargetPosition(employeeId: string): Promise<string | null> {
+  async getTargetPositionInfo(employeeId: string): Promise<{ title: string; holderName: string; priority: number } | null> {
+    return this.cache.get(`succ:targetinfo:${employeeId}`, () => this._fetchTargetPositionInfo(employeeId));
+  }
+
+  private async _fetchTargetPositionInfo(employeeId: string): Promise<{ title: string; holderName: string; priority: number } | null> {
     const planRes = await this.sb.from('succession_plans')
       .select('position_id, priority')
       .eq('talent_id', employeeId)
@@ -106,10 +111,21 @@ export class SuccessionService {
     if (!planRes.data?.position_id) return null;
 
     const posRes = await this.sb.from('key_positions')
-      .select('title')
+      .select('title, current_holder_id')
       .eq('id', planRes.data.position_id)
       .maybeSingle();
-    return posRes.data?.title ?? null;
+    if (!posRes.data) return null;
+
+    let holderName = '—';
+    if (posRes.data.current_holder_id) {
+      const h = await this.sb.from('v_employees')
+        .select('full_name')
+        .eq('id', posRes.data.current_holder_id)
+        .maybeSingle();
+      holderName = h.data?.full_name ?? '—';
+    }
+
+    return { title: posRes.data.title, holderName, priority: planRes.data.priority };
   }
 
   async getSuccessorsForHolder(employeeId: string): Promise<{

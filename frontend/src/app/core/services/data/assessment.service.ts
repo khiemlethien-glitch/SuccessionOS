@@ -225,7 +225,8 @@ export class AssessmentService {
         .eq('employee_id', employeeId).eq('cycle_id', cycleId).maybeSingle(),
       // external_scores may only exist for the latest cycle — fetch broadly (no cycle filter)
       // so we can get score_360 / assessment_score as fallback aggregate
-      this.sb.from('external_scores').select('score_360, assessment_score, criteria_json')
+      // criteria_json cột không tồn tại trong DB — chỉ select các cột có thật
+      this.sb.from('external_scores').select('score_360, assessment_score')
         .eq('employee_id', employeeId)
         .order('cycle_id', { ascending: false })
         .limit(1)
@@ -305,16 +306,12 @@ export class AssessmentService {
     }
 
     // ── 360° block ─────────────────────────────────────────────────────────────
-    // Primary: assessed_scores rows with assessment_type='360'.
-    // Fallback: criteria_json from external_scores (legacy field, often empty).
-    // When all scored criteria were reclassified as KPI above, skip 360° block.
+    // Primary: assessment_scores rows with assessment_type='360'.
+    // criteria_json (legacy) đã bỏ — không còn dùng.
     if (!useAllAsKpi) {
       const a360Items: AssessmentItem[] = a360Scores.length > 0
         ? a360Scores.map(toItem).sort(bySortOrder)
-        : ((ext?.criteria_json ?? []) as Array<{ label: string; score: number }>).map((c, i) => ({
-            id: `360_${i}`, label: c.label, description: null,
-            weight: 0, item_max: 100, score: norm(c.score ?? null),
-          }));
+        : [];
 
       // Overall 360°: use external_scores.score_360 if available, else average item scores.
       const extA360 = norm(ext?.score_360 ?? null);

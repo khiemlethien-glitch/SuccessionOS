@@ -6,14 +6,25 @@
       <span class="hero-icon"><span nz-icon nzType="safety-certificate" nzTheme="fill"></span></span>
       <div>
         <h1 class="hero-title">Quản trị hệ thống</h1>
-        <p class="hero-sub">Phê duyệt · Người dùng · Audit Trail · Cấu hình</p>
+        <p class="hero-sub">
+          @if (isAdmin()) { Phê duyệt · Người dùng · Audit Trail · Cấu hình }
+          @else if (isHRManager()) { Phê duyệt (xem) · Audit Trail }
+          @else { Phê duyệt · Yêu cầu chờ duyệt bởi bạn }
+        </p>
       </div>
     </div>
-    @if (pendingCount() > 0) {
-      <nz-badge [nzCount]="pendingCount()" nzColor="#f59e0b">
-        <span class="hero-pending-label">Chờ phê duyệt</span>
-      </nz-badge>
-    }
+    <div class="hero-right-info">
+      @if (pendingCount() > 0) {
+        <nz-badge [nzCount]="pendingCount()" nzColor="#f59e0b">
+          <span class="hero-pending-label">Chờ phê duyệt</span>
+        </nz-badge>
+      }
+      @if (isHRManager()) {
+        <span class="role-readonly-chip">
+          <span nz-icon nzType="eye"></span> Chế độ xem — không thể phê duyệt
+        </span>
+      }
+    </div>
   </div>
 
   <!-- ══ Tabs ══════════════════════════════════════════════════════════════════ -->
@@ -22,15 +33,21 @@
       <span nz-icon nzType="check-circle"></span> Phê duyệt
       @if (pendingCount() > 0) { <span class="tab-badge">{{ pendingCount() }}</span> }
     </button>
-    <button class="adm-tab" [class.active]="activeTab()==='users'" (click)="setTab('users')">
-      <span nz-icon nzType="team"></span> Người dùng
-    </button>
-    <button class="adm-tab" [class.active]="activeTab()==='audit'" (click)="setTab('audit')">
-      <span nz-icon nzType="audit"></span> Audit Trail
-    </button>
-    <button class="adm-tab" [class.active]="activeTab()==='settings'" (click)="setTab('settings')">
-      <span nz-icon nzType="setting"></span> Cấu hình
-    </button>
+    @if (canSeeAuditTab()) {
+      <button class="adm-tab" [class.active]="activeTab()==='audit'" (click)="setTab('audit')">
+        <span nz-icon nzType="audit"></span> Audit Trail
+      </button>
+    }
+    @if (canSeeUsersTab()) {
+      <button class="adm-tab" [class.active]="activeTab()==='users'" (click)="setTab('users')">
+        <span nz-icon nzType="team"></span> Người dùng
+      </button>
+    }
+    @if (canSeeSettingsTab()) {
+      <button class="adm-tab" [class.active]="activeTab()==='settings'" (click)="setTab('settings')">
+        <span nz-icon nzType="setting"></span> Cấu hình
+      </button>
+    }
   </div>
 
   <!-- ══ Body ══════════════════════════════════════════════════════════════════ -->
