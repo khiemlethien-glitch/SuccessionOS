@@ -8,6 +8,7 @@ const d = (daysAgo: number) => new Date(now.getTime() - daysAgo * 86400000).toIS
 
 const MOCK: ApprovalRequest[] = [
   {
+    // HR Manager submits → chỉ cần Admin approve
     id: 'apr-001',
     type: 'idp',
     title: 'IDP 2025 — Nguyễn Thị Lan',
@@ -21,14 +22,12 @@ const MOCK: ApprovalRequest[] = [
     created_at: d(3),
     updated_at: d(3),
     steps: [
-      { id: 'stp-001-1', request_id: 'apr-001', step_order: 1, approver_role: 'Line Manager',
-        status: 'approved', approver_name: 'Trần Minh Tuấn', note: 'Phù hợp với kế hoạch phòng ban.',
-        acted_at: d(2), created_at: d(3) },
-      { id: 'stp-001-2', request_id: 'apr-001', step_order: 2, approver_role: 'Admin',
+      { id: 'stp-001-1', request_id: 'apr-001', step_order: 1, approver_role: 'Admin',
         status: 'pending', created_at: d(3) },
     ],
   },
   {
+    // Line Manager submits → HR Manager approve trước → Admin approve sau
     id: 'apr-002',
     type: 'succession',
     title: 'Người kế thừa — Giám đốc Kỹ thuật',
@@ -42,11 +41,14 @@ const MOCK: ApprovalRequest[] = [
     created_at: d(1),
     updated_at: d(1),
     steps: [
-      { id: 'stp-002-1', request_id: 'apr-002', step_order: 1, approver_role: 'Admin',
+      { id: 'stp-002-1', request_id: 'apr-002', step_order: 1, approver_role: 'HR Manager',
+        status: 'pending', created_at: d(1) },
+      { id: 'stp-002-2', request_id: 'apr-002', step_order: 2, approver_role: 'Admin',
         status: 'pending', created_at: d(1) },
     ],
   },
   {
+    // HR Manager submits, đã approved → Admin đã approve
     id: 'apr-003',
     type: 'position',
     title: 'Vị trí chủ chốt mới — Trưởng phòng An toàn HSE',
@@ -60,15 +62,13 @@ const MOCK: ApprovalRequest[] = [
     updated_at: d(7),
     resolved_at: d(7),
     steps: [
-      { id: 'stp-003-1', request_id: 'apr-003', step_order: 1, approver_role: 'Line Manager',
-        status: 'approved', approver_name: 'Nguyễn Văn Khoa', note: 'Đồng ý, cần bổ sung gấp.',
-        acted_at: d(8), created_at: d(10) },
-      { id: 'stp-003-2', request_id: 'apr-003', step_order: 2, approver_role: 'Admin',
+      { id: 'stp-003-1', request_id: 'apr-003', step_order: 1, approver_role: 'Admin',
         status: 'approved', approver_name: 'Admin System', note: 'Phê duyệt.',
         acted_at: d(7), created_at: d(10) },
     ],
   },
   {
+    // Line Manager submits → HRM approved → Admin rejected
     id: 'apr-004',
     type: 'career_roadmap',
     title: 'Lộ trình phát triển — Phạm Quốc Bảo',
@@ -83,13 +83,17 @@ const MOCK: ApprovalRequest[] = [
     updated_at: d(12),
     resolved_at: d(12),
     steps: [
-      { id: 'stp-004-1', request_id: 'apr-004', step_order: 1, approver_role: 'Admin',
+      { id: 'stp-004-1', request_id: 'apr-004', step_order: 1, approver_role: 'HR Manager',
+        status: 'approved', approver_name: 'Lê Thị Hà', note: 'Đã xem xét, chuyển Admin.',
+        acted_at: d(13), created_at: d(14) },
+      { id: 'stp-004-2', request_id: 'apr-004', step_order: 2, approver_role: 'Admin',
         status: 'rejected', approver_name: 'Admin System',
         note: 'Cần bổ sung thêm kế hoạch đào tạo cụ thể trước khi phê duyệt.',
         acted_at: d(12), created_at: d(14) },
     ],
   },
   {
+    // Line Manager submits → chờ HRM approve
     id: 'apr-005',
     type: 'idp',
     title: 'IDP 2025 — Trần Văn Minh',
@@ -103,7 +107,9 @@ const MOCK: ApprovalRequest[] = [
     created_at: d(0),
     updated_at: d(0),
     steps: [
-      { id: 'stp-005-1', request_id: 'apr-005', step_order: 1, approver_role: 'Admin',
+      { id: 'stp-005-1', request_id: 'apr-005', step_order: 1, approver_role: 'HR Manager',
+        status: 'pending', created_at: d(0) },
+      { id: 'stp-005-2', request_id: 'apr-005', step_order: 2, approver_role: 'Admin',
         status: 'pending', created_at: d(0) },
     ],
   },
@@ -133,7 +139,7 @@ export class ApprovalService {
 
   async getByRole(role: string, userId?: string): Promise<ApprovalRequest[]> {
     const all = await this.getAll();
-    // Admin + HR Manager: thấy tất cả requests (HR Manager read-only, không approve được)
+    // Admin + HR Manager: thấy toàn bộ request của cty — HRM có quyền approve bước của mình
     if (role === 'Admin' || role === 'HR Manager') return all;
     // Line Manager: chỉ thấy requests được giao cho họ (approver_id match) hoặc chưa gán
     if (role === 'Line Manager' && userId) {
@@ -238,40 +244,33 @@ export class ApprovalService {
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   /** Xác định approval steps dựa trên role người tạo và loại request.
-   *  managerId: user_profiles.id của Line Manager trực tiếp (từ parent_id chain).
+   *  managerId: user_profiles.id của Line Manager trực tiếp (từ reports_to_id chain).
    *  Nếu resolve được, gán vào approver_id của LM step để chỉ LM đó thấy request.
+   *
+   *  ── Quy trình phê duyệt — HR Manager là bước BẮT BUỘC của mọi request ──
    *
    *  Mentor request (bất kể role):
    *    → Line Manager (direct) → HR Manager
    *
    *  Các loại khác:
    *    Admin        → auto-approved (no steps)
-   *    Line Manager → Admin
-   *    HR Manager   → Line Manager (direct) → Admin
-   *    Viewer       → Line Manager (direct) → Admin
+   *    HR Manager   → Admin
+   *    Line Manager → HR Manager → Admin
+   *    Viewer       → Line Manager (direct) → HR Manager → Admin
    */
   private _buildSteps(requestorRole: string, type?: string, managerId?: string | null): Partial<ApprovalStep>[] {
-    const lmStep: Partial<ApprovalStep> = {
-      step_order:    1,
-      approver_role: 'Line Manager',
-      approver_id:   managerId ?? undefined,
-      status:        'pending',
-    };
+    const lmStep:    Partial<ApprovalStep> = { approver_role: 'Line Manager', approver_id: managerId ?? undefined, status: 'pending' };
+    const hrmStep:   Partial<ApprovalStep> = { approver_role: 'HR Manager',   status: 'pending' };
+    const adminStep: Partial<ApprovalStep> = { approver_role: 'Admin',        status: 'pending' };
 
-    if (type === 'mentor') return [
-      lmStep,
-      { step_order: 2, approver_role: 'HR Manager', status: 'pending' },
-    ];
+    // Mentor: LM → HRM (không qua Admin)
+    if (type === 'mentor') return [lmStep, hrmStep];
 
-    if (requestorRole === 'Admin') return [];
-    if (requestorRole === 'Line Manager') return [
-      { step_order: 1, approver_role: 'Admin', status: 'pending' },
-    ];
-    // HR Manager và Viewer: LM trực tiếp → Admin
-    return [
-      lmStep,
-      { step_order: 2, approver_role: 'Admin', status: 'pending' },
-    ];
+    if (requestorRole === 'Admin')        return [];               // Admin tự auto-approve
+    if (requestorRole === 'HR Manager')   return [adminStep];      // HRM gửi → chỉ Admin duyệt
+    if (requestorRole === 'Line Manager') return [hrmStep, adminStep]; // LM gửi → HRM → Admin
+    // Viewer: LM trực tiếp → HRM → Admin
+    return [lmStep, hrmStep, adminStep];
   }
 
   /**

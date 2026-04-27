@@ -90,12 +90,12 @@ readonly hasRole = (role: string): boolean => {
 | Bản đồ kế thừa | ❌ | ✅ | ✅ | ✅ |
 | Tab Rủi ro trong profile | ❌ | ✅ | ✅ | ✅ |
 | Admin panel (`/admin`) | ❌ | ✅ | ✅ | ✅ |
-| Admin → tab Phê duyệt | ❌ | ✅ (xem + approve LM steps) | ✅ (xem only) | ✅ (full) |
+| Admin → tab Phê duyệt | ❌ | ✅ (xem + approve LM steps) | ✅ (xem tất cả + approve HRM steps) | ✅ (full) |
 | Admin → tab Audit Trail | ❌ | ❌ | ✅ | ✅ |
 | Admin → tab Người dùng | ❌ | ❌ | ❌ | ✅ |
 | Admin → tab Cấu hình | ❌ | ❌ | ❌ | ✅ |
 | Tạo AI Roadmap | ✅ (submit for approval) | ✅ (direct save) | ✅ | ✅ |
-| Approve/Reject requests | ❌ | ✅ (LM steps only) | ❌ | ✅ (all) |
+| Approve/Reject requests | ❌ | ✅ (LM steps only) | ✅ (HRM steps — bắt buộc) | ✅ (all) |
 
 ### Sidebar canSee logic
 ```typescript
@@ -116,17 +116,21 @@ canSee(item: NavItem): boolean {
 
 ### Approval steps theo role người tạo
 
-| Người tạo | Steps |
+| Người tạo | Steps (sequential — step sau chỉ mở khi step trước approved) |
 |---|---|
-| Admin | Tự động approved (không cần duyệt) |
-| Line Manager | [Admin] |
-| HR Manager | [Line Manager → Admin] |
-| Viewer | [Line Manager → Admin] |
+| Admin | Tự động approved (no steps) |
+| HR Manager | [Admin] |
+| Line Manager | [**HR Manager** → Admin] |
+| Viewer | [Line Manager (direct) → **HR Manager** → Admin] |
+| Mentor request (mọi role) | [Line Manager (direct) → HR Manager] |
 
-### Visibility trong Admin panel
-- **Admin:** thấy tất cả requests
-- **HR Manager:** thấy tất cả requests (read-only, không approve)
-- **Line Manager:** chỉ thấy requests có LM step
+> **HR Manager là bước BẮT BUỘC** trong mọi workflow (trừ Admin tự approve và HRM tự gửi).
+> Sequential: `currentUserStep()` chỉ return step khi tất cả step trước đó đã `approved`.
+
+### Visibility & quyền trong Admin panel
+- **Admin:** thấy tất cả, approve bước Admin
+- **HR Manager:** thấy tất cả cty, approve bước HR Manager (sequential sau LM)
+- **Line Manager:** chỉ thấy requests được giao (approver_id match), approve bước LM
 
 ### Approval types
 `'idp' | 'succession' | 'position' | 'career_roadmap'`

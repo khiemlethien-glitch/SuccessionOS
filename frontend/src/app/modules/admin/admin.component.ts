@@ -64,8 +64,8 @@ export class AdminComponent implements OnInit {
 
   /** Tabs hiển thị theo role:
    *  Admin:        approvals + users + audit + settings
-   *  HR Manager:   approvals (read-only) + audit
-   *  Line Manager: approvals (chỉ steps của LM)
+   *  HR Manager:   approvals (approve bước HRM, xem tất cả) + audit
+   *  Line Manager: approvals (chỉ requests được giao cho LM)
    */
   canSeeUsersTab    = computed(() => this.isAdmin());
   canSeeAuditTab    = computed(() => this.isAdmin() || this.isHRManager());
@@ -160,18 +160,25 @@ export class AdminComponent implements OnInit {
     const user   = this.currentUser();
     const myRole = user?.role ?? '';
     const myId   = user?.id;
-    // Tìm step pending phù hợp với role của mình
-    // Nếu step có approver_id thì phải match đúng user, nếu không có thì match theo role
-    return req.steps.find(s =>
+
+    // Tìm step pending thuộc role + user hiện tại
+    const myStep = req.steps.find(s =>
       s.status === 'pending' &&
       s.approver_role === myRole &&
       (!s.approver_id || s.approver_id === myId)
-    ) ?? null;
+    );
+    if (!myStep) return null;
+
+    // Sequential check: chỉ được act nếu TẤT CẢ step trước (step_order nhỏ hơn) đã approved
+    // → Đảm bảo đúng thứ tự: LM approve xong thì HRM mới thấy nút, HRM approve xong thì Admin mới thấy
+    const allPrevApproved = req.steps
+      .filter(s => s.step_order < myStep.step_order)
+      .every(s => s.status === 'approved');
+
+    return allPrevApproved ? myStep : null;
   }
 
   canActOn(req: ApprovalRequest): boolean {
-    // HR Manager: read-only, không được approve/reject
-    if (this.isHRManager()) return false;
     return req.status === 'pending' && this.currentUserStep(req) !== null;
   }
 
