@@ -54,6 +54,7 @@
 - **Mobile 9-box Cell tap:** Bottom sheet mới — scatter plot + Top 3 mặc định, bấm "Tất cả" để xem full list
 - **Mobile Positions drawer:** Slide từ dưới lên (85vh), bo góc tròn, drag handle center
 - **Positions UX fix:** "Lộ Trình Phát Triển" (coming soon) chuyển từ main view → Gap Analysis sub-panel của từng người kế thừa
+- **Auth guard SSR bug fix:** `auth.guard.ts` — thêm `isPlatformBrowser` check; trả `true` ngay trên server. Root cause: `outputMode=static` + SSR prerender chạy guard lúc build → localStorage không có → session null → redirect /login bị bake vào HTML → mỗi lần refresh văng ra login dù đã đăng nhập. Commit: `c686b77`
 
 ---
 
