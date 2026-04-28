@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-type PgResult = { data: any; error: any };
+type PgResult = { data: any; error: any; count?: number | null };
 
 /**
  * Minimal PostgREST query builder — mirrors Supabase client API.
@@ -20,14 +20,19 @@ class QueryBuilder {
   private _maybeSingle = false;
   private _body: any = null;
   private _baseUrl: string;
+  private _countMode: string | null = null;   // 'exact' | 'planned' | 'estimated'
+  private _headOnly = false;                   // HEAD request (count only, no body)
 
   constructor(baseUrl: string, table: string) {
     this._baseUrl = baseUrl;
     this._table = table;
   }
 
-  select(columns: string = '*'): this {
-    this._select = columns;
+  /** Mirrors Supabase's .select(columns, { count, head }) signature. */
+  select(columns: any = '*', options?: { count?: string; head?: boolean }): this {
+    if (typeof columns === 'string') this._select = columns;
+    if (options?.count) this._countMode = options.count;
+    if (options?.head)  this._headOnly  = true;
     return this;
   }
 
@@ -99,9 +104,12 @@ class QueryBuilder {
     return this;
   }
 
-  order(col: string, opts?: { ascending?: boolean }): this {
+  order(col: string, opts?: { ascending?: boolean; nullsFirst?: boolean }): this {
     const dir = opts?.ascending === false ? 'desc' : 'asc';
-    this._order = `${col}.${dir}`;
+    // PostgreSQL defaults to NULLS FIRST for DESC, NULLS LAST for ASC.
+    // Override: always nullslast so rows with NULL scores never float to top.
+    const nulls = opts?.nullsFirst ? 'nullsfirst' : 'nullslast';
+    this._order = `${col}.${dir}.${nulls}`;
     return this;
   }
 
@@ -152,53 +160,75 @@ class QueryBuilder {
       headers['Accept'] = 'application/vnd.pgrst.object+json';
     }
 
+    // count=exact → ask PostgREST to include total count in Content-Range header
+    if (this._countMode) {
+      headers['Prefer'] = `count=${this._countMode}`;
+    }
+
     // For write ops, apply filters as query params
     if (this._method === 'PATCH' || this._method === 'DELETE') {
       for (const f of this._filters) {
         const [key, ...rest] = f.split('=');
         url.searchParams.append(key, rest.join('='));
       }
-      headers['Prefer'] = 'return=representation';
+      const prefer = headers['Prefer'] ? `${headers['Prefer']},` : '';
+      headers['Prefer'] = `${prefer}return=representation`;
     }
 
     if (this._method === 'POST') {
-      headers['Prefer'] = 'return=representation';
+      const prefer = headers['Prefer'] ? `${headers['Prefer']},` : '';
+      headers['Prefer'] = `${prefer}return=representation`;
     }
+
+    // HEAD request — count only, no body
+    const fetchMethod = this._headOnly ? 'HEAD' : this._method;
 
     try {
       const res = await fetch(url.toString(), {
-        method: this._method,
+        method: fetchMethod,
         headers,
         body: this._body != null ? JSON.stringify(this._body) : undefined,
       });
 
+      // Parse count from Content-Range: "0-49/250" → 250
+      let count: number | null = null;
+      const cr = res.headers.get('content-range');
+      if (cr) {
+        const m = cr.match(/\/(\d+)$/);
+        if (m) count = parseInt(m[1], 10);
+      }
+
       if (res.status === 406 && this._maybeSingle) {
-        // No rows found with maybeSingle — not an error
-        return { data: null, error: null };
+        return { data: null, error: null, count };
       }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: res.statusText }));
-        return { data: null, error: err };
+        return { data: null, error: err, count };
+      }
+
+      // HEAD returns no body
+      if (this._headOnly) {
+        return { data: null, error: null, count };
       }
 
       const text = await res.text();
-      if (!text) return { data: null, error: null };
+      if (!text) return { data: null, error: null, count };
 
       const json = JSON.parse(text);
 
       if (this._single || this._maybeSingle) {
-        return { data: json ?? null, error: null };
+        return { data: json ?? null, error: null, count };
       }
 
       // POST returns array when Prefer:return=representation
       if (this._method === 'POST' && Array.isArray(json)) {
-        return { data: json[0] ?? null, error: null };
+        return { data: json[0] ?? null, error: null, count };
       }
 
-      return { data: json, error: null };
+      return { data: json, error: null, count };
     } catch (e: any) {
-      return { data: null, error: { message: e?.message ?? String(e) } };
+      return { data: null, error: { message: e?.message ?? String(e) }, count: null };
     }
   }
 }
