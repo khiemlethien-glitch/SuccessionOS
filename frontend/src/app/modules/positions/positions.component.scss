@@ -401,6 +401,8 @@
       background: #e2e8f0;
       border-radius: 2px;
       margin: 12px auto 0;
+      align-self: center;   // centers in flex column context (ng-zorro drawer body)
+      flex-shrink: 0;
     }
   }
 }
