@@ -64,6 +64,7 @@
 - **Mentoring enum fix:** status PascalCase (`Active`, `PendingMentor`, `PendingLM`, `PendingHR`, `Rejected`, `Cancelled`)
 - **QC Test Guide:** `docs/QC_TEST_GUIDE.md` — 35 test cases, 8 modules, tiếng Việt
 - **Fix Vercel CORS bug:** `scripts/ensure-env.mjs` — regex `(url:\s*)` quá rộng, khớp `api.url` trước `supabase.url` → Vercel ghi đè `api.url` bằng Supabase URL → app gọi nhầm endpoint. Fix: mỗi env var dùng regex riêng có context (`/(supabase:[\s\S]*?url:\s*)'[^']*'/`)
+- **Fix Mixed Content (HTTPS→HTTP):** `vercel.json` thêm proxy rewrite `/postgrest/* → http://103.72.97.160:3000/*`; `environment.prod.example.ts` đổi `api.url = '/postgrest'`. Browser gọi Vercel qua HTTPS, Vercel proxy sang backend HTTP server-side → không còn bị block.
 
 ### ✅ Vừa hoàn thành (2026-04-28)
 - **Schema export:** `docs/exports/SCHEMA.md` — full schema documentation từ migration files (tables, views, functions, RLS, relationships, approval workflow matrix)
