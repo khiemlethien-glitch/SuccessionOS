@@ -54,23 +54,8 @@
       }
     </div>
 
-    <!-- User profile dropdown -->
-    <div class="user-profile" nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="topLeft">
-      <nz-avatar
-        [nzText]="userInitials"
-        nzSize="default"
-        style="background: var(--color-accent); flex-shrink: 0;"
-      ></nz-avatar>
-
-      @if (!isCollapsed() || isMobile()) {
-        <div class="user-info">
-          <div class="user-name">{{ currentUser?.full_name || 'Hoàng Anh' }}</div>
-          <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
-        </div>
-        <span nz-icon nzType="more" class="more-icon"></span>
-      }
-    </div>
-
+    <!-- Shared dropdown menu — defined once, referenced by both sider avatar
+         and mobile topbar avatar via #userMenu template ref -->
     <nz-dropdown-menu #userMenu="nzDropdownMenu">
       <ul nz-menu class="profile-dropdown">
         <li nz-menu-item (click)="goToProfile()">
@@ -93,6 +78,42 @@
       </ul>
     </nz-dropdown-menu>
 
+    <!-- User profile trigger — only attach nz-dropdown after view is in DOM
+         to prevent ng-zorro "Expecting instance of DOM Element" overlay error -->
+    @if (viewReady()) {
+      <div class="user-profile" nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="topLeft">
+        <nz-avatar
+          [nzText]="userInitials"
+          nzSize="default"
+          style="background: var(--color-accent); flex-shrink: 0;"
+        ></nz-avatar>
+
+        @if (!isCollapsed() || isMobile()) {
+          <div class="user-info">
+            <div class="user-name">{{ currentUser?.full_name || 'Hoàng Anh' }}</div>
+            <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
+          </div>
+          <span nz-icon nzType="more" class="more-icon"></span>
+        }
+      </div>
+    } @else {
+      <!-- Placeholder while view initialises — same layout, no nz-dropdown -->
+      <div class="user-profile">
+        <nz-avatar
+          [nzText]="userInitials"
+          nzSize="default"
+          style="background: var(--color-accent); flex-shrink: 0;"
+        ></nz-avatar>
+        @if (!isCollapsed() || isMobile()) {
+          <div class="user-info">
+            <div class="user-name">{{ currentUser?.full_name || 'Hoàng Anh' }}</div>
+            <div class="user-role">{{ currentUser?.role || 'Quản trị viên' }}</div>
+          </div>
+          <span nz-icon nzType="more" class="more-icon"></span>
+        }
+      </div>
+    }
+
   </nz-sider>
 
   <!-- ════ Main ═══════════════════════════════════════════════════ -->
@@ -106,12 +127,20 @@
         </button>
         <img class="mobile-topbar-logo" src="/logo.png" alt="PTSC" />
         <div class="mobile-topbar-right">
-          <nz-avatar
-            [nzText]="userInitials"
-            nzSize="small"
-            style="background: var(--color-accent); cursor:pointer;"
-            nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="bottomRight">
-          </nz-avatar>
+          @if (viewReady()) {
+            <nz-avatar
+              [nzText]="userInitials"
+              nzSize="small"
+              style="background: var(--color-accent); cursor:pointer;"
+              nz-dropdown [nzDropdownMenu]="userMenu" nzTrigger="click" nzPlacement="bottomRight">
+            </nz-avatar>
+          } @else {
+            <nz-avatar
+              [nzText]="userInitials"
+              nzSize="small"
+              style="background: var(--color-accent); cursor:pointer;">
+            </nz-avatar>
+          }
         </div>
       </div>
     }

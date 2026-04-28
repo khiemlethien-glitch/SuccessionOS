@@ -125,7 +125,12 @@ class QueryBuilder {
   }
 
   private async _execute(): Promise<PgResult> {
-    const url = new URL(`${this._baseUrl}/${this._table}`);
+    // new URL() requires an absolute URL. When baseUrl is a relative path
+    // (e.g. '/postgrest' for Vercel proxy), supply window.location.origin as base.
+    const raw = `${this._baseUrl}/${this._table}`;
+    const url = /^https?:\/\//.test(raw)
+      ? new URL(raw)
+      : new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
 
     if (this._method === 'GET' || this._method === 'DELETE') {
       if (this._select && this._select !== '*') url.searchParams.set('select', this._select);
