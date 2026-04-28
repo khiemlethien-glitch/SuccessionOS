@@ -26,6 +26,10 @@ interface NavGroup {
 @Component({
   selector: 'app-shell',
   standalone: true,
+  // ngSkipHydration: shell uses localStorage auth — prerendered HTML is always
+  // a logged-out shell that mismatches the real auth state on the client.
+  // Skip hydration so Angular re-renders the shell fresh client-side.
+  host: { ngSkipHydration: 'true' },
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
     NzLayoutModule, NzMenuModule, NzIconModule, NzAvatarModule,
     NzTooltipModule, NzDropDownModule, NzButtonModule],
