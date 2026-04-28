@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-27
+> Cập nhật lần cuối: 2026-04-28
 
 ---
 
@@ -45,11 +45,15 @@
 | Role-based route guard | Chưa implement |
 | Seed database đầy đủ | ~500 nhân viên × tất cả bảng |
 
-### ✅ Vừa hoàn thành (2026-04-27)
+### ✅ Vừa hoàn thành (2026-04-28)
 - **Schema export:** `docs/exports/SCHEMA.md` — full schema documentation từ migration files (tables, views, functions, RLS, relationships, approval workflow matrix)
 - **Data export script:** `docs/exports/export_data.sh` — bash script export tất cả 20 tables + 2 views thành CSV, chạy: `bash docs/exports/export_data.sh`
 - **README:** `docs/exports/README.md` — hướng dẫn đọc export files, expected row counts per table
-- **Lưu ý:** Data CSVs chưa được generate (cần Bash permission cho curl — chạy `export_data.sh` thủ công)
+- **Mobile Talent List:** Card layout per talent, nằm gọn trong 1 khung ngang điện thoại (`@media max-width: 768px`)
+- **Mobile 9-box Grid:** Fix vỡ UI — grid cells nhỏ hơn (min 90px/row), toolbar stack dọc, drawers 100vw, scatter panel → bottom sheet
+- **Mobile 9-box Cell tap:** Bottom sheet mới — scatter plot + Top 3 mặc định, bấm "Tất cả" để xem full list
+- **Mobile Positions drawer:** Slide từ dưới lên (85vh), bo góc tròn, drag handle center
+- **Positions UX fix:** "Lộ Trình Phát Triển" (coming soon) chuyển từ main view → Gap Analysis sub-panel của từng người kế thừa
 
 ---
 
