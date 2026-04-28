@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, computed, signal } from '@angular/core';
+import { Component, HostListener, Input, OnChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -454,6 +454,17 @@ export class NineBoxComponent implements OnChanges {
   // ── Y/X axis labels ────────────────────────────────────────────────────────
   readonly yLabels = ['Cao', 'TB', 'Thấp'];
 
+  // ── Mobile state ───────────────────────────────────────────────────────────
+  isMobile = signal(typeof window !== 'undefined' && window.innerWidth <= 768);
+  mobileShowList = signal(false);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    if (typeof window !== 'undefined') {
+      this.isMobile.set(window.innerWidth <= 768);
+    }
+  }
+
   // ── Panel state ────────────────────────────────────────────────────────────
   activeCell     = signal<CellDef | null>(null);
   scatterCell    = signal<CellDef | null>(null);
@@ -494,6 +505,7 @@ export class NineBoxComponent implements OnChanges {
     this.activeCell.set(cell);
     this.scatterCell.set(cell);
     this.activeEmployee.set(null);
+    this.mobileShowList.set(false); // always start with scatter+top3 on mobile
   }
 
   closeCell(): void {

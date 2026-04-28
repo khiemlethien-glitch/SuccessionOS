@@ -207,8 +207,9 @@
   <div class="nb-overlay" (click)="onOverlayClick()"></div>
 }
 
-<!-- ══ Scatter Panel ════════════════════════════════════════════ -->
-@if (scatterCell(); as sc) {
+<!-- ══ Scatter Panel (desktop only) ═════════════════════════════ -->
+@if (!isMobile()) {
+  @if (scatterCell(); as sc) {
   <div class="nb-scatter">
     <div class="nb-scatter-hd">
       <div>
@@ -239,11 +240,12 @@
       }
     </div>
   </div>
-}
+  } <!-- /scatterCell -->
+} <!-- /!isMobile -->
 
-<!-- ══ Cell Drawer (nz-drawer) ═══════════════════════════════════ -->
+<!-- ══ Cell Drawer (nz-drawer, desktop only) ══════════════════════ -->
 <nz-drawer
-  [nzVisible]="!!activeCell()"
+  [nzVisible]="!!activeCell() && !isMobile()"
   (nzOnClose)="closeCell()"
   nzPlacement="right"
   nzWidth="400px"
@@ -493,6 +495,126 @@
       </div>
 
     </div><!-- /nb-emp-cols -->
+  </div>
+}
+
+<!-- ══ Mobile Cell Bottom Sheet ════════════════════════════════ -->
+@if (isMobile() && activeCell(); as cell) {
+  <div class="mob-cell-sheet nb-box-drawer">
+
+    <!-- Drag handle -->
+    <div class="mob-handle"></div>
+
+    <!-- Header -->
+    <div class="mob-sheet-hd">
+      <span class="bm-num" [ngClass]="'tone-' + cellTone(cell.id)">{{ cell.id }}</span>
+      <div class="mob-sheet-hd-info">
+        <div class="mob-sheet-title">{{ cellCfg(cell.id).name }}</div>
+        <div class="mob-sheet-sub">{{ cellCfg(cell.id).sub }} · {{ cell.employees.length }} người</div>
+      </div>
+      <button class="nb-x-btn" (click)="closeCell()">×</button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="mob-sheet-body">
+
+      <!-- ── View: Scatter + Top 3 ──────────────────────────────── -->
+      @if (!mobileShowList()) {
+
+        <!-- Inline scatter plot -->
+        <div class="mob-scatter-wrap">
+          <div class="mob-scatter-plot">
+            <div class="nb-sg-h"></div>
+            <div class="nb-sg-v"></div>
+            <span class="nb-sa nb-sa-tl">{{ config().yAxisTitle }}</span>
+            <span class="nb-sa nb-sa-br">{{ config().xAxisTitle }}</span>
+            <span class="nb-sa nb-sa-tr">Cao</span>
+            <span class="nb-sa nb-sa-bl">Thấp</span>
+            @for (emp of cell.employees; track emp.id) {
+              <div class="nb-dot"
+                   [style.left.%]="dotX(emp, cell)"
+                   [style.top.%]="dotY(emp, cell)"
+                   [nz-tooltip]="emp.name"
+                   (click)="openEmpFromCell(emp)">
+                {{ emp.initials }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Top 3 -->
+        @if (top3().length) {
+          <div class="mob-section-lbl">
+            <span nz-icon nzType="rise" nzTheme="outline"></span>
+            Top 3 nổi bật
+          </div>
+          @for (emp of top3(); track emp.id; let i = $index) {
+            <div class="bm-list-row" (click)="openEmpFromCell(emp)">
+              <span class="bm-lr-rank">{{ i + 1 }}</span>
+              <app-avatar [name]="emp.name" [size]="36"></app-avatar>
+              <div class="bm-lr-info">
+                <div class="bm-lr-name">{{ emp.name }}</div>
+                <div class="bm-lr-pos">{{ emp.role }}</div>
+              </div>
+              <div class="bm-lr-scores">
+                <span class="bm-score bm-score-perf">★ {{ emp.perf }}</span>
+                <span class="bm-score bm-score-pot">⬆ {{ emp.pot }}</span>
+              </div>
+              <span nz-icon nzType="right" class="bm-lr-arrow"></span>
+            </div>
+          }
+        }
+
+        <!-- View all button -->
+        <button class="mob-view-all-btn" (click)="mobileShowList.set(true)">
+          <span nz-icon nzType="unordered-list" nzTheme="outline"></span>
+          Tất cả ({{ cell.employees.length }})
+          <span nz-icon nzType="down" nzTheme="outline"></span>
+        </button>
+
+      }
+
+      <!-- ── View: Full list ────────────────────────────────────── -->
+      @if (mobileShowList()) {
+
+        <!-- Back button -->
+        <button class="mob-back-btn" (click)="mobileShowList.set(false)">
+          <span nz-icon nzType="arrow-up" nzTheme="outline"></span>
+          Phân bổ & Top 3
+        </button>
+
+        <div class="mob-section-lbl">
+          <span nz-icon nzType="unordered-list" nzTheme="outline"></span>
+          Tất cả ({{ cell.employees.length }})
+        </div>
+
+        <div class="bm-list">
+          @for (emp of cell.employees; track emp.id; let i = $index) {
+            <div class="bm-list-row" (click)="openEmpFromCell(emp)">
+              <span class="bm-lr-rank">{{ i + 1 }}</span>
+              <app-avatar [name]="emp.name" [size]="36"></app-avatar>
+              <div class="bm-lr-info">
+                <div class="bm-lr-name">{{ emp.name }}</div>
+                <div class="bm-lr-pos">{{ emp.role }}</div>
+              </div>
+              <div class="bm-lr-scores">
+                <span class="bm-score bm-score-perf">★ {{ emp.perf }}</span>
+                <span class="bm-score bm-score-pot">⬆ {{ emp.pot }}</span>
+              </div>
+              <span nz-icon nzType="right" class="bm-lr-arrow"></span>
+            </div>
+          }
+          @if (!cell.employees.length) {
+            <div class="bm-empty">
+              <span nz-icon nzType="inbox"></span>
+              Chưa có nhân viên nào
+            </div>
+          }
+        </div>
+
+      }
+
+    </div><!-- /mob-sheet-body -->
   </div>
 }
 

@@ -1045,6 +1045,104 @@
   &:hover { border-color: #d1d5db; color: #374151; background: #f9fafb; }
 }
 
+// ══ Mobile Cell Bottom Sheet ══════════════════════════════════════════════════
+// Always defined (visibility controlled by *isMobile() signal in template)
+
+.mob-cell-sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1500;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -6px 40px rgba(0,0,0,.18);
+  display: flex; flex-direction: column;
+  max-height: 85vh;
+  animation: nb-slide-bottom .22s ease;
+}
+
+.mob-handle {
+  width: 36px; height: 4px;
+  background: #e5e7eb; border-radius: 2px;
+  margin: 10px auto 6px;
+  flex-shrink: 0;
+}
+
+.mob-sheet-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.mob-sheet-hd-info { flex: 1; min-width: 0; }
+
+.mob-sheet-title {
+  font-size: 15px; font-weight: 800; color: #0f172a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.mob-sheet-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.mob-sheet-body {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px 40px;
+  display: flex; flex-direction: column;
+}
+
+// Inline scatter plot inside mobile sheet
+.mob-scatter-wrap { margin-bottom: 12px; }
+
+.mob-scatter-plot {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+// Section header labels
+.mob-section-lbl {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 10px 0 8px;
+  [nz-icon] { font-size: 13px; }
+}
+
+// "Tất cả" call-to-action button
+.mob-view-all-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1.5px solid #e0e7ff;
+  background: #f5f3ff;
+  color: #4f46e5;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  [nz-icon] { font-size: 14px; }
+  &:hover { background: #eef2ff; border-color: #a5b4fc; }
+}
+
+// Back to scatter button
+.mob-back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  padding: 7px 14px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff; color: #374151;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+  [nz-icon] { font-size: 13px; }
+  &:hover { border-color: #c7d2fe; color: #4f46e5; background: #f5f3ff; }
+}
+
 // ══ Mobile responsive ════════════════════════════════════════════════════════
 @media (max-width: 768px) {
 
