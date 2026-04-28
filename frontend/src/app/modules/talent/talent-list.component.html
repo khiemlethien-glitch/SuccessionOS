@@ -152,6 +152,7 @@
           }
         </div>
 
+        <!-- ── Desktop table (ẩn trên mobile) ── -->
         <nz-table
           [nzData]="rows()"
           [nzLoading]="loading() || fetching()"
@@ -239,6 +240,42 @@
             }
           </tbody>
         </nz-table>
+
+        <!-- ── Mobile card list (chỉ hiện trên mobile) ── -->
+        <div class="mobile-list">
+          @if (loading() || fetching()) {
+            <div class="mobile-loading"><nz-spin nzSimple></nz-spin></div>
+          }
+          @for (t of rows(); track t.id) {
+            <div class="m-card" (click)="navigate(t)">
+
+              <!-- Avatar + Tên + Chức vụ -->
+              <app-avatar [name]="t.full_name" [size]="42"></app-avatar>
+
+              <div class="m-info">
+                <div class="m-name">{{ t.full_name }}</div>
+                <div class="m-pos">{{ t.position }}</div>
+                <div class="m-tags">
+                  <span class="m-dept-chip">{{ t.department }}</span>
+                  <span class="ready-pill" [ngClass]="readinessClass(t.readiness_level)">{{ readinessLabel(t.readiness_level) }}</span>
+                  <span class="risk-pill"  [ngClass]="riskLabel(t.risk_score ?? 0).cls">{{ riskLabel(t.risk_score ?? 0).text }}</span>
+                </div>
+              </div>
+
+              <!-- Điểm số + Tier -->
+              <div class="m-stats">
+                <div class="m-overall">{{ overallScore(t) }}</div>
+                <app-tier-badge [tier]="t.talent_tier"></app-tier-badge>
+                <div class="m-scores">
+                  <span class="m-sc perf">P <strong>{{ t.performance_score }}</strong></span>
+                  <span class="m-sc pot">T <strong>{{ t.potential_score }}</strong></span>
+                </div>
+              </div>
+
+              <span class="m-chev" nz-icon nzType="right"></span>
+            </div>
+          }
+        </div>
 
         @if (total() > PAGE_SIZE) {
           <div class="pagination-row">

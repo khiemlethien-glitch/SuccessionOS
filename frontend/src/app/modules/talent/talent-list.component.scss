@@ -338,6 +338,10 @@
   cursor:pointer;
 }
 
+// ── Mobile card list (ẩn mặc định) ───────────────────────────────────────────
+.mobile-list { display: none; }
+.mobile-loading { display:flex; justify-content:center; padding:32px; }
+
 @media (max-width: 1100px) {
   .search { width:220px; }
   .filter-pop { left:10px; width:min(360px, calc(100vw - 48px)); }
@@ -348,6 +352,160 @@
 }
 @media (max-width: 900px) {
   .tb-right { display:none; }
+}
+
+// ── Mobile (≤ 768px): ẩn table, hiện cards ───────────────────────────────────
+@media (max-width: 768px) {
+
+  // Header
+  .page-head {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .view-toggle { align-self: flex-start; }
+  .page-title  { font-size: 17px; }
+
+  // Card container
+  .talent-card { border-radius: 12px; }
+  .view-content { padding: 12px; }
+
+  // Toolbar mobile
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .tb-left {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .search {
+    width: 100% !important;
+    flex: 1 1 100%;
+  }
+  .sort { flex: 1; }
+  .sort-select { width: 100% !important; }
+  .filter-pop {
+    left: 0;
+    right: 0;
+    width: auto;
+    top: calc(100% + 6px);
+  }
+
+  // Ẩn table, hiện card list
+  .talent-tbl { display: none !important; }
+  .mobile-list { display: flex; flex-direction: column; gap: 8px; }
+
+  // ── Card ───────────────────────────────────────────────────────────────────
+  .m-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .12s;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active { background: #f5f7ff; border-color: #c7d2fe; }
+  }
+
+  // Info block (trung tâm, flex-1)
+  .m-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .m-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .m-pos {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .m-tags {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .m-dept-chip {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 6px;
+    white-space: nowrap;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  // Override ready-pill / risk-pill cho nhỏ hơn trong card
+  .m-tags .ready-pill,
+  .m-tags .risk-pill {
+    font-size: 10px !important;
+    padding: 2px 7px !important;
+  }
+
+  // Stats block (bên phải, cố định)
+  .m-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .m-overall {
+    font-size: 22px;
+    font-weight: 900;
+    color: #047857;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .m-scores {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .m-sc {
+    font-size: 10.5px;
+    color: #94a3b8;
+    font-weight: 600;
+    strong { font-weight: 800; }
+  }
+  .m-sc.perf strong { color: #047857; }
+  .m-sc.pot  strong { color: #1d4ed8; }
+
+  // Chevron
+  .m-chev {
+    font-size: 12px;
+    color: #d1d5db;
+    flex-shrink: 0;
+  }
+
+  // Pagination trên mobile: nhỏ gọn hơn
+  .pagination-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+  }
 }
 
 // ── Pagination bar ────────────────────────────────────────────
