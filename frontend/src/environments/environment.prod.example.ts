@@ -10,7 +10,9 @@ export const environment = {
   appUrl:     'https://succession-os-y6mt.vercel.app',
 
   api: {
-    url: 'http://103.72.97.160:3000',
+    // Relative path → Vercel proxies /postgrest/* → http://103.72.97.160:3000/*
+    // Avoids Mixed Content (HTTPS page → HTTP backend)
+    url: '/postgrest',
   },
 
   supabase: {

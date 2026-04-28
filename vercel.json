@@ -5,6 +5,7 @@
   "outputDirectory": "frontend/dist/frontend/browser",
   "framework": null,
   "rewrites": [
+    { "source": "/postgrest/:path*", "destination": "http://103.72.97.160:3000/:path*" },
     { "source": "/(.*)", "destination": "/index.csr.html" }
   ],
   "cleanUrls": true
