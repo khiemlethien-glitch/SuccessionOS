@@ -38,7 +38,7 @@
 |---|---|
 | IDP | Cần kết nối eLearning platform thật |
 | Đánh giá (standalone) | Placeholder |
-| Kèm cặp & Cố vấn | Placeholder |
+| Kèm cặp & Cố vấn | ✅ Hoàn thành (2026-04-28) |
 | Họp hiệu chỉnh | Placeholder |
 | Báo cáo | Placeholder |
 | Marketplace | Placeholder |
@@ -55,6 +55,16 @@
 - **Mobile Positions drawer:** Slide từ dưới lên (85vh), bo góc tròn, drag handle center
 - **Positions UX fix:** "Lộ Trình Phát Triển" (coming soon) chuyển từ main view → Gap Analysis sub-panel của từng người kế thừa
 - **Auth guard SSR bug fix:** `auth.guard.ts` — thêm `isPlatformBrowser` check; trả `true` ngay trên server. Root cause: `outputMode=static` + SSR prerender chạy guard lúc build → localStorage không có → session null → redirect /login bị bake vào HTML → mỗi lần refresh văng ra login dù đã đăng nhập. Commit: `c686b77`
+- **Mobile Succession:** Mật độ kế thừa heat map stack dọc + cells cuộn ngang; 3 drawers (position/density/talent-preview) → bottom sheet 85-90vh. Commit: `89e3dc9`
+- **Kèm Cặp & Cố Vấn (Phase 2):** Module hoàn chỉnh — 2 bảng DB mới (`mentoring_pairs`, `mentoring_sessions`), `mentoring.service.ts` Supabase-direct, UI master-detail với 4-step create flow (skill selection → gap-based mentor suggestion → params), session timeline, role-aware approval buttons. Sidebar enabled. Commit: `011970c`
+
+### 🗂️ Phase 2 — Mentoring: Business Rules đã implement
+- Eligibility: `(mentor_score - mentee_score) / 100 ≥ 15%`
+- Capacity: 1 mentee/mentor, max 2 mentors/mentee
+- 3 flows: bottom-up (mentee→mentor→LM→HR), top-down LM (mentor→HR), direct HR (LM→mentor)
+- Mentor decline = reject hẳn request
+- Session: mentee log → mentor confirm (auto-confirm 7 ngày)
+- Mock data fallback khi DB tables còn trống (demo-ready)
 
 ---
 
@@ -85,7 +95,8 @@ canSee(item: NavItem): boolean {
 | Nhân tài | Line Manager trở lên |
 | Vị trí then chốt | Line Manager trở lên |
 | Bản đồ kế thừa | Line Manager trở lên |
-| IDP, Đánh giá, Mentoring | Tất cả (nhưng `disabled: true`) |
+| IDP, Đánh giá | Tất cả (nhưng `disabled: true`) |
+| Kèm cặp & Cố vấn | Line Manager trở lên (enabled — feature hoàn chỉnh) |
 | Họp hiệu chỉnh | Line Manager trở lên (disabled) |
 | Báo cáo | Line Manager trở lên (disabled) |
 | Marketplace | HR Manager trở lên (disabled) |
@@ -135,6 +146,13 @@ canSeeSettingsTab = isAdmin()
 
 ## 🗂️ Lịch sử task gần nhất
 
+### 2026-04-28 — Kèm Cặp & Cố Vấn (Mentoring feature)
+- **Migration:** `supabase/migrations/20260428_mentoring.sql` — tạo `mentoring_pairs` + `mentoring_sessions` với RLS
+- **Service:** `core/services/data/mentoring.service.ts` — Supabase-only, đầy đủ CRUD + eligibility logic (15% gap), mentor capacity check, mock data fallback
+- **Component TS:** `modules/mentoring/mentoring.component.ts` — signals, multi-step create flow, respond flows cho mentor/LM/HR, session log + confirm
+- **Component HTML:** `modules/mentoring/mentoring.component.html` — master-detail layout (left panel 280px + right panel), 4-step create drawer (600px), log session drawer, confirm modal, reject modal
+- **Component SCSS:** `modules/mentoring/mentoring.component.scss` — hero gradient, pair list, session timeline, skill chips, mentor suggestion cards với gap bars
+- **Shell nav:** enabled mentoring nav item (requiredRole: Line Manager) — removed `disabled: true`
 
 
 ## 🔐 RBAC 4 Roles — hoàn chỉnh (2026-04-25) ✅
