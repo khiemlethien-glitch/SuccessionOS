@@ -5,12 +5,27 @@
 
 ---
 
-## 📍 TRẠNG THÁI HIỆN TẠI (2026-04-27 — updated)
+## 🗄️ DATABASE CHÍNH (từ 2026-04-28)
+
+| | |
+|---|---|
+| **Host** | `172.21.55.5:5432` |
+| **DB** | `SuccessionOS` |
+| **User** | `postgres / postgres` |
+| **PostgREST** | `http://172.21.55.5:3000` |
+| **psql** | `export PATH="/opt/homebrew/opt/libpq/bin:$PATH"` rồi chạy `psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS` |
+| **Supabase** | Dự phòng only — không dùng trong luồng chính |
+
+> Mọi migration SQL chạy trực tiếp qua psql lên DB này, không qua Supabase Dashboard nữa.
+
+---
+
+## 📍 TRẠNG THÁI HIỆN TẠI (2026-04-28)
 
 ### ✅ Đã hoàn thành & hoạt động
 | Module | Trạng thái | Ghi chú |
 |---|---|---|
-| Auth (login/logout) | ✅ | Supabase Auth, email+password, Google OAuth |
+| Auth (login/logout) | ✅ | localStorage session, email lookup `user_profiles` (bypass) |
 | Dashboard | ✅ | LM scope: chỉ thấy bộ phận mình |
 | Talent List | ✅ | LM scope: dept filter locked; 9-box filtered |
 | Talent Profile | ✅ | Đầy đủ: năng lực, đánh giá, phát triển, rủi ro |
@@ -18,32 +33,36 @@
 | Key Positions | ✅ | LM scope: filtered by department |
 | Succession Map | ✅ | LM scope: tree + density filtered by dept |
 | Admin Panel | ✅ | 4 tabs: Approvals / Users / Audit / Settings |
-| Approval Workflow | ✅ | Supabase tables, multi-step, per-role |
+| Approval Workflow | ✅ | PostgreSQL tables, multi-step, per-role |
 | RBAC Sidebar | ✅ | 4 roles đúng quyền |
+| Kèm cặp & Cố vấn | ✅ | Master-detail, 4-step create, session log, approval flow |
+| **PostgREST migration** | ✅ | Frontend kết nối PostgreSQL nội bộ qua PostgREST |
 
-### ⚠️ Đã code nhưng cần kiểm tra / còn lỗi
+### ⚠️ Cần kiểm tra / còn lỗi
 | Vấn đề | File liên quan | Mô tả |
 |---|---|---|
-| Viewer redirect sau login | `login.component.ts`, `me.component.ts` | Cần `employee_id` trong `user_profiles` — đã seed SQL nhưng chưa verify hoạt động |
-| RBAC route guard | `app.routes.ts` | **Chưa có** — chỉ có sidebar ẩn/hiện, không có route-level guard. Viewer biết URL vẫn vào được `/talent/xxx` |
-| Admin panel access control | `admin.component.ts` | Sidebar ẩn với Viewer nhưng không có route guard → URL trực tiếp vẫn vào được |
-| HR Manager approval display | `admin.component.ts` | `getByRole('HR Manager')` trả all — chưa verify UI đúng |
-| Career Roadmap submit (Viewer) | `career-roadmap.component.ts` | Flow Gửi phê duyệt → lưu roadmap + tạo ApprovalRequest — chưa test end-to-end |
-| LM nhận đúng request | `approval.service.ts` | ✅ Fixed: resolveManagerUserId() gán approver_id đúng LM trực tiếp qua parent_id |
-| audit_logs entity_id error | `talent-profile.component.ts` | ✅ Fixed: bỏ .eq('entity_id'), filter client-side qua details jsonb |
-| Nhiều phần chưa rõ còn lỗi gì | — | User báo "nhiều phần chưa hoạt động đúng" — cần test từng phần |
+| RBAC route guard | `app.routes.ts` | **Chưa có** — chỉ sidebar ẩn/hiện, Viewer biết URL vẫn vào được |
+| Career Roadmap submit (Viewer) | `career-roadmap.component.ts` | Chưa test end-to-end với DB mới |
+| Auth chưa có password | `auth.service.ts` | Hiện bypass — chỉ check email, không kiểm tra mật khẩu |
+| TypeScript @ts-nocheck | 5 data service files | Migration phase — cần schema codegen sau này |
 
 ### 🔲 Chưa làm / Placeholder
 | Module | Lý do |
 |---|---|
-| IDP | Cần kết nối eLearning platform thật |
+| IDP | Cần kết nối eLearning platform |
 | Đánh giá (standalone) | Placeholder |
-| Kèm cặp & Cố vấn | ✅ Hoàn thành (2026-04-28) |
 | Họp hiệu chỉnh | Placeholder |
 | Báo cáo | Placeholder |
 | Marketplace | Placeholder |
 | Role-based route guard | Chưa implement |
-| Seed database đầy đủ | ~500 nhân viên × tất cả bảng |
+| Auth có password thật | Cần backend implement JWT hoặc password hash |
+
+### ✅ Vừa hoàn thành (2026-04-28 — DB migration)
+- **Migrate sang PostgreSQL nội bộ:** `ApiService` fetch-based PostgREST client, `SupabaseService` → shim, `AuthService` → localStorage session
+- **DB chính:** `172.21.55.5:5432` / PostgREST `172.21.55.5:3000` — 22 tables/views, data thật (~500 nhân viên, 196 cặp mentor)
+- **Demo accounts:** 4 tài khoản trong `user_profiles` PostgreSQL (không còn dùng Supabase Auth)
+- **Mentoring enum fix:** status PascalCase (`Active`, `PendingMentor`, `PendingLM`, `PendingHR`, `Rejected`, `Cancelled`)
+- **QC Test Guide:** `docs/QC_TEST_GUIDE.md` — 35 test cases, 8 modules, tiếng Việt
 
 ### ✅ Vừa hoàn thành (2026-04-28)
 - **Schema export:** `docs/exports/SCHEMA.md` — full schema documentation từ migration files (tables, views, functions, RLS, relationships, approval workflow matrix)
