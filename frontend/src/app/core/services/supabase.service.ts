@@ -1,15 +1,16 @@
-import { Injectable } from '@angular/core';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Injectable, inject } from '@angular/core';
+import { ApiService } from './api.service';
 
+/**
+ * SupabaseService — compatibility shim.
+ * All data services inject this and call .client.from(...)
+ * Typed as `any` so downstream strict-TS checks don't break
+ * when PostgREST returns untyped rows (no schema codegen yet).
+ */
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
-  readonly client: SupabaseClient;
-  constructor() {
-    this.client = createClient(
-      environment.supabase.url,
-      environment.supabase.anonKey,
-      { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } }
-    );
-  }
+  private api = inject(ApiService);
+
+  get client(): any { return this.api.db; }
 }

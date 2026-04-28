@@ -1,6 +1,5 @@
-import { Injectable, signal, computed } from '@angular/core';
-import { Session, User } from '@supabase/supabase-js';
-import { SupabaseService } from '../services/supabase.service';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { ApiService } from '../services/api.service';
 
 export interface UserProfile {
   id: string;
@@ -8,23 +7,30 @@ export interface UserProfile {
   full_name: string;
   role: string;
   department_id?: string | null;
-  department_name?: string | null;  // resolved from v_employees via employee_id
+  department_name?: string | null;
   avatar_url?: string | null;
-  employee_id?: string | null;   // linked talent/employee record ID
+  employee_id?: string | null;
 }
+
+// Minimal session shape (replaces Supabase Session)
+export interface AppSession {
+  user: { id: string; email: string };
+}
+
+const SESSION_KEY = 'sos_session';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  // ── Signals ──────────────────────────────────────────────
-  readonly session     = signal<Session | null>(null);
+  private api = inject(ApiService);
+
+  // ── Signals ───────────────────────────────────────────────────────────────
+  readonly session     = signal<AppSession | null>(null);
   readonly currentUser = signal<UserProfile | null>(null);
   readonly isLoading   = signal<boolean>(true);
 
   readonly isAuthenticated = computed(() => this.session() !== null);
 
-  /**
-   * RBAC — phân quyền theo role. Hierarchy: Admin > HR Manager > Line Manager > Viewer.
-   */
+  // ── RBAC ──────────────────────────────────────────────────────────────────
   readonly isAdmin       = computed(() => this.currentUser()?.role === 'Admin');
   readonly isLineManager = computed(() => this.currentUser()?.role === 'Line Manager');
   readonly isViewer      = computed(() => this.currentUser()?.role === 'Viewer');
@@ -39,86 +45,94 @@ export class AuthService {
     return userLevel >= neededLevel;
   };
 
-  private get sb() { return this.supabaseService.client; }
-
-  constructor(private supabaseService: SupabaseService) {
-    this.sb.auth.getSession().then(async ({ data }) => {
-      this.session.set(data.session);
-      if (data.session?.user) await this.loadProfile(data.session.user);
-      this.isLoading.set(false);  // wait until profile (+ dept) fully loaded
-    });
-
-    this.sb.auth.onAuthStateChange((_event, session) => {
-      this.session.set(session);
-      if (session?.user) this.loadProfile(session.user);
-      else this.currentUser.set(null);
-    });
+  constructor() {
+    this._restoreSession();
   }
 
-  // ── Load profile ──────────────────────────────────────────
-  async loadProfile(user: User): Promise<void> {
-    const { data, error } = await this.sb
-      .from('user_profiles').select('*').eq('id', user.id).maybeSingle();
+  // ── Restore session from localStorage ────────────────────────────────────
+  private async _restoreSession(): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) {
+        const profile: UserProfile = JSON.parse(raw);
+        this.session.set({ user: { id: profile.id, email: profile.email } });
+        this.currentUser.set(profile);
+      }
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+    }
+    this.isLoading.set(false);
+  }
 
-    const baseProfile: UserProfile = error || !data
-      ? {
-          id:        user.id,
-          email:     user.email ?? '',
-          full_name: user.user_metadata?.['full_name'] ?? user.email ?? '',
-          role:      user.user_metadata?.['role'] ?? 'Viewer',
-        }
-      : (data as UserProfile);
+  // ── Login — lookup user_profiles by email (auth bypassed) ─────────────────
+  async loginWithEmail(email: string, _password: string): Promise<void> {
+    this.isLoading.set(true);
 
-    // Lookup linked employee record by email → needed for Viewer "My Profile" link
-    const email = user.email ?? baseProfile.email;
-    if (email && !baseProfile.employee_id) {
-      const { data: emp } = await this.sb
-        .from('employees').select('id').eq('email', email).maybeSingle();
-      if (emp?.id) baseProfile.employee_id = emp.id;
+    const { data: profile, error } = await this.api.db
+      .from('user_profiles')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error || !profile) {
+      this.isLoading.set(false);
+      throw new Error('Email không tồn tại trong hệ thống');
     }
 
-    // Load department info from employee record (needed for LM dept-scoped views)
-    if (baseProfile.employee_id) {
-      const { data: empData } = await this.sb
+    const userProfile = await this._enrichProfile(profile as UserProfile);
+    this._persistSession(userProfile);
+    this.isLoading.set(false);
+  }
+
+  // ── Enrich profile with dept info from v_employees ───────────────────────
+  private async _enrichProfile(profile: UserProfile): Promise<UserProfile> {
+    // Lookup employee_id by email if not set
+    if (!profile.employee_id) {
+      const { data: emp } = await this.api.db
+        .from('employees')
+        .select('id')
+        .eq('email', profile.email)
+        .maybeSingle();
+      if (emp?.id) profile.employee_id = emp.id;
+    }
+
+    // Load department info
+    if (profile.employee_id) {
+      const { data: empData } = await this.api.db
         .from('v_employees')
         .select('department_id, department_name')
-        .eq('id', baseProfile.employee_id)
+        .eq('id', profile.employee_id)
         .maybeSingle();
       if (empData) {
-        if (!baseProfile.department_id) baseProfile.department_id = empData.department_id;
-        baseProfile.department_name = empData.department_name ?? null;
+        if (!profile.department_id) profile.department_id = empData.department_id;
+        profile.department_name = empData.department_name ?? null;
       }
     }
 
-    this.currentUser.set(baseProfile);
+    return profile;
   }
 
-  // ── Email / Password ──────────────────────────────────────
-  async loginWithEmail(email: string, password: string): Promise<void> {
-    this.isLoading.set(true);
-    const { error } = await this.sb.auth.signInWithPassword({ email, password });
-    this.isLoading.set(false);
-    if (error) throw error;
+  private _persistSession(profile: UserProfile): void {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(profile));
+    this.session.set({ user: { id: profile.id, email: profile.email } });
+    this.currentUser.set(profile);
   }
 
+  // ── Logout ────────────────────────────────────────────────────────────────
+  async logout(): Promise<void> {
+    localStorage.removeItem(SESSION_KEY);
+    this.session.set(null);
+    this.currentUser.set(null);
+  }
+
+  // ── Google / Azure OAuth — placeholder (chưa implement với PostgREST) ────
   async loginWithGoogle(): Promise<void> {
-    const { error } = await this.sb.auth.signInWithOAuth({
-      provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) throw error;
+    throw new Error('Google OAuth chưa được cấu hình với backend mới');
   }
 
   async loginWithAzure(): Promise<void> {
-    const { error } = await this.sb.auth.signInWithOAuth({
-      provider: 'azure', options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) throw error;
-  }
-
-  async logout(): Promise<void> {
-    await this.sb.auth.signOut();
-    this.session.set(null);
-    this.currentUser.set(null);
+    throw new Error('Azure OAuth chưa được cấu hình với backend mới');
   }
 
   isAuthenticatedSnapshot(): boolean { return this.isAuthenticated(); }
