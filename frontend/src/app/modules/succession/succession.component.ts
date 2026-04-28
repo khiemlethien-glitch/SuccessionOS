@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, HostListener, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
@@ -79,6 +79,14 @@ export class SuccessionComponent implements OnInit {
   talents   = signal<Talent[]>([]);
   plans     = signal<SuccessionPlan[]>([]);
   positions = signal<KeyPosition[]>([]);
+
+  // ─── Mobile detection ────────────────────────────────────────
+  isMobile = signal(typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    if (typeof window !== 'undefined') this.isMobile.set(window.innerWidth <= 768);
+  }
 
   // ─── Active tab: 0 = Succession Map ─────────────────────────
   activeTabIndex = signal(0);

@@ -2827,3 +2827,111 @@
   font-size:12.5px; font-weight:700; color:#64748b;
   .anticon { font-size:14px; }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE (≤768px) — Mật độ kế thừa + Drawers
+// ═══════════════════════════════════════════════════════════════
+@media (max-width: 768px) {
+
+  // ── Hero ──────────────────────────────────────────────────────
+  .succ-hero { padding: 14px 16px; }
+  .hero-title { font-size: 20px; }
+  .hero-sub   { font-size: 12px; }
+
+  // ── Density config bar ────────────────────────────────────────
+  .density-config { padding: 12px 14px; gap: 12px; }
+  .dc-filter { min-width: 0; flex: 1 1 100%; }
+  .dc-tree-sel { width: 100%; }
+  .dc-legend { margin-left: 0; }
+
+  // ── KPI cards → 2 columns ─────────────────────────────────────
+  .density-kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .dk-card { padding: 14px 16px; }
+  .dk-val  { font-size: 22px; }
+
+  // ── Heat map: stack dept header above cells ───────────────────
+  .dm-row {
+    display: flex; flex-direction: column;
+  }
+  .dm-dept {
+    border-right: none;
+    border-bottom: 1px solid #f3f4f6;
+    min-height: auto;
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    gap: 6px; padding: 10px 12px;
+  }
+  .dm-dept-name  { flex-basis: 100%; }
+  .dm-dept-bar-wrap { flex-basis: 100%; }
+  .dm-cells {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 10px; gap: 8px;
+    // subtle fade on right edge hinting scroll
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+  .dm-cell { width: 130px; flex-shrink: 0; }
+  // avg column has no space in stacked layout → hide (avg shown in dept header)
+  .dm-avg-col { display: none; }
+
+  // ── Position drawer → bottom sheet ────────────────────────────
+  ::ng-deep .position-drawer {
+    .ant-drawer-content-wrapper {
+      min-width: 0 !important;
+      width: 100% !important;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+    }
+    .ant-drawer-content { border-radius: 18px 18px 0 0; }
+    .ant-drawer-body {
+      display: flex; flex-direction: column;
+      padding-top: 0;
+      &::before {
+        content: '';
+        display: block; flex-shrink: 0;
+        width: 36px; height: 4px;
+        background: #e2e8f0; border-radius: 2px;
+        margin: 12px auto 8px;
+        align-self: center;
+      }
+    }
+  }
+
+  // ── Density drill drawer → bottom sheet ───────────────────────
+  ::ng-deep .density-drill-drawer {
+    .ant-drawer-content-wrapper {
+      min-width: 0 !important;
+      width: 100% !important;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+    }
+    .ant-drawer-content { border-radius: 18px 18px 0 0; }
+    .ant-drawer-header {
+      border-radius: 18px 18px 0 0;
+      padding: 14px 16px 10px;
+    }
+  }
+
+  // ── Talent preview drawer → full-width bottom sheet ───────────
+  ::ng-deep .talent-preview-drawer-wrap {
+    .ant-drawer-content-wrapper {
+      width: 100vw !important;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+    }
+    .ant-drawer-content { border-radius: 18px 18px 0 0; }
+    .ant-drawer-body {
+      display: flex; flex-direction: column;
+      padding-top: 0;
+      &::before {
+        content: '';
+        display: block; flex-shrink: 0;
+        width: 36px; height: 4px;
+        background: #e2e8f0; border-radius: 2px;
+        margin: 12px auto 8px;
+        align-self: center;
+      }
+    }
+  }
+}
