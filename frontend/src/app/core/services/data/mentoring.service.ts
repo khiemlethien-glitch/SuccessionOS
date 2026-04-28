@@ -35,75 +35,8 @@ export interface MentorSuggestion {
   active_mentee_count: number;   // should be 0 to be eligible
 }
 
-// ── Mock data for demo (when DB is empty) ─────────────────────────────────────
+// ── No mock data — uses real Supabase tables ───────────────────────────────────
 
-const MOCK_PAIRS: MentoringPairFull[] = [
-  {
-    id: 'M001', mentor_id: 'E001', mentor_name: 'Nguyễn Minh Tuấn', mentor_position: 'Trưởng phòng Kỹ thuật',
-    mentee_id: 'E002', mentee_name: 'Lê Thị Hoa', mentee_position: 'Kỹ sư Cao cấp',
-    skills: ['leadership', 'strategic_thinking'], skill_labels: ['Lãnh đạo', 'Tư duy chiến lược'],
-    status: 'active', initiated_by: 'mentee',
-    start_date: '2026-01-15', duration_months: 6, monthly_hours: 8,
-    goals: 'Phát triển kỹ năng lãnh đạo nhóm và tư duy chiến lược để chuẩn bị cho vị trí quản lý',
-    justification: 'Nhân viên có tiềm năng cao, cần phát triển năng lực lãnh đạo',
-    reject_reason: null, created_at: '2026-01-10T08:00:00Z',
-    confirmed_hours: 10, sessions_count: 5,
-  },
-  {
-    id: 'M002', mentor_id: 'E003', mentor_name: 'Trần Văn Hùng', mentor_position: 'Giám đốc Dự án',
-    mentee_id: 'E004', mentee_name: 'Phạm Quốc Bảo', mentee_position: 'Kỹ sư Dự án',
-    skills: ['project_management', 'communication'], skill_labels: ['Quản lý dự án', 'Giao tiếp'],
-    status: 'active', initiated_by: 'lm',
-    start_date: '2026-02-01', duration_months: 6, monthly_hours: 8,
-    goals: 'Nâng cao kỹ năng quản lý dự án kỹ thuật và giao tiếp với đối tác',
-    justification: 'LM đánh giá nhân viên cần phát triển kỹ năng quản lý dự án',
-    reject_reason: null, created_at: '2026-01-25T10:00:00Z',
-    confirmed_hours: 6, sessions_count: 3,
-  },
-  {
-    id: 'M003', mentor_id: 'E005', mentor_name: 'Hoàng Thị Mai', mentor_position: 'CFO',
-    mentee_id: 'E006', mentee_name: 'Vũ Đức Thắng', mentee_position: 'Chuyên viên Tài chính',
-    skills: ['financial_analysis'], skill_labels: ['Phân tích tài chính'],
-    status: 'pending_mentor', initiated_by: 'hr',
-    start_date: null, duration_months: 6, monthly_hours: 8,
-    goals: 'Nâng cao kỹ năng phân tích tài chính và financial modeling',
-    justification: 'HR xác định nhân viên cần phát triển năng lực tài chính',
-    reject_reason: null, created_at: '2026-04-01T09:00:00Z',
-    confirmed_hours: 0, sessions_count: 0,
-  },
-];
-
-const MOCK_SESSIONS: Record<string, MentoringSessionFull[]> = {
-  'M001': [
-    { id: 'S001', pair_id: 'M001', session_date: '2026-04-10', duration_minutes: 90,
-      title: 'Thảo luận định hướng lãnh đạo chiến lược 3 năm tới',
-      mentee_notes: 'Mentor chia sẻ kinh nghiệm thực tế trong quản lý nhóm đa chức năng',
-      mentor_feedback: 'Mentee tiến bộ tốt, cần tập trung hơn vào kỹ năng ra quyết định',
-      status: 'confirmed', logged_by: 'E002', confirmed_at: '2026-04-11T08:00:00Z', created_at: '2026-04-10T15:00:00Z' },
-    { id: 'S002', pair_id: 'M001', session_date: '2026-03-27', duration_minutes: 60,
-      title: 'Review kỹ năng trình bày và ra quyết định',
-      mentee_notes: 'Thực hành presentation trước nhóm nhỏ',
-      mentor_feedback: null,
-      status: 'pending_confirm', logged_by: 'E002', confirmed_at: null, created_at: '2026-03-27T15:00:00Z' },
-    { id: 'S003', pair_id: 'M001', session_date: '2026-03-13', duration_minutes: 60,
-      title: 'Phân tích năng lực lãnh đạo qua 360°',
-      mentee_notes: 'Review kết quả 360° và xây dựng kế hoạch cải thiện',
-      mentor_feedback: 'Kết quả 360° rất tốt, cần tập trung vào stakeholder management',
-      status: 'confirmed', logged_by: 'E002', confirmed_at: '2026-03-14T09:00:00Z', created_at: '2026-03-13T15:00:00Z' },
-  ],
-  'M002': [
-    { id: 'S004', pair_id: 'M002', session_date: '2026-04-15', duration_minutes: 90,
-      title: 'Review scope & timeline quản lý dự án kỹ thuật',
-      mentee_notes: 'Thực hành WBS trên dự án thực tế',
-      mentor_feedback: 'Tiến bộ tốt trong việc phân tích WBS',
-      status: 'confirmed', logged_by: 'E004', confirmed_at: '2026-04-16T08:00:00Z', created_at: '2026-04-15T16:00:00Z' },
-    { id: 'S005', pair_id: 'M002', session_date: '2026-03-31', duration_minutes: 60,
-      title: 'Kỹ năng quản lý rủi ro kỹ thuật',
-      mentee_notes: 'Xây dựng risk register mẫu cho dự án',
-      mentor_feedback: null,
-      status: 'pending_confirm', logged_by: 'E004', confirmed_at: null, created_at: '2026-03-31T16:00:00Z' },
-  ],
-};
 
 // ── Service ────────────────────────────────────────────────────────────────────
 
@@ -124,10 +57,9 @@ export class MentoringService {
 
     if (error) {
       console.error('[MentoringService.loadMyPairs]', error);
-      // Return mock data for demo when DB is empty or tables don't exist yet
-      return MOCK_PAIRS;
+      return [];
     }
-    if (!data || data.length === 0) return MOCK_PAIRS;
+    if (!data || data.length === 0) return [];
 
     return this._enrichPairs(data);
   }
@@ -143,9 +75,9 @@ export class MentoringService {
 
     if (error) {
       console.error('[MentoringService.loadAllPairs]', error);
-      return MOCK_PAIRS;
+      return [];
     }
-    if (!data || data.length === 0) return MOCK_PAIRS;
+    if (!data || data.length === 0) return [];
 
     return this._enrichPairs(data);
   }
@@ -197,9 +129,6 @@ export class MentoringService {
   // Load sessions for a pair
   // ─────────────────────────────────────────────────────────────────────────────
   async loadSessions(pairId: string): Promise<MentoringSessionFull[]> {
-    // Return mock sessions for demo pairs
-    if (MOCK_SESSIONS[pairId]) return MOCK_SESSIONS[pairId];
-
     const { data, error } = await this.sb
       .from('mentoring_sessions')
       .select('*')
@@ -570,7 +499,7 @@ export class MentoringService {
 
     if (error) {
       console.error('[MentoringService.loadPendingForMe]', error);
-      return MOCK_PAIRS.filter(p => p.status.startsWith('pending'));
+      return [];
     }
 
     // Also get pairs where I am the mentor and status = pending_mentor
@@ -589,7 +518,7 @@ export class MentoringService {
       return true;
     });
 
-    if (deduped.length === 0) return MOCK_PAIRS.filter(p => p.status.startsWith('pending'));
+    if (deduped.length === 0) return [];
     return this._enrichPairs(deduped);
   }
 
