@@ -9,11 +9,11 @@
 
 | | |
 |---|---|
-| **Host** | `172.21.55.5:5432` |
+| **Host** | `103.72.97.160:5432` |
 | **DB** | `SuccessionOS` |
 | **User** | `postgres / postgres` |
-| **PostgREST** | `http://172.21.55.5:3000` |
-| **psql** | `export PATH="/opt/homebrew/opt/libpq/bin:$PATH"` rồi chạy `psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS` |
+| **PostgREST** | `http://103.72.97.160:3000` |
+| **psql** | `export PATH="/opt/homebrew/opt/libpq/bin:$PATH"` rồi chạy `psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS` |
 | **Supabase** | Dự phòng only — không dùng trong luồng chính |
 
 > Mọi migration SQL chạy trực tiếp qua psql lên DB này, không qua Supabase Dashboard nữa.
@@ -59,7 +59,7 @@
 
 ### ✅ Vừa hoàn thành (2026-04-28 — DB migration)
 - **Migrate sang PostgreSQL nội bộ:** `ApiService` fetch-based PostgREST client, `SupabaseService` → shim, `AuthService` → localStorage session
-- **DB chính:** `172.21.55.5:5432` / PostgREST `172.21.55.5:3000` — 22 tables/views, data thật (~500 nhân viên, 196 cặp mentor)
+- **DB chính:** `103.72.97.160:5432` / PostgREST `103.72.97.160:3000` — 22 tables/views, data thật (~500 nhân viên, 196 cặp mentor)
 - **Demo accounts:** 4 tài khoản trong `user_profiles` PostgreSQL (không còn dùng Supabase Auth)
 - **Mentoring enum fix:** status PascalCase (`Active`, `PendingMentor`, `PendingLM`, `PendingHR`, `Rejected`, `Cancelled`)
 - **QC Test Guide:** `docs/QC_TEST_GUIDE.md` — 35 test cases, 8 modules, tiếng Việt

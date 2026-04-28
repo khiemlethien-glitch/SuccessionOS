@@ -10,8 +10,8 @@ SuccessionOS là hệ thống quản lý kế thừa nhân tài (Succession Plan
 Frontend Angular 18 kết nối qua **PostgREST** đến PostgreSQL nội bộ.
 
 **Deploy:** Vercel → `https://succession-os-y6mt.vercel.app`
-**Backend DB:** `postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS`
-**PostgREST API:** `http://172.21.55.5:3000`
+**Backend DB:** `postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS`
+**PostgREST API:** `http://103.72.97.160:3000`
 **Supabase (dự phòng):** `psaidbntrvrzodurnisz.supabase.co` — không dùng chính nữa
 
 ---
@@ -22,8 +22,8 @@ Frontend Angular 18 kết nối qua **PostgREST** đến PostgreSQL nội bộ.
 |---|---|
 | Framework | Angular 18 (standalone components, signals) |
 | UI | ng-zorro-antd (Ant Design for Angular) |
-| Database | **PostgreSQL nội bộ** `172.21.55.5:5432` (primary) |
-| API Layer | **PostgREST** `172.21.55.5:3000` — tự động REST từ PostgreSQL |
+| Database | **PostgreSQL nội bộ** `103.72.97.160:5432` (primary) |
+| API Layer | **PostgREST** `103.72.97.160:3000` — tự động REST từ PostgreSQL |
 | Auth | **localStorage session** — email lookup trong `user_profiles` (bypass, chưa có JWT) |
 | AI | OpenAI GPT-4o — key lưu trong `environment.ts` (openaiKey) |
 | Deploy | Vercel (SSR disabled, static build) |
@@ -36,13 +36,13 @@ Frontend Angular 18 kết nối qua **PostgREST** đến PostgreSQL nội bộ.
 ```bash
 # Từ máy dev — chạy được trực tiếp
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS
+psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS
 
 # Chạy SQL file
-psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS -f migration.sql
+psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -f migration.sql
 
 # Chạy query nhanh
-psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS -c "SELECT version();"
+psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -c "SELECT version();"
 ```
 
 ---
@@ -241,10 +241,10 @@ readonly hasRole = (role: string): boolean => {
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 # Chạy file SQL
-psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS -f supabase/migrations/xxx.sql
+psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -f supabase/migrations/xxx.sql
 
 # Hoặc inline
-psql postgresql://postgres:postgres@172.21.55.5:5432/SuccessionOS -c "ALTER TABLE ..."
+psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -c "ALTER TABLE ..."
 ```
 
 ---

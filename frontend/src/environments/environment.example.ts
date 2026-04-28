@@ -11,7 +11,7 @@ export const environment = {
   appUrl:     'http://localhost:4200',
 
   api: {
-    url: 'http://172.21.55.5:3000',
+    url: 'http://103.72.97.160:3000',
   },
 
   supabase: {
