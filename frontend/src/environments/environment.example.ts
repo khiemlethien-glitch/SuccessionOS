@@ -10,11 +10,14 @@ export const environment = {
   useMock:    false,
   appUrl:     'http://localhost:4200',
 
+  api: {
+    url: 'http://172.21.55.5:3000',
+  },
+
   supabase: {
     url:     'https://psaidbntrvrzodurnisz.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzYWlkYm50cnZyem9kdXJuaXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NDExNjQsImV4cCI6MjA5MjQxNzE2NH0.Gqb216Qvw3h3KmckA9VqMnyNXDmtriW67uU1t0TfQfo',
   },
 
-  // Placeholder — replace with real key locally; use Edge Function in production
   openaiKey: '',
 };

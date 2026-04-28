@@ -49,32 +49,32 @@ class QueryBuilder {
   }
 
   eq(col: string, val: any): this {
-    this._filters.push(`${col}=eq.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=eq.${val}`);
     return this;
   }
 
   neq(col: string, val: any): this {
-    this._filters.push(`${col}=neq.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=neq.${val}`);
     return this;
   }
 
   gt(col: string, val: any): this {
-    this._filters.push(`${col}=gt.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=gt.${val}`);
     return this;
   }
 
   gte(col: string, val: any): this {
-    this._filters.push(`${col}=gte.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=gte.${val}`);
     return this;
   }
 
   lt(col: string, val: any): this {
-    this._filters.push(`${col}=lt.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=lt.${val}`);
     return this;
   }
 
   lte(col: string, val: any): this {
-    this._filters.push(`${col}=lte.${encodeURIComponent(val)}`);
+    this._filters.push(`${col}=lte.${val}`);
     return this;
   }
 
