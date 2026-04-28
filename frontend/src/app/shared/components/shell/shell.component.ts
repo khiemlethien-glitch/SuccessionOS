@@ -53,7 +53,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     { label: 'PHÁT TRIỂN', items: [
       { label: 'Kế hoạch IDP',       icon: 'solution',   route: '/idp',         disabled: true },
       { label: 'Đánh giá',           icon: 'star',       route: '/assessment',  disabled: true },
-      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',   route: '/mentoring',   disabled: true },
+      { label: 'Kèm cặp & Cố vấn',  icon: 'user-add',   route: '/mentoring',   requiredRole: 'Line Manager' },
       { label: 'Họp hiệu chỉnh',     icon: 'audit',      route: '/calibration', disabled: true, requiredRole: 'Line Manager' },
     ]},
     { label: 'PHÂN TÍCH', items: [
