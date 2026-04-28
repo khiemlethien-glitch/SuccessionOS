@@ -153,12 +153,13 @@
 <nz-drawer
   [nzVisible]="showAddModal()"
   (nzOnClose)="closeAddModal()"
-  nzPlacement="right"
+  [nzPlacement]="isMobile() ? 'bottom' : 'right'"
   [nzWidth]="640"
+  [nzHeight]="'85vh'"
   nzTitle=""
   [nzClosable]="false"
   [nzMask]="true"
-  [nzMaskClosable]="false"
+  [nzMaskClosable]="true"
   nzWrapClassName="add-pos-drawer"
 >
   <ng-container *nzDrawerContent>

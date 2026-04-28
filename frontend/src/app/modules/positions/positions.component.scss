@@ -381,6 +381,28 @@
   .ant-drawer-body { padding:0 !important; background:#fff; }
   .ant-drawer-mask { background:rgba(15,23,42,.35); backdrop-filter:blur(2px); }
   .ant-drawer-content-wrapper { min-width:420px; }
+
+  @media (max-width: 768px) {
+    // Bottom sheet on mobile: rounded top corners, no min-width
+    .ant-drawer-content-wrapper {
+      min-width: 0 !important;
+      width: 100% !important;
+      border-radius: 18px 18px 0 0;
+      overflow: hidden;
+    }
+    .ant-drawer-content {
+      border-radius: 18px 18px 0 0;
+    }
+    // Drag handle at very top of bottom sheet
+    .ant-drawer-body::before {
+      content: '';
+      display: block;
+      width: 36px; height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+  }
 }
 
 .m-hero {
@@ -1915,4 +1937,69 @@
   color: #64748b;
 
   .anticon { font-size: 14px; }
+}
+
+// ══ Mobile ════════════════════════════════════════════════════════════════════
+@media (max-width: 768px) {
+
+  // Page layout
+  .pos-page { gap: 12px; }
+
+  // Hero: stack vertically
+  .page-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 16px;
+    border-radius: 14px;
+  }
+  .hero-title { font-size: 20px; }
+  .btn-add { width: 100%; justify-content: center; }
+
+  // Stats: 2-column grid already handled at 900px; keep as is
+
+  // Filter bar: wrap
+  .pos-filter-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  // Cards: full width (already auto-fill but minmax 320px may force scroll)
+  .pos-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  // Drawer content on mobile: tighter padding
+  .m-hero {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .m-hero-title { font-size: 14px; }
+  .m-hero-sub   { font-size: 12px; }
+
+  .m-body { padding: 16px 16px 20px; gap: 14px; }
+
+  .m-row-2 {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  // Footer: stack on very small screens
+  .m-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .m-footer-right {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .m-btn {
+    font-size: 12px;
+    padding: 0 12px;
+    height: 34px;
+  }
 }

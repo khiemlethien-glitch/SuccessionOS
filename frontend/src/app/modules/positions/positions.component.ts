@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, HostListener, OnInit, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
@@ -70,6 +70,13 @@ export class PositionsComponent implements OnInit {
   positions = signal<KeyPosition[]>([]);
   plans     = signal<SuccessionPlan[]>([]);
   loading   = signal(true);
+
+  isMobile = signal(typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    if (typeof window !== 'undefined') this.isMobile.set(window.innerWidth <= 768);
+  }
 
   readonly totalCount     = computed(() => this.positions().length);
   readonly criticalCount  = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
