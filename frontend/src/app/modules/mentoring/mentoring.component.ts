@@ -42,6 +42,8 @@ import {
   ],
   templateUrl: './mentoring.component.html',
   styleUrl: './mentoring.component.scss',
+  // nz-drawer teleports to cdk-overlay → SSR DOM mismatch (NG0500)
+  host: { ngSkipHydration: 'true' },
 })
 export class MentoringComponent implements OnInit {
   private mentoringService = inject(MentoringService);
@@ -61,8 +63,8 @@ export class MentoringComponent implements OnInit {
   activeTab = signal<'active' | 'pending' | 'completed'>('active');
 
   // ── Computed filtered lists ───────────────────────────────────────────────────
-  activePairs    = computed(() => this.pairs().filter(p => p.status === 'active'));
-  completedPairs = computed(() => this.pairs().filter(p => p.status === 'completed' || p.status === 'rejected' || p.status === 'cancelled'));
+  activePairs    = computed(() => this.pairs().filter(p => p.status === 'Active'));
+  completedPairs = computed(() => this.pairs().filter(p => p.status === 'Completed' || p.status === 'Rejected' || p.status === 'Cancelled'));
 
   // ── Create flow (multi-step drawer) ──────────────────────────────────────────
   createOpen    = signal(false);
@@ -135,7 +137,7 @@ export class MentoringComponent implements OnInit {
     this.loading.set(false);
 
     // Auto-select first active pair
-    const active = pairs.find(p => p.status === 'active');
+    const active = pairs.find(p => p.status === 'Active');
     if (active) this.selectPair(active.id);
   }
 
@@ -377,26 +379,28 @@ export class MentoringComponent implements OnInit {
   // ─────────────────────────────────────────────────────────────────────────────
   statusColor(s: string): string {
     const map: Record<string, string> = {
-      active:          'blue',
-      completed:       'green',
-      pending_mentor:  'gold',
-      pending_lm:      'orange',
-      pending_hr:      'purple',
-      rejected:        'red',
-      cancelled:       'default',
+      Active:         'blue',
+      Completed:      'green',
+      PendingMentor:  'gold',
+      PendingLM:      'orange',
+      PendingHR:      'purple',
+      Rejected:       'red',
+      Cancelled:      'default',
+      Paused:         'cyan',
     };
     return map[s] ?? 'default';
   }
 
   statusLabel(s: string): string {
     const map: Record<string, string> = {
-      active:          'Đang kèm cặp',
-      completed:       'Hoàn thành',
-      pending_mentor:  'Chờ Mentor',
-      pending_lm:      'Chờ LM duyệt',
-      pending_hr:      'Chờ HR duyệt',
-      rejected:        'Đã từ chối',
-      cancelled:       'Đã hủy',
+      Active:         'Đang kèm cặp',
+      Completed:      'Hoàn thành',
+      PendingMentor:  'Chờ Mentor',
+      PendingLM:      'Chờ LM duyệt',
+      PendingHR:      'Chờ HR duyệt',
+      Rejected:       'Đã từ chối',
+      Cancelled:      'Đã hủy',
+      Paused:         'Tạm dừng',
     };
     return map[s] ?? s;
   }
@@ -438,7 +442,7 @@ export class MentoringComponent implements OnInit {
 
   // Can the current user log a session for this pair (must be mentee)
   canLogSession(pair: MentoringPairFull | null): boolean {
-    if (!pair || pair.status !== 'active') return false;
+    if (!pair || pair.status !== 'Active') return false;
     return pair.mentee_id === this.currentEmployeeId || this.isHrOrAbove;
   }
 
@@ -450,17 +454,17 @@ export class MentoringComponent implements OnInit {
 
   // Is this pair pending mentor action from current user
   isPendingMentorAction(pair: MentoringPairFull): boolean {
-    return pair.status === 'pending_mentor' && pair.mentor_id === this.currentEmployeeId;
+    return pair.status === 'PendingMentor' && pair.mentor_id === this.currentEmployeeId;
   }
 
   // Is this pair pending LM action
   isPendingLmAction(pair: MentoringPairFull): boolean {
-    return pair.status === 'pending_lm' && this.isLineManager;
+    return pair.status === 'PendingLM' && this.isLineManager;
   }
 
   // Is this pair pending HR action
   isPendingHrAction(pair: MentoringPairFull): boolean {
-    return pair.status === 'pending_hr' && this.isHrOrAbove;
+    return pair.status === 'PendingHR' && this.isHrOrAbove;
   }
 
   // Get score color (green = high, yellow = medium, red = low)

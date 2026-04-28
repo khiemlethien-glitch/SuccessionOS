@@ -129,27 +129,21 @@
 
         <!-- ── Mentor row ── -->
         @if (isViewer()) {
-          <!-- Viewer: approved mentor hiện checkmark xanh, pending hiện bên dưới -->
+          <!-- Viewer: chỉ xem status, tạo mới → /mentoring -->
           <div class="mentor-row" [class.empty]="!talent()!.mentor" [class.mentor-row-approved]="!!talent()!.mentor">
             <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
             <span class="mentor-text">
               @if (talent()!.mentor) {
                 Mentor: <strong>{{ talent()!.mentor }}</strong>
               } @else {
-                Chưa có mentor — nhấn (+) để gửi yêu cầu
+                Chưa có mentor
               }
             </span>
             @if (talent()!.mentor) {
-              <!-- Checkmark xanh thay cho nút X -->
               <span class="mentor-verified-badge" title="Đã được phê duyệt">
                 <span nz-icon nzType="check-circle" nzTheme="fill"></span>
               </span>
             }
-            <button type="button" class="mentor-btn" (click)="openMentorModal()"
-                    [disabled]="mentorSubmitting() || !!pendingMentorName()"
-                    title="Gửi yêu cầu mentor mới">
-              <span nz-icon nzType="plus"></span>
-            </button>
           </div>
 
           <!-- Pending mentor request -->
@@ -163,8 +157,15 @@
             </div>
           }
 
+          <!-- Link sang trang Kèm Cặp -->
+          <a class="mentor-manage-link" routerLink="/mentoring">
+            <span nz-icon nzType="user-add"></span>
+            Quản lý kèm cặp & cố vấn
+            <span nz-icon nzType="arrow-right" class="mentor-link-arrow"></span>
+          </a>
+
         } @else {
-          <!-- Non-Viewer: hành vi gán trực tiếp như cũ -->
+          <!-- Non-Viewer: hiện status + link sang /mentoring để quản lý -->
           <div class="mentor-row" [class.empty]="!talent()!.mentor">
             <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
             <span class="mentor-text">
@@ -174,15 +175,12 @@
                 Chưa có mentor được gán
               }
             </span>
-            @if (talent()!.mentor) {
-              <button type="button" class="mentor-btn mentor-btn-clear" (click)="clearMentor()" title="Bỏ gán">
-                <span nz-icon nzType="close"></span>
-              </button>
-            }
-            <button type="button" class="mentor-btn" (click)="openMentorModal()" [title]="talent()!.mentor ? 'Đổi mentor' : 'Gán mentor'">
-              <span nz-icon nzType="plus"></span>
-            </button>
           </div>
+          <a class="mentor-manage-link" routerLink="/mentoring">
+            <span nz-icon nzType="user-add"></span>
+            Quản lý tại Kèm Cặp & Cố Vấn
+            <span nz-icon nzType="arrow-right" class="mentor-link-arrow"></span>
+          </a>
         }
       </div>
 

@@ -52,7 +52,7 @@ export class MentoringService {
       .from('mentoring_pairs')
       .select('*')
       .or(`mentor_id.eq.${currentEmployeeId},mentee_id.eq.${currentEmployeeId}`)
-      .in('status', ['active', 'pending_mentor', 'pending_lm', 'pending_hr', 'completed'])
+      .in('status', ['Active', 'PendingMentor', 'PendingLM', 'PendingHR', 'Completed'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -248,7 +248,7 @@ export class MentoringService {
     const { data: activePairs } = await this.sb
       .from('mentoring_pairs')
       .select('mentor_id')
-      .in('status', ['active', 'pending_mentor', 'pending_lm', 'pending_hr']);
+      .in('status', ['Active', 'PendingMentor', 'PendingLM', 'PendingHR']);
 
     const activeMentorCount = new Map<string, number>();
     for (const p of (activePairs ?? [])) {
@@ -342,12 +342,12 @@ export class MentoringService {
     // Determine initial status based on who initiates
     let status: string;
     if (payload.initiated_by === 'mentee') {
-      status = 'pending_mentor';
+      status = 'PendingMentor';
     } else if (payload.initiated_by === 'lm') {
-      status = 'pending_mentor';
+      status = 'PendingMentor';
     } else {
       // hr/admin: skip to pending_lm
-      status = 'pending_lm';
+      status = 'PendingLM';
     }
 
     const { data, error } = await this.sb
@@ -367,7 +367,7 @@ export class MentoringService {
     if (!accept) {
       const { error } = await this.sb
         .from('mentoring_pairs')
-        .update({ status: 'rejected', reject_reason: reason ?? 'Mentor từ chối', updated_at: new Date().toISOString() })
+        .update({ status: 'Rejected', reject_reason: reason ?? 'Mentor từ chối', updated_at: new Date().toISOString() })
         .eq('id', pairId);
       if (error) console.error('[MentoringService.respondAsMentor] reject:', error);
       return;
@@ -382,21 +382,21 @@ export class MentoringService {
 
     let nextStatus: string;
     if (pair?.initiated_by === 'mentee') {
-      // bottom-up: pending_mentor → pending_lm
-      nextStatus = 'pending_lm';
+      // bottom-up: PendingMentor → PendingLM
+      nextStatus = 'PendingLM';
     } else if (pair?.initiated_by === 'lm') {
-      // top-down: pending_mentor → pending_hr
-      nextStatus = 'pending_hr';
+      // top-down: PendingMentor → PendingHR
+      nextStatus = 'PendingHR';
     } else {
-      // hr: pending_lm → pending_mentor → active (mentor is last step)
-      nextStatus = 'active';
+      // hr: PendingLM → PendingMentor → Active (mentor is last step)
+      nextStatus = 'Active';
     }
 
     const { error } = await this.sb
       .from('mentoring_pairs')
       .update({
         status:     nextStatus,
-        start_date: nextStatus === 'active' ? new Date().toISOString().split('T')[0] : null,
+        start_date: nextStatus === 'Active' ? new Date().toISOString().split('T')[0] : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', pairId);
@@ -410,7 +410,7 @@ export class MentoringService {
     if (!accept) {
       const { error } = await this.sb
         .from('mentoring_pairs')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .update({ status: 'Rejected', updated_at: new Date().toISOString() })
         .eq('id', pairId);
       if (error) console.error('[MentoringService.respondAsApprover] reject:', error);
       return;
@@ -424,18 +424,18 @@ export class MentoringService {
 
     let nextStatus: string;
     if (role === 'lm') {
-      // After LM approves: pending_lm → pending_hr (always)
-      nextStatus = 'pending_hr';
+      // After LM approves: PendingLM → PendingHR (always)
+      nextStatus = 'PendingHR';
     } else {
-      // After HR approves: → active (with start date)
-      nextStatus = 'active';
+      // After HR approves: → Active (with start date)
+      nextStatus = 'Active';
     }
 
     const { error } = await this.sb
       .from('mentoring_pairs')
       .update({
         status:     nextStatus,
-        start_date: nextStatus === 'active' ? new Date().toISOString().split('T')[0] : null,
+        start_date: nextStatus === 'Active' ? new Date().toISOString().split('T')[0] : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', pairId);
@@ -481,16 +481,16 @@ export class MentoringService {
     const filters: string[] = [];
 
     if (userRole === 'Admin' || userRole === 'HR Manager') {
-      // HR/Admin see all pending_hr
-      filters.push('status.eq.pending_hr');
+      // HR/Admin see all PendingHR
+      filters.push('status.eq.PendingHR');
     }
     if (userRole === 'Admin' || userRole === 'Line Manager') {
-      // LM sees pending_lm
-      filters.push('status.eq.pending_lm');
+      // LM sees PendingLM
+      filters.push('status.eq.PendingLM');
     }
 
     // Mentor pending: pairs where I am the mentor
-    const orFilter = filters.length > 0 ? filters.join(',') : 'status.eq.pending_mentor';
+    const orFilter = filters.length > 0 ? filters.join(',') : 'status.eq.PendingMentor';
 
     const { data, error } = await this.sb
       .from('mentoring_pairs')
@@ -507,7 +507,7 @@ export class MentoringService {
       .from('mentoring_pairs')
       .select('*')
       .eq('mentor_id', currentEmployeeId)
-      .eq('status', 'pending_mentor');
+      .eq('status', 'PendingMentor');
 
     const combined = [...(data ?? []), ...(mentorPending ?? [])];
     // Deduplicate
