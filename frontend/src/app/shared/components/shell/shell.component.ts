@@ -1,4 +1,4 @@
-import { Component, inject, signal, HostListener, OnInit, OnDestroy, AfterViewInit, PLATFORM_ID } from '@angular/core';
+import { Component, inject, signal, HostListener, OnInit, OnDestroy, PLATFORM_ID, afterNextRender } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { NzLayoutModule } from 'ng-zorro-antd/layout';
@@ -32,12 +32,13 @@ interface NavGroup {
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
-export class ShellComponent implements OnInit, OnDestroy, AfterViewInit {
+export class ShellComponent implements OnInit, OnDestroy {
   isCollapsed = signal(false);
   isMobile    = signal(false);
   mobileOpen  = signal(false);
-  /** True after Angular has committed the view to the DOM — guards ng-zorro
-   *  overlay directives (nz-dropdown, nz-tooltip) that need a real DOM node. */
+  /** True after the first render is committed to the DOM.
+   *  Set via afterNextRender() — the Angular 18 safe alternative to
+   *  ngAfterViewInit + signal write (which causes nextSibling null errors). */
   viewReady   = signal(false);
 
   private router      = inject(Router);
@@ -69,11 +70,12 @@ export class ShellComponent implements OnInit, OnDestroy, AfterViewInit {
   ];
 
   constructor() {
-    // Guard: window không tồn tại trong SSR (Node.js)
     if (isPlatformBrowser(this.platformId)) this.checkMobile();
+    // afterNextRender fires once after the first render is committed to DOM —
+    // safer than ngAfterViewInit + signal.set() which conflicts with Angular's
+    // reconciliation and causes "Cannot read properties of null (nextSibling)".
+    afterNextRender(() => this.viewReady.set(true));
   }
-
-  ngAfterViewInit(): void { this.viewReady.set(true); }
 
   ngOnInit(): void {
     // Auto-close mobile drawer on navigation
