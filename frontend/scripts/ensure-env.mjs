@@ -24,10 +24,13 @@ const pairs = [
   ['environment.prod.example.ts', 'environment.prod.ts'],
 ];
 
+// Each entry has its own regex so context-sensitive keys (like `url`) are
+// matched precisely — e.g. SUPABASE_URL only replaces `url:` inside the
+// `supabase:` block, never the `api.url` that appears earlier in the file.
 const replacements = {
-  SUPABASE_URL:      { key: 'url',       value: process.env['SUPABASE_URL'] },
-  SUPABASE_ANON_KEY: { key: 'anonKey',   value: process.env['SUPABASE_ANON_KEY'] },
-  OPENAI_KEY:        { key: 'openaiKey', value: process.env['OPENAI_KEY'] },
+  SUPABASE_URL:      { pattern: /(supabase:[\s\S]*?url:\s*)'[^']*'/,  value: process.env['SUPABASE_URL'] },
+  SUPABASE_ANON_KEY: { pattern: /(anonKey:\s*)'[^']*'/,               value: process.env['SUPABASE_ANON_KEY'] },
+  OPENAI_KEY:        { pattern: /(openaiKey:\s*)'[^']*'/,             value: process.env['OPENAI_KEY'] },
 };
 
 for (const [template, target] of pairs) {
@@ -49,12 +52,11 @@ for (const [template, target] of pairs) {
   // Inject env-var overrides into the freshly-copied file
   let patched = false;
   let content = readFileSync(targetPath, 'utf8');
-  for (const [envName, { key, value }] of Object.entries(replacements)) {
+  for (const [envName, { pattern, value }] of Object.entries(replacements)) {
     if (!value) continue;
-    const pattern = new RegExp(`(${key}:\\s*)'[^']*'`);
     if (pattern.test(content)) {
       content = content.replace(pattern, `$1'${value.replace(/'/g, "\\'")}'`);
-      console.log(`[ensure-env]   ↳ ${envName} applied → ${key}`);
+      console.log(`[ensure-env]   ↳ ${envName} applied`);
       patched = true;
     }
   }

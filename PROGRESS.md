@@ -63,6 +63,7 @@
 - **Demo accounts:** 4 tài khoản trong `user_profiles` PostgreSQL (không còn dùng Supabase Auth)
 - **Mentoring enum fix:** status PascalCase (`Active`, `PendingMentor`, `PendingLM`, `PendingHR`, `Rejected`, `Cancelled`)
 - **QC Test Guide:** `docs/QC_TEST_GUIDE.md` — 35 test cases, 8 modules, tiếng Việt
+- **Fix Vercel CORS bug:** `scripts/ensure-env.mjs` — regex `(url:\s*)` quá rộng, khớp `api.url` trước `supabase.url` → Vercel ghi đè `api.url` bằng Supabase URL → app gọi nhầm endpoint. Fix: mỗi env var dùng regex riêng có context (`/(supabase:[\s\S]*?url:\s*)'[^']*'/`)
 
 ### ✅ Vừa hoàn thành (2026-04-28)
 - **Schema export:** `docs/exports/SCHEMA.md` — full schema documentation từ migration files (tables, views, functions, RLS, relationships, approval workflow matrix)
