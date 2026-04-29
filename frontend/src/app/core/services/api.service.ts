@@ -53,6 +53,21 @@ class QueryBuilder {
     return this;
   }
 
+  /**
+   * Upsert: POST with Prefer: resolution=merge-duplicates.
+   * options.onConflict → ?on_conflict=col1,col2 URL param.
+   * Equivalent to Supabase .upsert(body, { onConflict: '...' }).
+   */
+  upsert(body: any, options?: { onConflict?: string }): this {
+    this._method = 'POST';
+    this._body = Array.isArray(body) ? body : [body];
+    if (options?.onConflict) {
+      this._filters.push(`on_conflict=${encodeURIComponent(options.onConflict)}`);
+    }
+    (this as any)._isUpsert = true;
+    return this;
+  }
+
   eq(col: string, val: any): this {
     this._filters.push(`${col}=eq.${val}`);
     return this;
@@ -179,7 +194,16 @@ class QueryBuilder {
 
     if (this._method === 'POST') {
       const prefer = headers['Prefer'] ? `${headers['Prefer']},` : '';
-      headers['Prefer'] = `${prefer}return=representation`;
+      // Upsert: merge-duplicates instructs PostgREST to UPDATE on conflict
+      const resolution = (this as any)._isUpsert ? 'resolution=merge-duplicates,' : '';
+      headers['Prefer'] = `${prefer}${resolution}return=representation`;
+      // on_conflict param for upsert must go into URL (not body)
+      if ((this as any)._isUpsert) {
+        for (const f of this._filters) {
+          const [key, ...rest] = f.split('=');
+          url.searchParams.append(key, rest.join('='));
+        }
+      }
     }
 
     // HEAD request — count only, no body
