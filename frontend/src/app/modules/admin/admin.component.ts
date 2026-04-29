@@ -268,12 +268,12 @@ export class AdminComponent implements OnInit {
   async loadAuditLogs() {
     try {
       const { data } = await this.sbSvc.client
-        .from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(200);
+        .from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200);
       this.logs.set((data ?? []).map((l: any) => ({
-        id: l.id ?? l.timestamp, timestamp: l.timestamp, actor: l.user_id ?? '—',
+        id: l.id ?? l.created_at, timestamp: l.created_at, actor: l.user_id ?? '—',
         action: l.action,
-        description: l.details ? JSON.stringify(l.details) : '',
-        module: l.action?.split('_')[0] ?? '—',
+        description: l.new_value ? JSON.stringify(l.new_value) : (l.old_value ? JSON.stringify(l.old_value) : ''),
+        module: l.entity ?? l.action?.split('_')[0] ?? '—',
       })));
     } catch { /* silent */ }
   }

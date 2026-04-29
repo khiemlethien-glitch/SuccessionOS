@@ -156,7 +156,9 @@ class QueryBuilder {
       'Accept': 'application/json',
     };
 
-    if (this._single || this._maybeSingle) {
+    // single() uses object mode (406 on 0 rows = error).
+    // maybeSingle() stays in array mode + picks first element → no 406 noise in console.
+    if (this._single) {
       headers['Accept'] = 'application/vnd.pgrst.object+json';
     }
 
@@ -223,8 +225,12 @@ class QueryBuilder {
 
       const json = JSON.parse(text);
 
-      if (this._single || this._maybeSingle) {
+      if (this._single) {
         return { data: json ?? null, error: null, count };
+      }
+      if (this._maybeSingle) {
+        // Array mode: pick first element, null if empty
+        return { data: Array.isArray(json) ? (json[0] ?? null) : (json ?? null), error: null, count };
       }
 
       // POST returns array when Prefer:return=representation
