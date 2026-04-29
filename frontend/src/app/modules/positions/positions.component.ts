@@ -107,6 +107,13 @@ export class PositionsComponent implements OnInit {
   /** Scores mục tiêu cho từng năng lực (key → 0‒100) */
   competencyScores = signal<Record<string, number>>({});
 
+  /**
+   * Keys của những năng lực có điểm auto-load từ backend (assessment tool hoặc DB).
+   * Những key này hiển thị badge + lock icon, không có slider chỉnh sửa.
+   * Chỉ áp dụng khi tạo vị trí mới (CREATE mode) — edit mode không lock.
+   */
+  lockedCompetencyKeys = signal<Set<string>>(new Set());
+
   readonly isEditMode = computed(() => this.editingId() !== null);
   readonly modalTitle = computed(() =>
     this.isEditMode() ? 'Chỉnh sửa vị trí then chốt' : 'Thêm vị trí then chốt'
@@ -516,6 +523,8 @@ export class PositionsComponent implements OnInit {
       canonicalScores[canonKey] = score as number;
     }
     this.competencyScores.set(canonicalScores);
+    // Edit mode: user đang chủ động chỉnh sửa yêu cầu vị trí → không lock score nào
+    this.lockedCompetencyKeys.set(new Set());
     this.drawerMode.set('edit');
   }
 
@@ -564,6 +573,11 @@ export class PositionsComponent implements OnInit {
   getSliderStyle(val: number): string {
     const pct = Math.min(100, Math.max(0, val));
     return `background: linear-gradient(to right, #4f46e5 ${pct}%, #e0e7ff ${pct}%)`;
+  }
+
+  /** Trả về true nếu điểm của key này được load từ backend và không được chỉnh sửa */
+  isCompLocked(key: string): boolean {
+    return this.lockedCompetencyKeys().has(key);
   }
 
   setCompScore(key: string, ev: Event): void {
@@ -678,6 +692,7 @@ export class PositionsComponent implements OnInit {
     this.draft.set({ title: '', department: null, current_holder: '', current_holder_id: null, critical_level: 'Medium' });
     this.availableCompetencies.set([...this.allCompetencies]);
     this.selectedCompetencies.set([]);
+    this.lockedCompetencyKeys.set(new Set());
   }
 
   updateDraft<K extends keyof NewPositionDraft>(key: K, value: NewPositionDraft[K]): void {
@@ -746,12 +761,16 @@ export class PositionsComponent implements OnInit {
     // Load + canonicalize scores (DB raw key → UI canonical key)
     const rawScores = pos.competency_scores ?? {};
     const canon: Record<string, number> = {};
+    const locked = new Set<string>();
     for (const [k, v] of Object.entries(rawScores)) {
       if (v == null) continue;
       const meta = this.resolveCompMeta(k);
-      canon[meta?.key ?? k] = v as number;
+      const canonKey = meta?.key ?? k;
+      canon[canonKey] = v as number;
+      locked.add(canonKey); // lock scores đến từ DB — chỉ thêm mới mới kéo slider
     }
     this.competencyScores.set(canon);
+    this.lockedCompetencyKeys.set(locked);
   }
 
   /**
@@ -764,12 +783,15 @@ export class PositionsComponent implements OnInit {
     this.availableCompetencies.set(this.allCompetencies.filter(c => !STD.includes(c.key)));
 
     const scores: Record<string, number> = {};
-    if (emp.comp_target_technical       != null) scores['technical']       = emp.comp_target_technical;
-    if (emp.comp_target_leadership      != null) scores['leadership']      = emp.comp_target_leadership;
-    if (emp.comp_target_communication   != null) scores['communication']   = emp.comp_target_communication;
-    if (emp.comp_target_problem_solving != null) scores['problemSolving']  = emp.comp_target_problem_solving;
-    if (emp.comp_target_adaptability    != null) scores['adaptability']    = emp.comp_target_adaptability;
+    const locked = new Set<string>();
+    // Lock những năng lực có điểm từ tool đánh giá — điểm chuẩn, không cho tự ý sửa
+    if (emp.comp_target_technical       != null) { scores['technical']      = emp.comp_target_technical;       locked.add('technical'); }
+    if (emp.comp_target_leadership      != null) { scores['leadership']     = emp.comp_target_leadership;      locked.add('leadership'); }
+    if (emp.comp_target_communication   != null) { scores['communication']  = emp.comp_target_communication;   locked.add('communication'); }
+    if (emp.comp_target_problem_solving != null) { scores['problemSolving'] = emp.comp_target_problem_solving; locked.add('problemSolving'); }
+    if (emp.comp_target_adaptability    != null) { scores['adaptability']   = emp.comp_target_adaptability;    locked.add('adaptability'); }
     this.competencyScores.set(scores);
+    this.lockedCompetencyKeys.set(locked);
   }
 
   /** Chuyển DB raw key sang label tiếng Việt (cho ad-hoc competencies). */
@@ -842,6 +864,8 @@ export class PositionsComponent implements OnInit {
   removeCompetency(c: Competency): void {
     this.selectedCompetencies.update(list => list.filter(x => x.key !== c.key));
     this.availableCompetencies.update(list => [...list, c]);
+    // Xóa khỏi locked set khi loại năng lực ra (cleanup)
+    this.lockedCompetencyKeys.update(s => { const copy = new Set(s); copy.delete(c.key); return copy; });
   }
 
   canSubmit = computed(() => {
