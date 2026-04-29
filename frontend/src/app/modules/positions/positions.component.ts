@@ -1139,11 +1139,22 @@ export class PositionsComponent implements OnInit {
     }
 
     // ── CREATE mode ──────────────────────────────────────
-    const idx = this.positions().length + 1;
-    const tempId = `P${String(idx).padStart(3, '0')}`;
+
+    // Bug fix: block duplicate title (case-insensitive)
+    const titleTrimmed = d.title.trim();
+    const duplicate = this.positions().find(
+      p => p.title.trim().toLowerCase() === titleTrimmed.toLowerCase()
+    );
+    if (duplicate) {
+      this.msg.error(`Vị trí "${titleTrimmed}" đã tồn tại trong hệ thống`);
+      return;
+    }
+
+    // Use a temp UUID-like key for local state only; DB generates real UUID
+    const tempId = `temp-${Date.now()}`;
     const newPos: KeyPosition = {
       id: tempId,
-      title: d.title.trim(),
+      title: titleTrimmed,
       department: deptName,
       current_holder: d.current_holder.trim(),
       successor_count: 0,
@@ -1154,12 +1165,11 @@ export class PositionsComponent implements OnInit {
       required_competencies: competencyKeys,
     };
     this.positions.update(list => [newPos, ...list]);
-    this.msg.success(`Đã thêm vị trí "${newPos.title}"`);
     this.closeAddModal();
 
+    // Bug fix: do NOT send id — let DB generate UUID via DEFAULT gen_random_uuid()
     const dbPayload = {
-      id: tempId,
-      title: newPos.title,
+      title: titleTrimmed,
       department_id: d.department,
       current_holder_id: d.current_holder_id,
       critical_level: d.critical_level,
@@ -1171,8 +1181,14 @@ export class PositionsComponent implements OnInit {
       is_active: true,
     };
     const saved = await this.positionSvc.create(dbPayload);
-    if (saved?.id && saved.id !== tempId) {
+    if (saved?.id) {
+      // Replace tempId with real DB UUID
       this.positions.update(list => list.map(p => p.id === tempId ? { ...p, id: saved.id } : p));
+      this.msg.success(`Đã thêm vị trí "${titleTrimmed}"`);
+    } else {
+      // Rollback: remove optimistic row if DB save failed
+      this.positions.update(list => list.filter(p => p.id !== tempId));
+      this.msg.error(`Không thể lưu vị trí "${titleTrimmed}" — vui lòng thử lại`);
     }
   }
 }
