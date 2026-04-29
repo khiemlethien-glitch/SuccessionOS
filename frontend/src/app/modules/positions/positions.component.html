@@ -111,7 +111,7 @@
           <div class="cs-div"></div>
           <div class="cs-cell">
             <div class="cs-val">
-              <span class="risk-mini" [ngClass]="'risk-' + riskToneOf(p.risk_level)">{{ p.risk_level }}</span>
+              <span class="risk-mini" [ngClass]="'risk-' + riskToneOf(derivedRiskLevel(p))">{{ derivedRiskLevel(p) }}</span>
             </div>
             <div class="cs-lbl">Rủi ro</div>
           </div>

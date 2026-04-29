@@ -81,7 +81,7 @@ export class PositionsComponent implements OnInit {
   readonly totalCount     = computed(() => this.positions().length);
   readonly criticalCount  = computed(() => this.positions().filter(p => p.critical_level === 'Critical').length);
   readonly noSuccessor    = computed(() => this.positions().filter(p => p.successor_count === 0).length);
-  readonly highRiskCount  = computed(() => this.positions().filter(p => p.risk_level === 'High').length);
+  readonly highRiskCount  = computed(() => this.positions().filter(p => this.derivedRiskLevel(p) === 'High').length);
 
   // ─── Coverage filter (từ dashboard deeplink hoặc tự chọn) ──────
   coverageFilter = signal<'all' | 'covered' | 'uncovered'>('all');
@@ -430,6 +430,16 @@ export class PositionsComponent implements OnInit {
     if (level === 'High') return 'amber';
     if (level === 'Medium') return 'blue';
     return 'green';
+  }
+
+  /** Tính risk_level động dựa vào successor_count + ready_now_count + critical_level */
+  derivedRiskLevel(p: { successor_count?: number; ready_now_count?: number; critical_level?: string }): 'High' | 'Medium' | 'Low' {
+    const s = p.successor_count ?? 0;
+    const r = p.ready_now_count ?? 0;
+    const c = p.critical_level ?? '';
+    if (s === 0) return c === 'Critical' || c === 'High' ? 'High' : 'Medium';
+    if (r === 0 && (c === 'Critical' || c === 'High')) return 'Medium';
+    return 'Low';
   }
 
   riskToneOf(level: string): 'red' | 'amber' | 'green' {
