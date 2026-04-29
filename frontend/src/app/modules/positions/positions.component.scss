@@ -1004,14 +1004,6 @@
   text-align: center;
   line-height: 18px;
 
-  // Locked variant: màu xám trung tính, cursor not-allowed để báo hiệu không chỉnh được
-  &.comp-score-locked {
-    background: linear-gradient(135deg, #6b7280, #9ca3af);
-    cursor: default;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
 }
 
 // Slider row: 0 — [slider] — 100

@@ -523,8 +523,8 @@ export class PositionsComponent implements OnInit {
       canonicalScores[canonKey] = score as number;
     }
     this.competencyScores.set(canonicalScores);
-    // Edit mode: user đang chủ động chỉnh sửa yêu cầu vị trí → không lock score nào
-    this.lockedCompetencyKeys.set(new Set());
+    // Lock scores đến từ DB (cả edit lẫn create) — chỉ năng lực mới thêm trong session mới có slider
+    this.lockedCompetencyKeys.set(new Set(Object.keys(canonicalScores)));
     this.drawerMode.set('edit');
   }
 

@@ -612,14 +612,11 @@
                 @for (c of selectedCompetencies(); track c.key) {
                   <div class="dd-chip dd-chip-active dd-chip-with-score" cdkDrag>
                     @if (isCompLocked(c.key)) {
-                      <!-- Điểm từ hệ thống đánh giá: read-only, không slider -->
+                      <!-- Điểm từ DB/hệ thống: read-only, không slider -->
                       <div class="comp-chip-top">
                         <span nz-icon [nzType]="c.icon" class="dd-chip-ico"></span>
                         <span class="dd-chip-name">{{ c.label }}</span>
-                        <span class="comp-score-badge comp-score-locked"
-                          nz-tooltip nzTooltipTitle="Điểm chuẩn từ hệ thống đánh giá — không thể chỉnh sửa">
-                          <span nz-icon nzType="lock" style="font-size:9px;margin-right:2px;opacity:.8"></span>{{ getCompScore(c.key) ?? '—' }}
-                        </span>
+                        <span class="comp-score-badge">{{ getCompScore(c.key) ?? '—' }}</span>
                         <span nz-icon nzType="close" class="dd-chip-add"
                           (click)="removeCompetency(c); $event.stopPropagation()"></span>
                       </div>
