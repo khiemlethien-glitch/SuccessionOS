@@ -1011,11 +1011,22 @@ export class PositionsComponent implements OnInit {
       this.plans.set(plans as any);
       const updatedPlan = (plans as any[]).find((p: any) => p.position_id === pos.id);
       if (updatedPlan) {
+        const newSuccCount   = updatedPlan.successors.length;
+        const newReadyCount  = updatedPlan.successors.filter((s: any) => s.readiness === 'Ready Now').length;
+        // Update viewing position (right-side panel)
         this.viewingPosition.update(vp => vp ? {
-          ...vp,
-          successor_count:  updatedPlan.successors.length,
-          ready_now_count:  updatedPlan.successors.filter((s: any) => s.readiness === 'Ready Now').length,
+          ...vp, successor_count: newSuccCount, ready_now_count: newReadyCount,
         } : null);
+        // Update the card in the grid (successor_count + ready_now_count badges)
+        this.positions.update(list => list.map(p => p.id === pos.id
+          ? { ...p, successor_count: newSuccCount, ready_now_count: newReadyCount }
+          : p
+        ));
+        // Sync successor_count back to DB so PostgREST reflects correct count
+        this.sbSvc.client
+          .from('key_positions')
+          .update({ successor_count: newSuccCount, ready_now_count: newReadyCount })
+          .eq('id', pos.id);
       }
       this.closeFindSuccessor();
     } catch (e) {
