@@ -560,18 +560,25 @@ export class PositionsComponent implements OnInit {
     return this.competencyScores()[key] ?? null;
   }
 
+  /** Trả về inline style cho slider để filled track phản ánh đúng giá trị */
+  getSliderStyle(val: number): string {
+    const pct = Math.min(100, Math.max(0, val));
+    return `background: linear-gradient(to right, #4f46e5 ${pct}%, #e0e7ff ${pct}%)`;
+  }
+
   setCompScore(key: string, ev: Event): void {
-    const raw = (ev.target as HTMLInputElement).value.trim();
+    const input = ev.target as HTMLInputElement;
+    const raw = input.value.trim();
+    const num = raw === '' ? null : Math.min(100, Math.max(0, Number(raw)));
     this.competencyScores.update(s => {
       const copy = { ...s };
-      if (raw === '') {
-        // User xóa trắng → bỏ key này, không lưu undefined
-        delete copy[key];
-      } else {
-        copy[key] = Math.min(100, Math.max(0, Number(raw)));
-      }
+      if (num === null) { delete copy[key]; } else { copy[key] = num; }
       return copy;
     });
+    // Update slider fill gradient live while dragging
+    if (input.type === 'range' && num !== null) {
+      input.style.background = `linear-gradient(to right, #4f46e5 ${num}%, #e0e7ff ${num}%)`;
+    }
   }
 
   /**
@@ -827,6 +834,10 @@ export class PositionsComponent implements OnInit {
   addCompetency(c: Competency): void {
     this.availableCompetencies.update(list => list.filter(x => x.key !== c.key));
     this.selectedCompetencies.update(list => [...list, c]);
+    // Default score = 70 khi thêm mới (slider sẽ hiện 70, không cần user kéo mới có giá trị)
+    if (this.getCompScore(c.key) === null) {
+      this.competencyScores.update(s => ({ ...s, [c.key]: 70 }));
+    }
   }
   removeCompetency(c: Competency): void {
     this.selectedCompetencies.update(list => list.filter(x => x.key !== c.key));
