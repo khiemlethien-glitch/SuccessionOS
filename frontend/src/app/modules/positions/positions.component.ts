@@ -696,9 +696,13 @@ export class PositionsComponent implements OnInit {
   }
 
   updateDraft<K extends keyof NewPositionDraft>(key: K, value: NewPositionDraft[K]): void {
-    this.draft.update(d => ({ ...d, [key]: value }));
+    // nz-select emits null khi user click X để xóa — normalize về '' cho text fields
+    const normalized = (value === null && (key === 'title' || key === 'current_holder'))
+      ? '' as NewPositionDraft[K]
+      : value;
+    this.draft.update(d => ({ ...d, [key]: normalized }));
     if (key === 'title') {
-      this._applyTitleAutoFill(value as string);
+      this._applyTitleAutoFill(normalized as string);
     }
   }
 
@@ -870,7 +874,8 @@ export class PositionsComponent implements OnInit {
 
   canSubmit = computed(() => {
     const d = this.draft();
-    return !!(d.title.trim() && d.department && d.current_holder.trim() && this.selectedCompetencies().length > 0);
+    // Null-safe: nz-select có thể emit null khi clear — guard bằng ?? ''
+    return !!((d.title ?? '').trim() && d.department && (d.current_holder ?? '').trim() && this.selectedCompetencies().length > 0);
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
