@@ -16,6 +16,7 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzTooltipModule } from 'ng-zorro-antd/tooltip';
 import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { AuthService } from '../../core/auth/auth.service';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { ApprovalService } from '../../core/services/data/approval.service';
@@ -42,7 +43,7 @@ interface AuditLog {
     NzTableModule, NzTagModule, NzButtonModule, NzIconModule, NzSelectModule,
     NzDrawerModule, NzFormModule, NzInputModule,
     NzBadgeModule, NzStepsModule, NzSpinModule,
-    NzTooltipModule, NzSwitchModule, NzDividerModule,
+    NzTooltipModule, NzSwitchModule, NzDividerModule, NzAlertModule,
   ],
   providers: [NzMessageService],
   templateUrl: './admin.component.html',
@@ -77,7 +78,8 @@ export class AdminComponent implements OnInit {
   statusFilter  = signal<'all' | 'pending' | 'approved' | 'rejected'>('pending');
 
   filteredApprovals = computed(() => {
-    let list = this.allApprovals();
+    // Exclude 'mentor' type — managed in Mentoring page (mentoring_pairs.status)
+    let list = this.allApprovals().filter(r => r.type !== 'mentor');
     if (this.typeFilter()   !== 'all') list = list.filter(r => r.type   === this.typeFilter());
     if (this.statusFilter() !== 'all') list = list.filter(r => r.status === this.statusFilter());
     return list;

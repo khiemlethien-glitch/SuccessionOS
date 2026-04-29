@@ -60,11 +60,57 @@ export class MentoringComponent implements OnInit {
   loadingSessions = signal(false);
 
   // ── Tabs ──────────────────────────────────────────────────────────────────────
-  activeTab = signal<'active' | 'pending' | 'completed'>('active');
+  // Default: 'overview' for HR/Admin (set in ngOnInit after auth resolves), 'active' for others
+  activeTab = signal<'active' | 'pending' | 'completed' | 'overview'>('active');
 
   // ── Computed filtered lists ───────────────────────────────────────────────────
   activePairs    = computed(() => this.pairs().filter(p => p.status === 'Active'));
   completedPairs = computed(() => this.pairs().filter(p => p.status === 'Completed' || p.status === 'Rejected' || p.status === 'Cancelled'));
+
+  // ── Overview stats (computed from all loaded pairs — HR/Admin loads all) ──────
+  totalPairsCount   = computed(() => this.pairs().length);
+  activePairsCount  = computed(() => this.pairs().filter(p => p.status === 'Active').length);
+  pendingTotalCount = computed(() => this.pairs().filter(p => ['PendingMentor','PendingLM','PendingHR'].includes(p.status)).length);
+  completedCount    = computed(() => this.pairs().filter(p => p.status === 'Completed').length);
+  completionPct     = computed(() => {
+    const total = this.pairs().length;
+    if (!total) return 0;
+    return Math.round((this.completedCount() / total) * 100);
+  });
+  avgSessionHours = computed(() => {
+    const active = this.pairs().filter(p => p.status === 'Active');
+    if (!active.length) return 0;
+    const totalH = active.reduce((s, p) => s + p.confirmed_hours, 0);
+    return Math.round((totalH / active.length) * 10) / 10;
+  });
+
+  topMentors = computed(() => {
+    const map = new Map<string, { name: string; position: string; active: number; completed: number }>();
+    for (const p of this.pairs()) {
+      if (!map.has(p.mentor_id)) map.set(p.mentor_id, { name: p.mentor_name, position: p.mentor_position, active: 0, completed: 0 });
+      const m = map.get(p.mentor_id)!;
+      if (p.status === 'Active')    m.active++;
+      if (p.status === 'Completed') m.completed++;
+    }
+    return [...map.entries()]
+      .map(([id, v]) => ({ id, ...v, total: v.active + v.completed }))
+      .filter(m => m.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  });
+
+  topMentees = computed(() => {
+    const map = new Map<string, { name: string; position: string; count: number }>();
+    for (const p of this.pairs()) {
+      if (!map.has(p.mentee_id)) map.set(p.mentee_id, { name: p.mentee_name, position: p.mentee_position, count: 0 });
+      map.get(p.mentee_id)!.count++;
+    }
+    return [...map.entries()]
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(m => m.count > 1)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  });
 
   // ── Create flow (multi-step drawer) ──────────────────────────────────────────
   createOpen    = signal(false);
@@ -120,6 +166,8 @@ export class MentoringComponent implements OnInit {
 
   // ─────────────────────────────────────────────────────────────────────────────
   async ngOnInit(): Promise<void> {
+    // HR/Admin default to overview dashboard
+    if (this.isHrOrAbove) this.activeTab.set('overview');
     await this.loadData();
   }
 
@@ -128,7 +176,7 @@ export class MentoringComponent implements OnInit {
     const empId = this.currentEmployeeId;
 
     const [pairs, pending] = await Promise.all([
-      empId ? this.mentoringService.loadMyPairs(empId) : this.mentoringService.loadAllPairs(),
+      this.isHrOrAbove ? this.mentoringService.loadAllPairs() : this.mentoringService.loadMyPairs(empId),
       this.mentoringService.loadPendingForMe(empId, this.userRole),
     ]);
 
@@ -136,9 +184,11 @@ export class MentoringComponent implements OnInit {
     this.pendingPairs.set(pending);
     this.loading.set(false);
 
-    // Auto-select first active pair
-    const active = pairs.find(p => p.status === 'Active');
-    if (active) this.selectPair(active.id);
+    // Auto-select first active pair only when NOT on overview tab
+    if (this.activeTab() !== 'overview') {
+      const active = pairs.find(p => p.status === 'Active');
+      if (active) this.selectPair(active.id);
+    }
   }
 
   async selectPair(id: string): Promise<void> {
@@ -149,9 +199,13 @@ export class MentoringComponent implements OnInit {
     this.loadingSessions.set(false);
   }
 
-  setTab(tab: 'active' | 'pending' | 'completed'): void {
+  setTab(tab: 'active' | 'pending' | 'completed' | 'overview'): void {
     this.activeTab.set(tab);
-    // Auto-select first of new tab
+    if (tab === 'overview') {
+      this.selectedPairId.set(null);
+      this.sessions.set([]);
+      return;
+    }
     let list: MentoringPairFull[];
     if (tab === 'active') list = this.activePairs();
     else if (tab === 'pending') list = this.pendingPairs();
@@ -416,13 +470,13 @@ export class MentoringComponent implements OnInit {
   }
 
   progressPct(pair: MentoringPairFull): number {
-    const totalHours = pair.duration_months * pair.monthly_hours;
+    const totalHours = (pair.duration_months ?? 0) * (pair.monthly_hours ?? 0);
     if (!totalHours) return 0;
-    return Math.min(100, Math.round((pair.confirmed_hours / totalHours) * 100));
+    return Math.min(100, Math.round(((pair.confirmed_hours ?? 0) / totalHours) * 100));
   }
 
   totalHours(pair: MentoringPairFull): number {
-    return pair.duration_months * pair.monthly_hours;
+    return (pair.duration_months ?? 0) * (pair.monthly_hours ?? 0);
   }
 
   formatDate(d: string | null): string {
@@ -490,10 +544,31 @@ export class MentoringComponent implements OnInit {
   get currentTabPairs(): MentoringPairFull[] {
     if (this.activeTab() === 'active')    return this.activePairs();
     if (this.activeTab() === 'pending')   return this.pendingPairs();
-    return this.completedPairs();
+    if (this.activeTab() === 'completed') return this.completedPairs();
+    return []; // overview
   }
 
   get pendingCount(): number { return this.pendingPairs().length; }
+
+  // 0=PendingMentor, 1=PendingLM, 2=PendingHR, 3=Active/done
+  pendingStepIndex(pair: MentoringPairFull): number {
+    switch (pair.status) {
+      case 'PendingMentor': return 0;
+      case 'PendingLM':     return 1;
+      case 'PendingHR':     return 2;
+      default:              return 3;
+    }
+  }
+
+  // Whether the current user MUST act on this pending pair (show badge)
+  myActionRequired(pair: MentoringPairFull): boolean {
+    return this.isPendingMentorAction(pair) || this.isPendingLmAction(pair) || this.isPendingHrAction(pair);
+  }
+
+  // Whether this pending pair is MY request (as mentee, tracking progress)
+  isMyRequest(pair: MentoringPairFull): boolean {
+    return pair.mentee_id === this.currentEmployeeId;
+  }
 
   // Step indicator current index (0-based for nz-steps)
   get stepIndex(): number { return this.createStep() - 1; }

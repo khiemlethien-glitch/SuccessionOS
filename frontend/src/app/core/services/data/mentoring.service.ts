@@ -114,6 +114,22 @@ export class MentoringService {
       const mentor = empMap.get(p.mentor_id);
       const mentee = empMap.get(p.mentee_id);
 
+      // Gracefully handle old DB schema (focus_area) vs new schema (skill_labels[])
+      const skillLabels: string[] = p.skill_labels?.length
+        ? p.skill_labels
+        : (p.focus_area ? [p.focus_area] : []);
+      const skills: string[] = p.skills?.length
+        ? p.skills
+        : (p.focus_area ? [p.focus_area.toLowerCase().replace(/ /g, '_')] : []);
+
+      // duration_months: prefer new column, fall back to computing from start/end dates
+      let durationMonths: number = p.duration_months ?? 0;
+      if (!durationMonths && p.start_date && p.end_date) {
+        const ms = new Date(p.end_date).getTime() - new Date(p.start_date).getTime();
+        durationMonths = Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24 * 30)));
+      }
+      if (!durationMonths) durationMonths = 6; // sensible default
+
       return {
         ...p,
         mentor_name:     mentor?.full_name  ?? p.mentor_id,
@@ -122,6 +138,11 @@ export class MentoringService {
         mentee_position: mentee?.position   ?? '',
         confirmed_hours: Math.round(confirmedMins / 60 * 10) / 10,
         sessions_count:  sessions.length,
+        skill_labels:    skillLabels,
+        skills:          skills,
+        goals:           p.goals ?? p.focus_area ?? null,
+        duration_months: durationMonths,
+        monthly_hours:   p.monthly_hours ?? 8,
       } as MentoringPairFull;
     });
   }
@@ -476,44 +497,56 @@ export class MentoringService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Load pairs pending my action (used in pending tab)
+  // Load pairs for the "Chờ duyệt" tab:
+  //   - Mentee view  : ALL my own pending requests (any step), so I can track progress
+  //   - Mentor view  : pairs where I was chosen as mentor & must accept
+  //   - LM / Admin   : all PendingLM pairs needing approval
+  //   - HR / Admin   : all PendingHR pairs needing approval
   // ─────────────────────────────────────────────────────────────────────────────
-  async loadPendingForMe(currentEmployeeId: string, userRole: string): Promise<MentoringPairFull[]> {
-    const filters: string[] = [];
+  async loadPendingForMe(empId: string, userRole: string): Promise<MentoringPairFull[]> {
+    const all: any[] = [];
 
-    if (userRole === 'Admin' || userRole === 'HR Manager') {
-      // HR/Admin see all PendingHR
-      filters.push('status.eq.PendingHR');
-    }
-    if (userRole === 'Admin' || userRole === 'Line Manager') {
-      // LM sees PendingLM
-      filters.push('status.eq.PendingLM');
-    }
-
-    // Mentor pending: pairs where I am the mentor
-    const orFilter = filters.length > 0 ? filters.join(',') : 'status.eq.PendingMentor';
-
-    const { data, error } = await this.sb
-      .from('mentoring_pairs')
-      .select('*')
-      .or(orFilter);
-
-    if (error) {
-      console.error('[MentoringService.loadPendingForMe]', error);
-      return [];
+    // 1. My own requests as mentee — show at every step so I can track progress
+    if (empId) {
+      const { data } = await this.sb
+        .from('mentoring_pairs')
+        .select('*')
+        .eq('mentee_id', empId)
+        .or('status.eq.PendingMentor,status.eq.PendingLM,status.eq.PendingHR');
+      all.push(...(data ?? []));
     }
 
-    // Also get pairs where I am the mentor and status = pending_mentor
-    const { data: mentorPending } = await this.sb
-      .from('mentoring_pairs')
-      .select('*')
-      .eq('mentor_id', currentEmployeeId)
-      .eq('status', 'PendingMentor');
+    // 2. Pairs where I was chosen as mentor and must accept/decline
+    if (empId) {
+      const { data } = await this.sb
+        .from('mentoring_pairs')
+        .select('*')
+        .eq('mentor_id', empId)
+        .eq('status', 'PendingMentor');
+      all.push(...(data ?? []));
+    }
 
-    const combined = [...(data ?? []), ...(mentorPending ?? [])];
-    // Deduplicate
+    // 3. All PendingLM pairs — LM and Admin need to act
+    if (userRole === 'Line Manager' || userRole === 'Admin') {
+      const { data } = await this.sb
+        .from('mentoring_pairs')
+        .select('*')
+        .eq('status', 'PendingLM');
+      all.push(...(data ?? []));
+    }
+
+    // 4. All PendingHR pairs — HR Manager and Admin need to act
+    if (userRole === 'HR Manager' || userRole === 'Admin') {
+      const { data } = await this.sb
+        .from('mentoring_pairs')
+        .select('*')
+        .eq('status', 'PendingHR');
+      all.push(...(data ?? []));
+    }
+
+    // Deduplicate by id
     const seen = new Set<string>();
-    const deduped = combined.filter(p => {
+    const deduped = all.filter(p => {
       if (seen.has(p.id)) return false;
       seen.add(p.id);
       return true;

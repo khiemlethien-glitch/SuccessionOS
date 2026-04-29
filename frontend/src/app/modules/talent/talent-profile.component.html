@@ -127,61 +127,61 @@
           </div>
         </div>
 
-        <!-- ── Mentor row ── -->
-        @if (isViewer()) {
-          <!-- Viewer: chỉ xem status, tạo mới → /mentoring -->
-          <div class="mentor-row" [class.empty]="!talent()!.mentor" [class.mentor-row-approved]="!!talent()!.mentor">
-            <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
-            <span class="mentor-text">
-              @if (talent()!.mentor) {
-                Mentor: <strong>{{ talent()!.mentor }}</strong>
-              } @else {
-                Chưa có mentor
-              }
-            </span>
-            @if (talent()!.mentor) {
-              <span class="mentor-verified-badge" title="Đã được phê duyệt">
-                <span nz-icon nzType="check-circle" nzTheme="fill"></span>
-              </span>
-            }
-          </div>
+        <!-- ── Mentor / Mentee rows (source of truth: mentoring_pairs) ── -->
 
-          <!-- Pending mentor request -->
-          @if (pendingMentorName()) {
-            <div class="mentor-row mentor-row-pending">
-              <span nz-icon nzType="clock-circle" nzTheme="fill" class="mentor-icon-pending"></span>
+        <!-- Người đang kèm mình (I am a MENTEE) -->
+        <div class="mentor-row" [class.empty]="!activeMentorPair()" [class.mentor-row-approved]="!!activeMentorPair()">
+          <span nz-icon [nzType]="activeMentorPair() ? 'user' : 'user-delete'" class="mentor-icon"></span>
+          <span class="mentor-text">
+            @if (activeMentorPair()) {
+              Mentor: <strong>{{ activeMentorPair()!.mentor_name }}</strong>
+            } @else {
+              Chưa có mentor
+            }
+          </span>
+          @if (activeMentorPair()) {
+            <span class="mentor-verified-badge" title="Đang kèm cặp">
+              <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+            </span>
+          }
+        </div>
+
+        <!-- Pending mentor request (approval_requests) -->
+        @if (pendingMentorName()) {
+          <div class="mentor-row mentor-row-pending">
+            <span nz-icon nzType="clock-circle" nzTheme="fill" class="mentor-icon-pending"></span>
+            <span class="mentor-text">
+              Mentor mới (chờ duyệt): <strong>{{ pendingMentorName() }}</strong>
+            </span>
+            <span class="mentor-pending-badge">Chờ LM & HR</span>
+          </div>
+        }
+
+        <!-- Người mình đang kèm (I am a MENTOR) -->
+        @if (activeMenteePairs().length > 0) {
+          @for (mp of activeMenteePairs(); track mp.mentee_name) {
+            <div class="mentor-row mentor-row-mentoring">
+              <span nz-icon nzType="user-add" class="mentor-icon mentor-icon-coaching"></span>
               <span class="mentor-text">
-                Mentor mới (chờ duyệt): <strong>{{ pendingMentorName() }}</strong>
+                Đang kèm: <strong>{{ mp.mentee_name }}</strong>
               </span>
-              <span class="mentor-pending-badge">Chờ LM & HR</span>
+              @if (mp.status === 'Active') {
+                <span class="mentor-verified-badge" title="Đang kèm cặp">
+                  <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+                </span>
+              } @else {
+                <span class="mentor-pending-badge">{{ mp.status === 'PendingMentor' ? 'Chờ xác nhận' : 'Chờ duyệt' }}</span>
+              }
             </div>
           }
-
-          <!-- Link sang trang Kèm Cặp -->
-          <a class="mentor-manage-link" routerLink="/mentoring">
-            <span nz-icon nzType="user-add"></span>
-            Quản lý kèm cặp & cố vấn
-            <span nz-icon nzType="arrow-right" class="mentor-link-arrow"></span>
-          </a>
-
-        } @else {
-          <!-- Non-Viewer: hiện status + link sang /mentoring để quản lý -->
-          <div class="mentor-row" [class.empty]="!talent()!.mentor">
-            <span nz-icon [nzType]="talent()!.mentor ? 'user' : 'user-delete'" class="mentor-icon"></span>
-            <span class="mentor-text">
-              @if (talent()!.mentor) {
-                Mentor: <strong>{{ talent()!.mentor }}</strong>
-              } @else {
-                Chưa có mentor được gán
-              }
-            </span>
-          </div>
-          <a class="mentor-manage-link" routerLink="/mentoring">
-            <span nz-icon nzType="user-add"></span>
-            Quản lý tại Kèm Cặp & Cố Vấn
-            <span nz-icon nzType="arrow-right" class="mentor-link-arrow"></span>
-          </a>
         }
+
+        <!-- Link sang trang Kèm Cặp -->
+        <a class="mentor-manage-link" routerLink="/mentoring">
+          <span nz-icon nzType="user-add"></span>
+          Quản lý kèm cặp & cố vấn
+          <span nz-icon nzType="arrow-right" class="mentor-link-arrow"></span>
+        </a>
       </div>
 
       <!-- Right: 2x2 accent cards -->

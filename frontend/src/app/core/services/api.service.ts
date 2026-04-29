@@ -183,12 +183,18 @@ class QueryBuilder {
     // HEAD request — count only, no body
     const fetchMethod = this._headOnly ? 'HEAD' : this._method;
 
+    // 15-second timeout — prevents UI freeze when table doesn't exist or VPS hangs
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 15_000);
+
     try {
       const res = await fetch(url.toString(), {
         method: fetchMethod,
         headers,
-        body: this._body != null ? JSON.stringify(this._body) : undefined,
+        body:   this._body != null ? JSON.stringify(this._body) : undefined,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       // Parse count from Content-Range: "0-49/250" → 250
       let count: number | null = null;
@@ -228,7 +234,9 @@ class QueryBuilder {
 
       return { data: json, error: null, count };
     } catch (e: any) {
-      return { data: null, error: { message: e?.message ?? String(e) }, count: null };
+      clearTimeout(timeoutId);
+      const msg = e?.name === 'AbortError' ? 'Request timed out (15s)' : (e?.message ?? String(e));
+      return { data: null, error: { message: msg }, count: null };
     }
   }
 }

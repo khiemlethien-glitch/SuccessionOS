@@ -111,6 +111,12 @@ export class TalentProfileComponent implements OnInit, OnChanges {
   showMentorModal = signal(false);
   mentorSearch    = signal('');
 
+  // ─── Live mentoring data (source of truth: mentoring_pairs table) ────────
+  /** Active pair where this employee is the MENTEE → who is their mentor */
+  activeMentorPair  = signal<{ mentor_name: string; pair_id: string } | null>(null);
+  /** Pairs where this employee is the MENTOR → who they are coaching */
+  activeMenteePairs = signal<{ mentee_name: string; status: string }[]>([]);
+
   // ─── Collapse states ──────────────────────────────────────────────────────
   riskExpanded       = signal(true);
 
@@ -219,7 +225,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
       negative.push({ title: `Risk score trung bình (${risk}) — cần theo dõi`, detail: 'Một số chỉ số cần chú ý, theo dõi định kỳ', severity: 'medium', source: 'Tự động', date: 'Q1/2025' });
     }
 
-    if (!t.mentor) {
+    if (!this.activeMentorPair()) {
       negative.push({ title: 'Chưa có mentor', detail: 'Chưa gán mentor trong hệ thống PTNT', severity: 'medium', source: 'HR', date: 'Q1/2025' });
     }
 
@@ -257,8 +263,8 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (risk < 30 && risk > 0) {
       positive.push({ title: `Risk score thấp (${risk}) — trong ngưỡng an toàn`, detail: `Score dưới ngưỡng cảnh báo (30) — chỉ số ổn định`, severity: 'ok', source: 'Tự động', date: 'Q1/2025' });
     }
-    if (t.mentor) {
-      positive.push({ title: `Có mentor đang hỗ trợ`, detail: `Mentor: ${t.mentor}`, severity: 'ok', source: 'HR', date: 'Q1/2025' });
+    if (this.activeMentorPair()) {
+      positive.push({ title: `Có mentor đang hỗ trợ`, detail: `Mentor: ${this.activeMentorPair()!.mentor_name}`, severity: 'ok', source: 'HR', date: 'Q1/2025' });
     }
     if (ktp >= 80) {
       positive.push({ title: `Chuyển giao kiến thức tốt — ${ktp}%`, detail: 'KTP hoàn thành trên 80%, tiến độ đúng kế hoạch', severity: 'ok', source: 'Tự động', date: 'Q1/2025' });
@@ -293,7 +299,7 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     if (!t) return [];
     if (t.risk_reasons && t.risk_reasons.length) return t.risk_reasons;
     const out: string[] = [];
-    if (!t.mentor) out.push('Chưa có mentor');
+    if (!this.activeMentorPair()) out.push('Chưa có mentor');
     if ((t.ktp_progress ?? 100) < 50) out.push(`KTP tiến độ thấp ${t.ktp_progress ?? 0}%`);
     if (this.idpProgress() < 50) out.push(`IDP tiến độ thấp ${this.idpProgress()}%`);
     return out;
@@ -484,9 +490,11 @@ export class TalentProfileComponent implements OnInit, OnChanges {
 
   // ─── Network (Mạng lưới phát triển) ───────────────────────────────────────
   mentorTalent = computed<Talent | null>(() => {
-    const me = this.talent();
-    if (!me || !me.mentor) return null;
-    return this.allTalents().find(t => t.full_name === me.mentor) ?? null;
+    const pair = this.activeMentorPair();
+    if (!pair) return null;
+    // Prefer ID-based lookup (pair_id encodes mentor's employee id via loadMentoringPairs);
+    // fall back to name match for display-only enrichment.
+    return this.allTalents().find(t => t.full_name === pair.mentor_name) ?? null;
   });
 
   centerInitials = computed(() => {
@@ -995,6 +1003,9 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // Restore pending mentor request từ DB (tránh mất state khi refresh)
     this.restorePendingMentor(id).catch(() => {});
 
+    // Load real mentoring relationships from mentoring_pairs (source of truth)
+    this.loadMentoringPairs(id).catch(e => console.warn('[TalentProfile] loadMentoringPairs failed:', e));
+
     // Load career roadmap summary cho IDP card
     this.loadRoadmapSummary(id).catch(() => {});
 
@@ -1223,6 +1234,65 @@ export class TalentProfileComponent implements OnInit, OnChanges {
     // Format description: "X đề xuất Y làm mentor" — extract Y
     const match = (data.description ?? '').match(/đề xuất (.+) làm mentor/);
     this.pendingMentorName.set(match?.[1]?.trim() ?? 'Chờ duyệt');
+  }
+
+  /**
+   * Load live mentoring data from mentoring_pairs (source of truth).
+   * Updates talent().mentor and activeMenteePairs signals so profile
+   * always reflects actual mentoring state, not the stale v_employees field.
+   */
+  private async loadMentoringPairs(empId: string): Promise<void> {
+    const sb = this.sbSvc.client;
+
+    // 1. Is this person a MENTEE? → find their active mentor
+    const { data: asMentee } = await sb
+      .from('mentoring_pairs')
+      .select('id, mentor_id')
+      .eq('mentee_id', empId)
+      .eq('status', 'Active')
+      .maybeSingle();
+
+    if (asMentee?.mentor_id) {
+      const { data: mentorEmp } = await sb
+        .from('v_employees')
+        .select('full_name')
+        .eq('id', asMentee.mentor_id)
+        .maybeSingle();
+      const mentorName = mentorEmp?.full_name ?? null;
+      this.activeMentorPair.set({ mentor_name: mentorName ?? asMentee.mentor_id, pair_id: asMentee.id });
+      // Sync talent().mentor so existing mentor checks stay correct
+      const t = this.talent();
+      if (t && t.mentor !== mentorName) this.talent.set({ ...t, mentor: mentorName });
+    } else {
+      this.activeMentorPair.set(null);
+      // Clear stale static field if no active pair exists
+      const t = this.talent();
+      if (t?.mentor) this.talent.set({ ...t, mentor: null });
+    }
+
+    // 2. Is this person a MENTOR? → find who they are coaching
+    const { data: asMentor } = await sb
+      .from('mentoring_pairs')
+      .select('mentee_id, status')
+      .eq('mentor_id', empId)
+      .or('status.eq.Active,status.eq.PendingMentor,status.eq.PendingLM,status.eq.PendingHR');
+
+    if (asMentor && asMentor.length > 0) {
+      const menteeIds = asMentor.map((p: any) => p.mentee_id);
+      const { data: menteeEmps } = await sb
+        .from('v_employees')
+        .select('id, full_name')
+        .in('id', menteeIds);
+      const nameMap = new Map((menteeEmps ?? []).map((e: any) => [e.id, e.full_name]));
+      this.activeMenteePairs.set(
+        asMentor.map((p: any) => ({
+          mentee_name: nameMap.get(p.mentee_id) ?? p.mentee_id,
+          status: p.status,
+        }))
+      );
+    } else {
+      this.activeMenteePairs.set([]);
+    }
   }
 
   /** Fetch trạng thái career roadmap (confirmed / pending) để hiển thị trong IDP card. */

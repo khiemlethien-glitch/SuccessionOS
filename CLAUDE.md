@@ -10,7 +10,7 @@ SuccessionOS là hệ thống quản lý kế thừa nhân tài (Succession Plan
 Frontend Angular 18 kết nối qua **PostgREST** đến PostgreSQL nội bộ.
 
 **Deploy:** Vercel → `https://succession-os-y6mt.vercel.app`
-**Backend DB:** `postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS`
+**Backend DB:** `postgresql://postgres:postgres@103.72.97.160:5432/SCC`
 **PostgREST API:** `http://103.72.97.160:3000`
 **Supabase (dự phòng):** `psaidbntrvrzodurnisz.supabase.co` — không dùng chính nữa
 
@@ -36,13 +36,13 @@ Frontend Angular 18 kết nối qua **PostgREST** đến PostgreSQL nội bộ.
 ```bash
 # Từ máy dev — chạy được trực tiếp
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
-psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS
+psql postgresql://postgres:postgres@103.72.97.160:5432/SCC
 
 # Chạy SQL file
-psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -f migration.sql
+psql postgresql://postgres:postgres@103.72.97.160:5432/SCC -f migration.sql
 
 # Chạy query nhanh
-psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -c "SELECT version();"
+psql postgresql://postgres:postgres@103.72.97.160:5432/SCC -c "SELECT version();"
 ```
 
 ---
@@ -241,10 +241,10 @@ readonly hasRole = (role: string): boolean => {
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 
 # Chạy file SQL
-psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -f supabase/migrations/xxx.sql
+psql postgresql://postgres:postgres@103.72.97.160:5432/SCC -f supabase/migrations/xxx.sql
 
 # Hoặc inline
-psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS -c "ALTER TABLE ..."
+psql postgresql://postgres:postgres@103.72.97.160:5432/SCC -c "ALTER TABLE ..."
 ```
 
 ---

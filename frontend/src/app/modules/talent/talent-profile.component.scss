@@ -156,6 +156,15 @@
   width: 26px; height: 26px; flex-shrink: 0;
   color: #16a34a; font-size: 16px;
 }
+/* Mentor role: currently coaching someone */
+.mentor-row-mentoring {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  border-style: solid;
+  strong { color: #3730a3; }
+}
+.mentor-icon-coaching { color: #4f46e5 !important; }
+
 /* Viewer: pending mentor row */
 .mentor-row-pending {
   background: #fffbeb;

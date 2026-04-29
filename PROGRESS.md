@@ -1,7 +1,7 @@
 # PROGRESS.md — SuccessionOS Frontend
 > File này được Claude Code tự cập nhật sau mỗi task.
 > Khi mở session mới: đọc file này TRƯỚC để biết trạng thái hiện tại.
-> Cập nhật lần cuối: 2026-04-28
+> Cập nhật lần cuối: 2026-04-29
 
 ---
 
@@ -10,10 +10,10 @@
 | | |
 |---|---|
 | **Host** | `103.72.97.160:5432` |
-| **DB** | `SuccessionOS` |
+| **DB** | `SCC` (trước đây là `SuccessionOS` — đổi sau khi VPS reset) |
 | **User** | `postgres / postgres` |
 | **PostgREST** | `http://103.72.97.160:3000` |
-| **psql** | `export PATH="/opt/homebrew/opt/libpq/bin:$PATH"` rồi chạy `psql postgresql://postgres:postgres@103.72.97.160:5432/SuccessionOS` |
+| **psql** | `export PATH="/opt/homebrew/opt/libpq/bin:$PATH"` rồi chạy `psql postgresql://postgres:postgres@103.72.97.160:5432/SCC` |
 | **Supabase** | Dự phòng only — không dùng trong luồng chính |
 
 > Mọi migration SQL chạy trực tiếp qua psql lên DB này, không qua Supabase Dashboard nữa.
@@ -166,6 +166,82 @@ canSeeSettingsTab = isAdmin()
 ---
 
 ## 🗂️ Lịch sử task gần nhất
+
+### 2026-04-29 — DB: Recreate views + fix mentoring_sessions schema
+- **Root cause:** VPS reset xóa toàn bộ PostgreSQL views (không lưu trong migration files) → PostgREST trả 404 cho mọi request tới `v_employees`, `v_nine_box`; `mentoring_sessions` cũng chưa được tạo
+- **Fix 1:** Tạo migration `20260429_recreate_views.sql` → apply thành công: `v_employees` (200 rows), `v_nine_box` (200 rows), `mentoring_sessions` (0 rows, new)
+- **Fix 2:** Patch `mentoring_sessions` schema để khớp với service code:
+  - Status constraint: `'pending'` → `'pending_confirm'` (service dùng giá trị này)
+  - `logged_by`: `uuid` → `text` (flexible, không require UUID format)
+  - Thêm `confirmed_at timestamptz` (service cần ghi timestamp khi confirm)
+  - Disable RLS; NOTIFY PostgREST reload
+- **Fix 3:** Apply `20260429_alter_mentoring_pairs_schema.sql` — thêm các cột mới: `duration_months`, `monthly_hours`, `skills[]`, `skill_labels[]`, `goals`, `justification`, `reject_reason`, `initiated_by`, `updated_at` — migrate data từ schema cũ
+- **Kết quả:** Tất cả 3 PostgREST endpoints hoạt động: `v_employees` ✅ `v_nine_box` ✅ `mentoring_sessions` ✅
+
+### 2026-04-29 — Mentoring: UI polish pass
+- **Hero**: Đổi từ gradient nhạt → gradient đậm `#312e81 → #4338ca → #6366f1`; text trắng; 2 decorative radial circles
+- **Tab bar**: Đổi từ underline-only → pill-style với `border-radius: 10px`, border `1.5px`, active state gradient `#eef2ff → #e0e7ff` + box-shadow; nút "Tạo cặp mới" gradient + box-shadow + hover lift
+- **Badges**: Đổi từ pastel → solid màu (`#4338ca` blue, `#ef4444` red) trên nền trắng — rõ hơn
+- **Stat cards**: Tăng số lên `font-size: 36px`, thêm hover lift, background gradient nhẹ theo màu, `::before` strip gradient thay border-top đơn giản, `border-radius: 16px`
+- **Breakdown bar**: Tăng height 12px → 14px, gradient segments, border-radius mềm hơn
+- **Table blocks**: border-radius 12px → 16px, padding lớn hơn, box-shadow nhẹ hơn
+- **Pair cards**: hours-card dùng gradient tím nhạt; pair-header-card shadow rõ hơn; sessions-section border-radius 16px
+- **Build**: ✅ no errors
+
+### 2026-04-29 — Mentoring: Redesign layout → 4 tabs lớn full-width
+- **Root cause UX:** Panel trái 280px nhỏ có 4 tabs chen chúc → không hợp lý (không gian hẹp mà nhiều tab)
+- **Redesign:**
+  - Bỏ `aside.ment-left` (sidebar mini-tabs cũ)
+  - Thêm `div.ment-tabbar`: full-width, sticky, chứa 4 tab lớn + nút "Tạo cặp mới" bên phải
+  - Mỗi tab: icon + label + badge đếm số cặp (blue/red/gray theo loại)
+  - Content bên dưới `.ment-body` = full container: Tổng quan chiếm toàn bộ; các tab khác dùng `.pair-layout` (300px sidebar + flex detail)
+  - Default tab: `'overview'` cho HR/Admin; `'active'` cho các role khác (set trong `ngOnInit`)
+  - Overview stat cards: 6 cards chia đều toàn bộ chiều rộng (`grid-template-columns: repeat(6, 1fr)`)
+- **Build:** ✅ no errors
+
+### 2026-04-29 — Talent Profile: Risk factors dùng activeMentorPair() (single source of truth)
+- **Root cause:** `riskFactors`, `riskReasons`, `mentorTalent` computed properties vẫn dùng stale `t.mentor` từ `v_employees` — inconsistent với `activeMentorPair()` signal đã có
+- **Fix (4 chỗ trong `talent-profile.component.ts`):**
+  - Line 228: `!t.mentor` → `!this.activeMentorPair()` (negative risk factor)
+  - Line 266-267: `t.mentor` → `this.activeMentorPair()!.mentor_name` (positive risk factor)
+  - Line 302: `!t.mentor` → `!this.activeMentorPair()` (riskReasons array)
+  - Lines 492-498: `mentorTalent` computed — dùng `activeMentorPair()` thay vì `me.mentor` (name-string)
+- **Error logging:** `loadMentoringPairs` call site: `.catch(() => {})` → `.catch(e => console.warn(...))`
+- **Kết quả:** Toàn bộ logic mentor trong profile đều từ 1 nguồn — `activeMentorPair()` (live từ `mentoring_pairs`)
+
+### 2026-04-29 — Talent Profile: Sync mentor data từ mentoring_pairs
+- **Root cause:** `talent().mentor` lấy từ `v_employees.mentor_name` (static, null) → profile hiện "Chưa có mentor" dù `mentoring_pairs` có cặp active
+- **Fix:** Thêm `loadMentoringPairs(empId)` trong `loadTalentData()` → query `mentoring_pairs` thực tế sau khi profile load xong
+  - Nếu `mentee_id = empId` + status Active → lấy tên mentor, update `talent().mentor` signal
+  - Nếu `mentor_id = empId` + status active/pending → lấy danh sách mentee
+- **Signals mới:** `activeMentorPair` + `activeMenteePairs` trong talent-profile.component.ts
+- **HTML:** Section mentor hiện cả 2 chiều — "Mentor của tôi" + "Đang kèm: [mentee]" (indigo row cho vai mentor)
+- **Kết quả:** Profile Lê Tú Nguyên (Viewer) hiện đúng: "Chưa có mentor" + "Đang kèm: Huỳnh Quang Hùng ✓" — nhất quán với Mentoring page
+
+### 2026-04-29 — Mentoring: Tab Chờ duyệt + Tổng quan + Admin cleanup
+- **Fix "Chờ duyệt" tab (service):** `loadPendingForMe` restructured — mentee thấy TẤT CẢ request của mình (mọi step); mentor thấy pairs đang chờ mình; LM thấy PendingLM; HR/Admin thấy PendingHR; Admin thấy cả hai
+- **Step indicator trong pair list:** Pending tab hiển thị progress bar Mentor → LM → HR với màu xanh (done) / vàng (current); dot đỏ nhấp nháy khi cần user hành động
+- **Tab "Tổng quan" (HR/Admin only):** 6 stat cards (tổng, đang kèm, chờ duyệt, hoàn thành, tỉ lệ hoàn thành, giờ TB); breakdown bar theo status; Top Mentors bảng (active/completed); Top Mentees tích cực (>1 cặp)
+- **Admin panel cleanup:** filter `mentor` type khỏi `filteredApprovals`; thêm banner info hướng dẫn vào trang Kèm Cặp & Cố Vấn
+- **mentoring_sessions table:** Tạo bảng `mentoring_sessions` trên DB `SCC` via migration `20260429_fix_mentoring_sessions.sql`; disable RLS; NOTIFY PostgREST
+- **DB name fix:** Database đổi tên `SuccessionOS` → `SCC` sau VPS reset; cập nhật CLAUDE.md + PROGRESS.md
+- **QueryBuilder timeout:** Thêm AbortController 15s để tránh UI treo khi bảng không tồn tại
+
+### 2026-04-28 — Mentoring: Admin/HR thấy tất cả cặp kèm cặp
+- **Bug:** `mentoring.component.ts` ngOnInit gọi `loadMyPairs(empId)` khi empId tồn tại — nhưng Admin/HR đều có empId nên bị lọc về cặp của riêng mình → Admin thấy 0 cặp dù có pending request
+- **Fix:** đổi branch theo **role** thay vì empId: `isHrOrAbove ? loadAllPairs() : loadMyPairs(empId)` (line 131 trong `mentoring.component.ts`)
+- **Result:** Admin và HR Manager thấy toàn bộ cặp kèm cặp trong hệ thống; Line Manager và Viewer chỉ thấy cặp của mình
+
+### 2026-04-28 — Bug fixes: Positions page + Production (Vercel)
+- **Positions F5 mất:** `key_positions.id UUID` không có DEFAULT → INSERT thất bại. Fix: `ALTER TABLE key_positions ALTER COLUMN id SET DEFAULT gen_random_uuid()` + bỏ `id` khỏi dbPayload, thêm rollback
+- **Positions trùng lặp:** Thêm case-insensitive duplicate check trước khi tạo
+- **Fix ensure-env.mjs regex:** regex `(url:\s*)'[^']*'` quá rộng → ghi đè `api.url` bằng Supabase URL. Fix: context-aware regex riêng từng env var
+- **Fix Mixed Content HTTPS→HTTP:** Vercel proxy rewrite `/postgrest/* → http://103.72.97.160:3000/*`; `environment.prod.example.ts` dùng `/postgrest` (relative)
+- **Fix Invalid URL (relative path):** `new URL('/postgrest/...')` cần base. Fix: detect relative → dùng `window.location.origin`
+- **Fix ng-zorro DOM error:** `nz-dropdown` attach trước DOM ready. Fix: `viewReady` signal + `afterNextRender()` gate
+- **Fix NG0502 hydration mismatch:** `ngSkipHydration` trên ShellComponent
+- **Fix Talent List tên placeholder:** `ORDER BY overall_score DESC` → NULL scores float to top. Fix: `nullslast` trong QueryBuilder.order()
+- **Fix Dashboard counters = 0:** QueryBuilder không parse `Content-Range` → count luôn null. Fix: support `count='exact'` + HEAD + parse Content-Range header
 
 ### 2026-04-28 — Kèm Cặp & Cố Vấn (Mentoring feature)
 - **Migration:** `supabase/migrations/20260428_mentoring.sql` — tạo `mentoring_pairs` + `mentoring_sessions` với RLS

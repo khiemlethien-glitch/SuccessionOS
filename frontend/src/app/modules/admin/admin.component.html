@@ -57,6 +57,15 @@
     @if (activeTab() === 'approvals') {
       <div class="tab-pane">
 
+        <!-- Mentoring redirect banner -->
+        <nz-alert
+          nzType="info"
+          nzShowIcon
+          style="margin-bottom:14px"
+          nzMessage="Yêu cầu Kèm Cặp được quản lý tập trung tại trang Kèm Cặp &amp; Cố Vấn"
+          nzDescription="Để xem, phê duyệt hoặc từ chối yêu cầu kèm cặp, hãy vào module Kèm Cặp &amp; Cố Vấn → tab Chờ duyệt. Trang này chỉ hiển thị các phê duyệt khác (lộ trình sự nghiệp, vị trí, IDP...)."
+        ></nz-alert>
+
         <!-- Filter bar -->
         <div class="filter-bar">
           <div class="filter-group">

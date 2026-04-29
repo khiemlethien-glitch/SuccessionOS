@@ -9,7 +9,43 @@
     </div>
   </div>
 
-  <!-- ══ MAIN LAYOUT ═════════════════════════════════════════════════════════ -->
+  <!-- ══ FULL-WIDTH TAB BAR ══════════════════════════════════════════════════ -->
+  <div class="ment-tabbar">
+    <div class="mtb-tabs">
+      @if (isHrOrAbove) {
+        <button class="mtb-tab" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
+          <span nz-icon nzType="bar-chart"></span>
+          <span class="mtb-label">Tổng quan</span>
+        </button>
+      }
+      <button class="mtb-tab" [class.active]="activeTab() === 'active'" (click)="setTab('active')">
+        <span nz-icon nzType="team"></span>
+        <span class="mtb-label">Đang kèm</span>
+        @if (activePairsCount() > 0) {
+          <span class="mtb-badge mtb-badge--blue">{{ activePairsCount() }}</span>
+        }
+      </button>
+      <button class="mtb-tab" [class.active]="activeTab() === 'pending'" (click)="setTab('pending')">
+        <span nz-icon nzType="clock-circle"></span>
+        <span class="mtb-label">Chờ duyệt</span>
+        @if (pendingCount > 0) {
+          <span class="mtb-badge mtb-badge--red">{{ pendingCount }}</span>
+        }
+      </button>
+      <button class="mtb-tab" [class.active]="activeTab() === 'completed'" (click)="setTab('completed')">
+        <span nz-icon nzType="check-circle"></span>
+        <span class="mtb-label">Lịch sử</span>
+        @if (completedCount() > 0) {
+          <span class="mtb-badge mtb-badge--gray">{{ completedCount() }}</span>
+        }
+      </button>
+    </div>
+    <button nz-button nzType="primary" class="btn-create" (click)="openCreate()">
+      <span nz-icon nzType="plus"></span> Tạo cặp mới
+    </button>
+  </div>
+
+  <!-- ══ CONTENT ══════════════════════════════════════════════════════════════ -->
   @if (loading()) {
     <div class="loading-wrap">
       <nz-spin nzSimple nzSize="large"></nz-spin>
@@ -17,276 +53,396 @@
   } @else {
     <div class="ment-body">
 
-      <!-- ── LEFT PANEL ──────────────────────────────────────────────────── -->
-      <aside class="ment-left">
+      <!-- ── OVERVIEW DASHBOARD (HR/Admin only) ──────────────────────────── -->
+      @if (activeTab() === 'overview' && isHrOrAbove) {
+        <div class="overview-panel">
 
-        <!-- Header -->
-        <div class="left-header">
-          <div class="left-count">
-            <span class="count-num">{{ currentTabPairs.length }}</span>
-            <span class="count-label">CẶP THEO DÕI</span>
-          </div>
-          <button nz-button nzType="primary" class="btn-create" nzSize="small" (click)="openCreate()">
-            <span nz-icon nzType="plus"></span> Tạo cặp mới
-          </button>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tab-bar">
-          <button class="tab-btn" [class.active]="activeTab() === 'active'" (click)="setTab('active')">Đang kèm</button>
-          <button class="tab-btn" [class.active]="activeTab() === 'pending'" (click)="setTab('pending')">
-            Chờ duyệt
-            @if (pendingCount > 0) {
-              <span class="tab-badge">{{ pendingCount }}</span>
-            }
-          </button>
-          <button class="tab-btn" [class.active]="activeTab() === 'completed'" (click)="setTab('completed')">Lịch sử</button>
-        </div>
-
-        <!-- Pair list -->
-        <div class="pair-list">
-          @for (pair of currentTabPairs; track pair.id) {
-            <div class="pair-item" [class.selected]="selectedPairId() === pair.id" (click)="selectPair(pair.id)">
-              <div class="pi-row">
-                <app-avatar [name]="pair.mentor_name" [size]="32"></app-avatar>
-                <div class="pi-names">
-                  <span class="pi-mentor">{{ pair.mentor_name }}</span>
-                  <span class="pi-arrow">→</span>
-                  <span class="pi-mentee">{{ pair.mentee_name }}</span>
-                </div>
-              </div>
-              <div class="pi-meta">
-                <nz-tag [nzColor]="statusColor(pair.status)" nzSize="small">{{ statusLabel(pair.status) }}</nz-tag>
-                @if (pair.skill_labels?.length) {
-                  <span class="pi-skill">{{ pair.skill_labels[0] }}{{ pair.skill_labels.length > 1 ? ' +' + (pair.skill_labels.length - 1) : '' }}</span>
-                }
-              </div>
+          <!-- Stat cards -->
+          <div class="ov-stats">
+            <div class="ov-card">
+              <div class="ov-num">{{ totalPairsCount() }}</div>
+              <div class="ov-label">Tổng cặp</div>
             </div>
-          }
-
-          @if (currentTabPairs.length === 0) {
-            <div class="list-empty">
-              @if (activeTab() === 'active') { Chưa có cặp kèm cặp đang hoạt động }
-              @else if (activeTab() === 'pending') { Không có yêu cầu nào đang chờ }
-              @else { Chưa có cặp nào hoàn thành }
+            <div class="ov-card ov-card--blue">
+              <div class="ov-num">{{ activePairsCount() }}</div>
+              <div class="ov-label">Đang kèm</div>
             </div>
-          }
-        </div>
-      </aside>
-
-      <!-- ── RIGHT PANEL ─────────────────────────────────────────────────── -->
-      <main class="ment-right">
-        @if (selectedPair(); as pair) {
-
-          <!-- Pair header card -->
-          <div class="pair-header-card">
-            <div class="phc-people">
-              <!-- Mentor -->
-              <div class="phc-person">
-                <app-avatar [name]="pair.mentor_name" [size]="52"></app-avatar>
-                <div class="phc-info">
-                  <span class="phc-name">{{ pair.mentor_name }}</span>
-                  <span class="phc-pos">{{ pair.mentor_position }}</span>
-                  <span class="phc-role mentor-badge">MENTOR</span>
-                </div>
-              </div>
-              <!-- Arrow -->
-              <div class="phc-arrow">
-                <span nz-icon nzType="arrow-right" nzTheme="outline"></span>
-              </div>
-              <!-- Mentee -->
-              <div class="phc-person">
-                <app-avatar [name]="pair.mentee_name" [size]="52"></app-avatar>
-                <div class="phc-info">
-                  <span class="phc-name">{{ pair.mentee_name }}</span>
-                  <span class="phc-pos">{{ pair.mentee_position }}</span>
-                  <span class="phc-role mentee-badge">MENTEE</span>
-                </div>
-              </div>
-              <!-- Meta -->
-              <div class="phc-meta">
-                <div class="meta-item">
-                  <span class="meta-label">Bắt đầu</span>
-                  <span class="meta-val">{{ formatDate(pair.start_date) }}</span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-label">Thời lượng</span>
-                  <span class="meta-val">{{ pair.duration_months }} tháng</span>
-                </div>
-                <div class="meta-item">
-                  <span class="meta-label">Trạng thái</span>
-                  <nz-tag [nzColor]="statusColor(pair.status)">{{ statusLabel(pair.status) }}</nz-tag>
-                </div>
-              </div>
+            <div class="ov-card ov-card--orange">
+              <div class="ov-num">{{ pendingTotalCount() }}</div>
+              <div class="ov-label">Chờ duyệt</div>
             </div>
-
-            <!-- Skills -->
-            @if (pair.skill_labels?.length) {
-              <div class="phc-skills">
-                <span nz-icon nzType="bulb" style="color:#4f46e5;margin-right:6px"></span>
-                <span class="skills-label">Phát triển:</span>
-                @for (label of pair.skill_labels; track label) {
-                  <nz-tag nzColor="geekblue">{{ label }}</nz-tag>
-                }
-              </div>
-            }
-
-            <!-- Goals -->
-            @if (pair.goals) {
-              <div class="phc-goals">
-                <span nz-icon nzType="aim" style="color:#059669;margin-right:6px"></span>
-                <span class="goals-text">{{ pair.goals }}</span>
-              </div>
-            }
+            <div class="ov-card ov-card--green">
+              <div class="ov-num">{{ completedCount() }}</div>
+              <div class="ov-label">Hoàn thành</div>
+            </div>
+            <div class="ov-card ov-card--purple">
+              <div class="ov-num">{{ completionPct() }}%</div>
+              <div class="ov-label">Tỉ lệ hoàn thành</div>
+            </div>
+            <div class="ov-card">
+              <div class="ov-num">{{ avgSessionHours() }}h</div>
+              <div class="ov-label">Giờ TB / cặp active</div>
+            </div>
           </div>
 
-          <!-- Hours progress -->
-          <div class="hours-card">
-            <div class="hours-label">
-              <span nz-icon nzType="clock-circle" style="color:#4f46e5;margin-right:6px"></span>
-              <strong>Cam kết giờ:</strong>
-              <span class="hours-num">{{ pair.confirmed_hours }} / {{ totalHours(pair) }} giờ</span>
-              @if (progressPct(pair) >= 80) {
-                <nz-tag nzColor="green" style="margin-left:8px">Xuất sắc</nz-tag>
-              } @else if (progressPct(pair) >= 50) {
-                <nz-tag nzColor="blue" style="margin-left:8px">Đúng tiến độ</nz-tag>
-              } @else if (pair.status === 'Active') {
-                <nz-tag nzColor="orange" style="margin-left:8px">Cần tăng tốc</nz-tag>
-              }
-            </div>
-            <nz-progress
-              [nzPercent]="progressPct(pair)"
-              [nzStrokeColor]="'#4f46e5'"
-              [nzShowInfo]="false"
-              nzSize="small"
-              style="flex:1"
-            ></nz-progress>
-          </div>
-
-          <!-- Pending actions for this pair -->
-          @if (isPendingMentorAction(pair)) {
-            <div class="action-alert">
-              <span nz-icon nzType="bell" style="color:#d97706"></span>
-              <span>Bạn có yêu cầu kèm cặp mới — vui lòng xác nhận hoặc từ chối:</span>
-              <div class="action-btns">
-                <button nz-button nzType="primary" nzSize="small" style="background:#059669;border-color:#059669" (click)="acceptAsMentor(pair.id)">
-                  <span nz-icon nzType="check"></span> Chấp nhận
-                </button>
-                <button nz-button nzDanger nzSize="small" (click)="openRejectMentor(pair.id)">
-                  <span nz-icon nzType="close"></span> Từ chối
-                </button>
-              </div>
-            </div>
-          }
-
-          @if (isPendingLmAction(pair)) {
-            <div class="action-alert action-alert--hr">
-              <span nz-icon nzType="user" style="color:#7c3aed"></span>
-              <span>Yêu cầu kèm cặp đang chờ bạn phê duyệt (Line Manager):</span>
-              <div class="action-btns">
-                <button nz-button nzType="primary" nzSize="small" style="background:#7c3aed;border-color:#7c3aed" (click)="respondAsApprover(pair.id, true, 'lm')">
-                  <span nz-icon nzType="check"></span> Phê duyệt
-                </button>
-                <button nz-button nzDanger nzSize="small" (click)="respondAsApprover(pair.id, false, 'lm')">
-                  <span nz-icon nzType="close"></span> Từ chối
-                </button>
-              </div>
-            </div>
-          }
-
-          @if (isPendingHrAction(pair)) {
-            <div class="action-alert action-alert--admin">
-              <span nz-icon nzType="safety" style="color:#0891b2"></span>
-              <span>Yêu cầu kèm cặp đang chờ phê duyệt HR:</span>
-              <div class="action-btns">
-                <button nz-button nzType="primary" nzSize="small" style="background:#0891b2;border-color:#0891b2" (click)="respondAsApprover(pair.id, true, 'hr')">
-                  <span nz-icon nzType="check"></span> Phê duyệt HR
-                </button>
-                <button nz-button nzDanger nzSize="small" (click)="respondAsApprover(pair.id, false, 'hr')">
-                  <span nz-icon nzType="close"></span> Từ chối
-                </button>
-              </div>
-            </div>
-          }
-
-          <!-- Session log section -->
-          <div class="sessions-section">
-            <div class="sessions-header">
-              <h3 class="sessions-title">
-                <span nz-icon nzType="book" style="margin-right:8px;color:#4f46e5"></span>
-                Nhật ký buổi kèm cặp
-                <span class="sessions-count">{{ sessions().length }}</span>
-              </h3>
-              @if (canLogSession(pair)) {
-                <button nz-button nzType="primary" class="btn-add-session" nzSize="small" (click)="openLogSession()">
-                  <span nz-icon nzType="plus"></span> Thêm buổi mới
-                </button>
-              }
-            </div>
-
-            @if (loadingSessions()) {
-              <div style="text-align:center;padding:40px"><nz-spin nzSimple></nz-spin></div>
-            } @else if (sessions().length === 0) {
-              <div class="sessions-empty">
-                <span nz-icon nzType="calendar" style="font-size:32px;color:#d1d5db"></span>
-                <p>Chưa có buổi kèm cặp nào được ghi nhận</p>
-                @if (canLogSession(pair)) {
-                  <button nz-button nzType="primary" class="btn-create" nzSize="small" (click)="openLogSession()">
-                    <span nz-icon nzType="plus"></span> Ghi nhận buổi đầu tiên
-                  </button>
+          <!-- Status breakdown bar -->
+          @if (totalPairsCount() > 0) {
+            <div class="ov-section">
+              <div class="ov-section-title">Phân bổ theo trạng thái</div>
+              <div class="ov-breakdown-bar">
+                @if (activePairsCount() > 0) {
+                  <div class="obb-seg obb-blue" [style.flex]="activePairsCount()"
+                       nz-tooltip [nzTooltipTitle]="'Đang kèm: ' + activePairsCount()"></div>
+                }
+                @if (pendingTotalCount() > 0) {
+                  <div class="obb-seg obb-orange" [style.flex]="pendingTotalCount()"
+                       nz-tooltip [nzTooltipTitle]="'Chờ duyệt: ' + pendingTotalCount()"></div>
+                }
+                @if (completedCount() > 0) {
+                  <div class="obb-seg obb-green" [style.flex]="completedCount()"
+                       nz-tooltip [nzTooltipTitle]="'Hoàn thành: ' + completedCount()"></div>
                 }
               </div>
-            } @else {
-              <div class="session-list">
-                @for (session of sessions(); track session.id) {
-                  <div class="session-entry">
-                    <div class="se-dot" [style.background]="sessionStatusColor(session.status)"></div>
-                    <div class="se-body">
-                      <div class="se-top-row">
-                        <span class="se-date">{{ formatDate(session.session_date) }}</span>
-                        <span class="se-duration">{{ formatDuration(session.duration_minutes) }}</span>
-                        <span class="se-status" [style.color]="sessionStatusColor(session.status)">
-                          @if (session.status === 'confirmed' || session.status === 'auto_confirmed') {
-                            <span nz-icon nzType="check-circle" nzTheme="fill"></span>
-                          } @else {
-                            <span nz-icon nzType="clock-circle"></span>
-                          }
-                          {{ sessionStatusLabel(session.status) }}
-                        </span>
-                        @if (canConfirmSession(pair, session)) {
-                          <button nz-button nzType="link" nzSize="small" (click)="openConfirmSession(session.id)">
-                            Xác nhận
-                          </button>
-                        }
-                      </div>
-                      <p class="se-title">{{ session.title }}</p>
-                      @if (session.mentee_notes) {
-                        <p class="se-notes">{{ session.mentee_notes }}</p>
-                      }
-                      @if (session.mentor_feedback) {
-                        <div class="se-feedback">
-                          <span nz-icon nzType="message" style="margin-right:4px;color:#4f46e5"></span>
-                          <em>{{ session.mentor_feedback }}</em>
+              <div class="ov-breakdown-legend">
+                <span class="obl-item"><span class="obl-dot" style="background:#3b82f6"></span>Đang kèm</span>
+                <span class="obl-item"><span class="obl-dot" style="background:#f59e0b"></span>Chờ duyệt</span>
+                <span class="obl-item"><span class="obl-dot" style="background:#10b981"></span>Hoàn thành</span>
+              </div>
+            </div>
+          }
+
+          <!-- Top tables -->
+          <div class="ov-tables">
+
+            <!-- Top Mentors -->
+            <div class="ov-table-block">
+              <div class="ov-section-title">
+                <span nz-icon nzType="star" nzTheme="fill" style="color:#f59e0b;margin-right:6px"></span>
+                Top Mentor
+              </div>
+              @if (topMentors().length === 0) {
+                <div class="ov-empty">Chưa có dữ liệu</div>
+              } @else {
+                <div class="ov-table">
+                  <div class="ovt-header">
+                    <span>Mentor</span><span>Đang kèm</span><span>Hoàn thành</span>
+                  </div>
+                  @for (m of topMentors(); track m.id; let i = $index) {
+                    <div class="ovt-row">
+                      <div class="ovt-person">
+                        <span class="ovt-rank">#{{ i + 1 }}</span>
+                        <app-avatar [name]="m.name" [size]="28"></app-avatar>
+                        <div class="ovt-name-block">
+                          <span class="ovt-name">{{ m.name }}</span>
+                          <span class="ovt-pos">{{ m.position }}</span>
                         </div>
+                      </div>
+                      <span class="ovt-num blue">{{ m.active }}</span>
+                      <span class="ovt-num green">{{ m.completed }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Top Mentees (nhiều cặp) -->
+            <div class="ov-table-block">
+              <div class="ov-section-title">
+                <span nz-icon nzType="rise" style="color:#6366f1;margin-right:6px"></span>
+                Top Mentee tích cực
+              </div>
+              @if (topMentees().length === 0) {
+                <div class="ov-empty">Chưa có mentee với nhiều hơn 1 cặp</div>
+              } @else {
+                <div class="ov-table">
+                  <div class="ovt-header">
+                    <span>Mentee</span><span colspan="2">Số lần tham gia</span>
+                  </div>
+                  @for (m of topMentees(); track m.id; let i = $index) {
+                    <div class="ovt-row">
+                      <div class="ovt-person">
+                        <span class="ovt-rank">#{{ i + 1 }}</span>
+                        <app-avatar [name]="m.name" [size]="28"></app-avatar>
+                        <div class="ovt-name-block">
+                          <span class="ovt-name">{{ m.name }}</span>
+                          <span class="ovt-pos">{{ m.position }}</span>
+                        </div>
+                      </div>
+                      <span class="ovt-num purple">{{ m.count }} cặp</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+          </div>
+        </div>
+      }
+
+      <!-- ── PAIR MASTER-DETAIL (Đang kèm / Chờ duyệt / Lịch sử) ─────────── -->
+      @if (activeTab() !== 'overview') {
+        <div class="pair-layout">
+
+          <!-- Pair list sidebar -->
+          <aside class="pair-sidebar">
+            <div class="ps-header">
+              <span class="ps-count">{{ currentTabPairs.length }} cặp</span>
+            </div>
+            <div class="pair-list">
+              @for (pair of currentTabPairs; track pair.id) {
+                <div class="pair-item" [class.selected]="selectedPairId() === pair.id" (click)="selectPair(pair.id)">
+                  <div class="pi-row">
+                    <app-avatar [name]="pair.mentor_name" [size]="32"></app-avatar>
+                    <div class="pi-names">
+                      <span class="pi-mentor">{{ pair.mentor_name }}</span>
+                      <span class="pi-arrow">→</span>
+                      <span class="pi-mentee">{{ pair.mentee_name }}</span>
+                    </div>
+                    @if (activeTab() === 'pending' && myActionRequired(pair)) {
+                      <span class="pi-action-dot" nz-tooltip nzTooltipTitle="Cần bạn xử lý"></span>
+                    }
+                  </div>
+
+                  <!-- Step tracker — pending tab only -->
+                  @if (activeTab() === 'pending') {
+                    <div class="pi-steps">
+                      <div class="pis-step" [class.done]="pendingStepIndex(pair) > 0" [class.active]="pendingStepIndex(pair) === 0">
+                        <span class="pis-dot"></span><span class="pis-lbl">Mentor</span>
+                      </div>
+                      <div class="pis-line" [class.done]="pendingStepIndex(pair) > 0"></div>
+                      <div class="pis-step" [class.done]="pendingStepIndex(pair) > 1" [class.active]="pendingStepIndex(pair) === 1">
+                        <span class="pis-dot"></span><span class="pis-lbl">LM</span>
+                      </div>
+                      <div class="pis-line" [class.done]="pendingStepIndex(pair) > 1"></div>
+                      <div class="pis-step" [class.done]="pendingStepIndex(pair) > 2" [class.active]="pendingStepIndex(pair) === 2">
+                        <span class="pis-dot"></span><span class="pis-lbl">HR</span>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="pi-meta">
+                      <nz-tag [nzColor]="statusColor(pair.status)" nzSize="small">{{ statusLabel(pair.status) }}</nz-tag>
+                      @if (pair.skill_labels?.length) {
+                        <span class="pi-skill">{{ pair.skill_labels[0] }}{{ pair.skill_labels.length > 1 ? ' +' + (pair.skill_labels.length - 1) : '' }}</span>
                       }
                     </div>
+                  }
+                </div>
+              }
+
+              @if (currentTabPairs.length === 0) {
+                <div class="list-empty">
+                  @if (activeTab() === 'active') { Chưa có cặp kèm cặp đang hoạt động }
+                  @else if (activeTab() === 'pending') { Không có yêu cầu nào đang chờ }
+                  @else { Chưa có cặp nào hoàn thành }
+                </div>
+              }
+            </div>
+          </aside>
+
+          <!-- Pair detail -->
+          <main class="pair-detail">
+            @if (selectedPair(); as pair) {
+
+              <!-- Pair header card -->
+              <div class="pair-header-card">
+                <div class="phc-people">
+                  <div class="phc-person">
+                    <app-avatar [name]="pair.mentor_name" [size]="52"></app-avatar>
+                    <div class="phc-info">
+                      <span class="phc-name">{{ pair.mentor_name }}</span>
+                      <span class="phc-pos">{{ pair.mentor_position }}</span>
+                      <span class="phc-role mentor-badge">MENTOR</span>
+                    </div>
+                  </div>
+                  <div class="phc-arrow">
+                    <span nz-icon nzType="arrow-right" nzTheme="outline"></span>
+                  </div>
+                  <div class="phc-person">
+                    <app-avatar [name]="pair.mentee_name" [size]="52"></app-avatar>
+                    <div class="phc-info">
+                      <span class="phc-name">{{ pair.mentee_name }}</span>
+                      <span class="phc-pos">{{ pair.mentee_position }}</span>
+                      <span class="phc-role mentee-badge">MENTEE</span>
+                    </div>
+                  </div>
+                  <div class="phc-meta">
+                    <div class="meta-item">
+                      <span class="meta-label">Bắt đầu</span>
+                      <span class="meta-val">{{ formatDate(pair.start_date) }}</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-label">Thời lượng</span>
+                      <span class="meta-val">{{ pair.duration_months ?? '—' }} tháng</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-label">Trạng thái</span>
+                      <nz-tag [nzColor]="statusColor(pair.status)">{{ statusLabel(pair.status) }}</nz-tag>
+                    </div>
+                  </div>
+                </div>
+
+                @if (pair.skill_labels?.length) {
+                  <div class="phc-skills">
+                    <span nz-icon nzType="bulb" style="color:#4f46e5;margin-right:6px"></span>
+                    <span class="skills-label">Phát triển:</span>
+                    @for (label of pair.skill_labels; track label) {
+                      <nz-tag nzColor="geekblue">{{ label }}</nz-tag>
+                    }
+                  </div>
+                }
+
+                @if (pair.goals) {
+                  <div class="phc-goals">
+                    <span nz-icon nzType="aim" style="color:#059669;margin-right:6px"></span>
+                    <span class="goals-text">{{ pair.goals }}</span>
                   </div>
                 }
               </div>
-            }
-          </div>
 
-        } @else {
-          <!-- No pair selected -->
-          <div class="right-empty">
-            <span nz-icon nzType="team" style="font-size:48px;color:#d1d5db"></span>
-            <p>Chọn một cặp kèm cặp từ danh sách bên trái để xem chi tiết</p>
-            <button nz-button nzType="primary" class="btn-create" (click)="openCreate()">
-              <span nz-icon nzType="plus"></span> Tạo cặp kèm cặp mới
-            </button>
-          </div>
-        }
-      </main>
+              <!-- Hours progress -->
+              <div class="hours-card">
+                <div class="hours-label">
+                  <span nz-icon nzType="clock-circle" style="color:#4f46e5;margin-right:6px"></span>
+                  <strong>Cam kết giờ:</strong>
+                  <span class="hours-num">{{ pair.confirmed_hours }} / {{ totalHours(pair) }} giờ</span>
+                  @if (progressPct(pair) >= 80) {
+                    <nz-tag nzColor="green" style="margin-left:8px">Xuất sắc</nz-tag>
+                  } @else if (progressPct(pair) >= 50) {
+                    <nz-tag nzColor="blue" style="margin-left:8px">Đúng tiến độ</nz-tag>
+                  } @else if (pair.status === 'Active') {
+                    <nz-tag nzColor="orange" style="margin-left:8px">Cần tăng tốc</nz-tag>
+                  }
+                </div>
+                <nz-progress [nzPercent]="progressPct(pair)" [nzStrokeColor]="'#4f46e5'"
+                  [nzShowInfo]="false" nzSize="small" style="flex:1"></nz-progress>
+              </div>
+
+              <!-- Action alerts -->
+              @if (isPendingMentorAction(pair)) {
+                <div class="action-alert">
+                  <span nz-icon nzType="bell" style="color:#d97706"></span>
+                  <span>Bạn có yêu cầu kèm cặp mới — vui lòng xác nhận hoặc từ chối:</span>
+                  <div class="action-btns">
+                    <button nz-button nzType="primary" nzSize="small" style="background:#059669;border-color:#059669" (click)="acceptAsMentor(pair.id)">
+                      <span nz-icon nzType="check"></span> Chấp nhận
+                    </button>
+                    <button nz-button nzDanger nzSize="small" (click)="openRejectMentor(pair.id)">
+                      <span nz-icon nzType="close"></span> Từ chối
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (isPendingLmAction(pair)) {
+                <div class="action-alert action-alert--hr">
+                  <span nz-icon nzType="user" style="color:#7c3aed"></span>
+                  <span>Yêu cầu kèm cặp đang chờ bạn phê duyệt (Line Manager):</span>
+                  <div class="action-btns">
+                    <button nz-button nzType="primary" nzSize="small" style="background:#7c3aed;border-color:#7c3aed" (click)="respondAsApprover(pair.id, true, 'lm')">
+                      <span nz-icon nzType="check"></span> Phê duyệt
+                    </button>
+                    <button nz-button nzDanger nzSize="small" (click)="respondAsApprover(pair.id, false, 'lm')">
+                      <span nz-icon nzType="close"></span> Từ chối
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (isPendingHrAction(pair)) {
+                <div class="action-alert action-alert--admin">
+                  <span nz-icon nzType="safety" style="color:#0891b2"></span>
+                  <span>Yêu cầu kèm cặp đang chờ phê duyệt HR:</span>
+                  <div class="action-btns">
+                    <button nz-button nzType="primary" nzSize="small" style="background:#0891b2;border-color:#0891b2" (click)="respondAsApprover(pair.id, true, 'hr')">
+                      <span nz-icon nzType="check"></span> Phê duyệt HR
+                    </button>
+                    <button nz-button nzDanger nzSize="small" (click)="respondAsApprover(pair.id, false, 'hr')">
+                      <span nz-icon nzType="close"></span> Từ chối
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Session log -->
+              <div class="sessions-section">
+                <div class="sessions-header">
+                  <h3 class="sessions-title">
+                    <span nz-icon nzType="book" style="margin-right:8px;color:#4f46e5"></span>
+                    Nhật ký buổi kèm cặp
+                    <span class="sessions-count">{{ sessions().length }}</span>
+                  </h3>
+                  @if (canLogSession(pair)) {
+                    <button nz-button nzType="primary" class="btn-add-session" nzSize="small" (click)="openLogSession()">
+                      <span nz-icon nzType="plus"></span> Thêm buổi mới
+                    </button>
+                  }
+                </div>
+
+                @if (loadingSessions()) {
+                  <div style="text-align:center;padding:40px"><nz-spin nzSimple></nz-spin></div>
+                } @else if (sessions().length === 0) {
+                  <div class="sessions-empty">
+                    <span nz-icon nzType="calendar" style="font-size:32px;color:#d1d5db"></span>
+                    <p>Chưa có buổi kèm cặp nào được ghi nhận</p>
+                    @if (canLogSession(pair)) {
+                      <button nz-button nzType="primary" class="btn-create" nzSize="small" (click)="openLogSession()">
+                        <span nz-icon nzType="plus"></span> Ghi nhận buổi đầu tiên
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="session-list">
+                    @for (session of sessions(); track session.id) {
+                      <div class="session-entry">
+                        <div class="se-dot" [style.background]="sessionStatusColor(session.status)"></div>
+                        <div class="se-body">
+                          <div class="se-top-row">
+                            <span class="se-date">{{ formatDate(session.session_date) }}</span>
+                            <span class="se-duration">{{ formatDuration(session.duration_minutes) }}</span>
+                            <span class="se-status" [style.color]="sessionStatusColor(session.status)">
+                              @if (session.status === 'confirmed' || session.status === 'auto_confirmed') {
+                                <span nz-icon nzType="check-circle" nzTheme="fill"></span>
+                              } @else {
+                                <span nz-icon nzType="clock-circle"></span>
+                              }
+                              {{ sessionStatusLabel(session.status) }}
+                            </span>
+                            @if (canConfirmSession(pair, session)) {
+                              <button nz-button nzType="link" nzSize="small" (click)="openConfirmSession(session.id)">
+                                Xác nhận
+                              </button>
+                            }
+                          </div>
+                          <p class="se-title">{{ session.title }}</p>
+                          @if (session.mentee_notes) {
+                            <p class="se-notes">{{ session.mentee_notes }}</p>
+                          }
+                          @if (session.mentor_feedback) {
+                            <div class="se-feedback">
+                              <span nz-icon nzType="message" style="margin-right:4px;color:#4f46e5"></span>
+                              <em>{{ session.mentor_feedback }}</em>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+            } @else {
+              <div class="right-empty">
+                <span nz-icon nzType="team" style="font-size:48px;color:#d1d5db"></span>
+                <p>Chọn một cặp kèm cặp từ danh sách để xem chi tiết</p>
+                <button nz-button nzType="primary" class="btn-create" (click)="openCreate()">
+                  <span nz-icon nzType="plus"></span> Tạo cặp kèm cặp mới
+                </button>
+              </div>
+            }
+          </main>
+
+        </div>
+      }
     </div>
   }
 </div>
@@ -564,8 +720,8 @@
 
           <div class="total-hours-preview">
             <span nz-icon nzType="clock-circle" style="color:#4f46e5;margin-right:6px"></span>
-            Tổng cam kết: <strong>{{ draftDurationMonths() * draftMonthlyHours() }} giờ</strong>
-            ({{ draftDurationMonths() }} tháng × {{ draftMonthlyHours() }} giờ/tháng)
+            Tổng cam kết: <strong>{{ (draftDurationMonths() ?? 0) * (draftMonthlyHours() ?? 0) }} giờ</strong>
+            ({{ draftDurationMonths() ?? 0 }} tháng × {{ draftMonthlyHours() ?? 0 }} giờ/tháng)
           </div>
 
           <div class="step-actions">
