@@ -137,10 +137,17 @@ export class PositionsComponent implements OnInit {
   allDepts     = signal<DeptOpt[]>([]);
   allEmployees = signal<EmpOpt[]>([]);
 
-  /** Distinct position titles từ v_employees — nguồn cho dropdown "Tên vị trí". */
+  /**
+   * Distinct position titles — filter theo dept đã chọn (nếu có).
+   * Khi chọn Phòng ban trước, dropdown Tên vị trí chỉ hiện các vị trí thuộc PB đó.
+   */
   titleOptions = computed<string[]>(() => {
+    const deptId = this.draft().department;
+    const source = deptId
+      ? this.allEmployees().filter(e => e.department_id === deptId)
+      : this.allEmployees();
     const set = new Set<string>();
-    for (const e of this.allEmployees()) if (e.position) set.add(e.position);
+    for (const e of source) if (e.position) set.add(e.position);
     return [...set].sort((a, b) => a.localeCompare(b, 'vi'));
   });
 
@@ -701,8 +708,23 @@ export class PositionsComponent implements OnInit {
       ? '' as NewPositionDraft[K]
       : value;
     this.draft.update(d => ({ ...d, [key]: normalized }));
+
     if (key === 'title') {
       this._applyTitleAutoFill(normalized as string);
+    }
+
+    if (key === 'department') {
+      // Khi đổi Phòng ban: clear holder + title nếu không thuộc PB mới (tránh inconsistency)
+      const newDeptId = normalized as string | null;
+      const d = this.draft();
+      const holder = this.allEmployees().find(e => e.id === d.current_holder_id);
+      const holderWrongDept = holder && newDeptId && holder.department_id !== newDeptId;
+      if (holderWrongDept) {
+        this.draft.update(dd => ({ ...dd, current_holder: '', current_holder_id: null, title: '' }));
+        this.availableCompetencies.set([...this.allCompetencies]);
+        this.selectedCompetencies.set([]);
+        this.lockedCompetencyKeys.set(new Set());
+      }
     }
   }
 
@@ -825,14 +847,27 @@ export class PositionsComponent implements OnInit {
     return LABELS[key] ?? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  /** Khi user chọn employee từ dropdown "Đương nhiệm" — lưu cả id + name. */
+  /**
+   * Khi user chọn employee từ dropdown "Đương nhiệm" — bidirectional fill:
+   * tự động load Phòng ban + Tên vị trí từ hồ sơ nhân viên đó.
+   */
   selectHolder(empId: string | null): void {
     if (!empId) {
       this.draft.update(d => ({ ...d, current_holder: '', current_holder_id: null }));
       return;
     }
     const e = this.allEmployees().find(x => x.id === empId);
-    if (e) this.draft.update(d => ({ ...d, current_holder: e.full_name, current_holder_id: e.id }));
+    if (!e) return;
+    this.draft.update(d => ({
+      ...d,
+      current_holder:    e.full_name,
+      current_holder_id: e.id,
+      // Bidirectional: fill dept + title từ nhân viên được chọn
+      department: e.department_id ?? d.department,
+      title:      e.position    || d.title,
+    }));
+    // Load competencies + lock từ assessment data của nhân viên
+    this._loadCompetenciesFromEmployee(e);
   }
 
   onDropCompetency(event: CdkDragDrop<Competency[]>): void {
