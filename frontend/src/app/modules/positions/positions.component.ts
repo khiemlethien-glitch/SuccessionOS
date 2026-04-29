@@ -1018,8 +1018,9 @@ export class PositionsComponent implements OnInit {
         } : null);
       }
       this.closeFindSuccessor();
-    } catch {
-      this.msg.error('Lỗi khi lưu — kiểm tra RLS Supabase');
+    } catch (e) {
+      console.error('[positions] fsConfirmAdd failed:', e);
+      this.msg.error('Lỗi khi lưu người kế thừa — vui lòng thử lại');
     } finally {
       this.fsSaving.set(false);
     }
@@ -1143,7 +1144,7 @@ export class PositionsComponent implements OnInit {
         this.msg.success('Đã cập nhật vị trí');
       } else {
         // Thông báo nhẹ — view mode đã hiển thị đúng, chỉ DB chưa đồng bộ
-        this.msg.warning('Hiển thị đã cập nhật — lưu DB chưa thành công (kiểm tra migration RLS)');
+        this.msg.warning('Hiển thị đã cập nhật — lưu DB chưa thành công, vui lòng thử lại');
       }
       return;
     }

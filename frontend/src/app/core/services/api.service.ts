@@ -62,7 +62,8 @@ class QueryBuilder {
     this._method = 'POST';
     this._body = Array.isArray(body) ? body : [body];
     if (options?.onConflict) {
-      this._filters.push(`on_conflict=${encodeURIComponent(options.onConflict)}`);
+      // Store raw — url.searchParams.append() handles encoding (no pre-encode to avoid %25 double-encoding)
+      this._filters.push(`on_conflict=${options.onConflict}`);
     }
     (this as any)._isUpsert = true;
     return this;
