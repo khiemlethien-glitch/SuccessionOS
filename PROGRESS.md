@@ -167,6 +167,20 @@ canSeeSettingsTab = isAdmin()
 
 ## 🗂️ Lịch sử task gần nhất
 
+### 2026-04-29 — DB: Comprehensive schema audit + fix (commit f34e29c)
+- **Root cause phát hiện:** Sau VPS reset, nhiều column bị mất DEFAULT và nhiều column chưa bao giờ được tạo trên DB nội bộ (khác với Supabase schema cũ). Dẫn đến hàng loạt lỗi 400/406.
+- **DB columns bổ sung:**
+  - `assessment_cycles.is_active bool DEFAULT true` — cycles service trả `[]`
+  - `idp_plans.target_position text` — IDP create/update 400
+  - `mentoring_pairs.initiator_id uuid` — mentoring pair create 400
+  - `user_profiles.status text DEFAULT 'active'` — admin user list error
+  - `user_profiles.last_sign_in_at timestamptz` — admin user list error
+- **Views fixed:** `v_nine_box` recreated với `risk_band` column (9-box grid thiếu column)
+- **UNIQUE constraints thêm:** `career_roadmaps(employee_id,track)` + `succession_plans(position_id,talent_id)` — upsert cần UNIQUE để ON CONFLICT hoạt động
+- **ApiService.QueryBuilder:** Thêm `.upsert(body, {onConflict})` method — BỊ THIẾU HOÀN TOÀN. Tất cả upsert calls (score-config, succession, career-roadmap, employee-extras, assessment) đều fail silently trước đây. Gửi `Prefer: resolution=merge-duplicates` + `?on_conflict=` URL param.
+- **Các lỗi nhỏ khác:** `audit_logs.timestamp` → `created_at`; `maybeSingle()` 406 noise → array mode; `idp_goals` table created; `uuid DEFAULT gen_random_uuid()` cho 14 tables; `key_positions risk_level` computed dynamically
+- **Migration:** `20260429_comprehensive_schema_fix.sql` — idempotent, safe to re-run
+
 ### 2026-04-29 — DB: Recreate views + fix mentoring_sessions schema
 - **Root cause:** VPS reset xóa toàn bộ PostgreSQL views (không lưu trong migration files) → PostgREST trả 404 cho mọi request tới `v_employees`, `v_nine_box`; `mentoring_sessions` cũng chưa được tạo
 - **Fix 1:** Tạo migration `20260429_recreate_views.sql` → apply thành công: `v_employees` (200 rows), `v_nine_box` (200 rows), `mentoring_sessions` (0 rows, new)
