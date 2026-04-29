@@ -706,11 +706,14 @@ export class PositionsComponent implements OnInit {
     }
   }
 
-  /** Khi chọn title: auto-fill + lock dept/holder; load comps từ vị trí đã có nếu match. */
+  /** Khi chọn title: auto-fill + lock dept/holder; load comps từ comp_target_* của nhân viên. */
   private _applyTitleAutoFill(title: string): void {
     if (!title) {
-      // Title bị xóa → reset dept + holder
+      // Title bị xóa → reset dept + holder + competencies
       this.draft.update(d => ({ ...d, department: null, current_holder: '', current_holder_id: null }));
+      this.availableCompetencies.set([...this.allCompetencies]);
+      this.selectedCompetencies.set([]);
+      this.lockedCompetencyKeys.set(new Set());
       return;
     }
     // titleMatchedEmployee computed đã cập nhật vì draft.title đã được set
@@ -722,13 +725,9 @@ export class PositionsComponent implements OnInit {
         current_holder:    emp.full_name,
         current_holder_id: emp.id,
       }));
-    }
-    // Nếu đã có key_position với title này → load comps + scores từ DB
-    const existingPos = this.positions().find(p => p.title === title);
-    if (existingPos) {
-      this._loadCompetenciesFromPosition(existingPos);
-    } else if (emp) {
-      // Chưa có key_position → fallback: dùng comp_target_* của nhân viên đương nhiệm
+      // CREATE mode: luôn dùng comp_target_* của nhân viên làm default.
+      // KHÔNG dùng key_positions hiện tại (state người dùng đã sửa) — tránh feedback loop
+      // khiến "mặc định" thay đổi theo từng lần tạo/sửa trước đó.
       this._loadCompetenciesFromEmployee(emp);
     }
   }
